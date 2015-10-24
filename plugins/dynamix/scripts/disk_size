@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# usage: disk_size <disk-name> <output-file>
+
+# Creates an "ini" output file suitable for php parse_ini_function which describes
+# the size of <user-share> takes up on the selected disk.
+# Since this uses the 'du' command, could take awhile.
+
+disk="$1"
+output="$2"
+total=0;
+
+echo "Computing share usage for $disk..."
+
+rm -f "$output"
+
+function check {
+  folder="/mnt/$2/$1"
+  if [[ -e $folder ]] ; then
+    echo "calculating $1 usage..."
+    size=$(du -s "$folder"|cut -f1)
+    echo "$1=$size" >> "$output"
+    total=$(($total + $size))
+  fi
+}
+
+for share in /mnt/user/*; do
+ [[ -d $share ]] && check $(basename "$share") $disk
+done
+echo "total=$total" >>"$output"
+
+echo "total disk usage: $total"

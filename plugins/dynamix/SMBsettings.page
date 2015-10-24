@@ -1,0 +1,49 @@
+Menu="SMB:1"
+Title="SMB Settings"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<form markdown="1" name="SMBEnable" method="POST" action="/update.htm" target="progressFrame">
+
+Enable SMB:
+: <select name="shareSMBEnabled" size="1" <?if ($var['fsState']=="Started"):?>disabled<?endif;?>>
+  <?=mk_option($var['shareSMBEnabled'], "no", "No")?>
+  <?=mk_option($var['shareSMBEnabled'], "yes", "Yes (Workgroup)")?>
+  <?=mk_option($var['shareSMBEnabled'], "ads", "Yes (Active Directory)")?>
+  </select>
+
+> Select 'Yes (Workgroup)' to enable SMB (Windows Networking) protocol support. This
+> also enables Windows host discovery.
+>
+> Select 'Yes (Active Directory)' to enable Active Directory integration.
+
+Hide "dot" files:
+: <select name="hideDotFiles" size="1" <?if ($var['fsState']=="Started"):?>disabled<?endif;?>>
+  <?=mk_option($var['hideDotFiles'], "no", "No");?>
+  <?=mk_option($var['hideDotFiles'], "yes", "Yes");?>
+  </select>
+
+> If set to 'Yes' then files starting with a '.' (dot) will appear as *hidden files* and normally
+> will not appear in Windows folder lists unless you have "Show hidden files, folders, and drives" enabled
+> in Windows Folder Options.
+
+> If set to 'No' then dot files will appear in folder lists the same as any other file.
+
+<?if ($var['fsState']=="Started"):?>
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply" disabled><input type="button" value="Done" onclick="done()">Array must be **Stopped** to change
+<?else:?>
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply"><input type="button" value="Done" onclick="done()">
+<?endif;?>
+</form>

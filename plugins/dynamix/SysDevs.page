@@ -1,0 +1,51 @@
+Menu="UNRAID-OS"
+Title="System Devices"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+**PCI Devices**
+
+> This displays the output of the `lspci` command.  The numeric identifiers are used to configure PCI pass-through.
+
+<pre><?=shell_exec("lspci")?></pre>
+
+**IOMMU Groups**
+
+> This displays a list of IOMMU groups available on your system.
+
+<? if (strpos(file_get_contents('/proc/cmdline'), 'pcie_acs_override=') !== false) { ?>
+<p class="notice">Warning: Your system has booted with the PCIe ACS Override setting enabled. The below list doesn't not reflect the way IOMMU would naturally group devices. To see natural IOMMU groups for your hardware, go to the <b><a href="/Settings/VMSettings">VM Settings</a></b> page and set the <b>PCIe ACS Override</b> setting to <b>No</b>.</p>
+<? } ?>
+<pre><?
+	$iommu_groups = shell_exec("find /sys/kernel/iommu_groups/ -type l");
+	if (empty($iommu_groups)) {
+		echo 'No IOMMU Groups';
+	} else {
+		echo $iommu_groups;
+	}
+?></pre>
+
+**USB Devices**
+
+> This displays the output of the `lsusb` command.  The numeric identifiers are used to configure PCI pass-through.
+
+<pre><?=shell_exec("lsusb")?></pre>
+
+**SCSI Devices**
+
+> This displays the output of the `lsscsi` command.  The numeric identifiers are used to configure PCI pass-through.
+>
+> Note that linux groups ATA, SATA and SAS devices with true SCSI devices.
+
+<pre><?=shell_exec("lsscsi")?></pre>
+<input type="button" value="Done" onclick="done()">

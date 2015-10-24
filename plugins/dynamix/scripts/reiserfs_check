@@ -1,0 +1,23 @@
+#!/bin/bash
+# reiserfs_check start <dev> <id> <options>
+# reiserfs_check status <dev> <id>
+# reiserfs_check cancel <dev> 
+
+case "$1" in
+'start')
+  # using /var/lib because that's where btrfs puts status
+  exec /sbin/reiserfsck $2 --yes --quiet $4 &> /var/lib/reiserfs/check.status.$3 &
+;;
+'status')
+  if [ -f /var/lib/reiserfs/check.status.$3 ]; then
+    cat /var/lib/reiserfs/check.status.$3
+  else
+    echo "Not available"
+  fi;
+  pgrep -f "/sbin/reiserfsck $2" >/dev/null
+;;
+'cancel')
+  pkill -f "/sbin/reiserfsck $2"
+  echo "Cancelled" >> /var/lib/reiserfs/check.status.$3
+;;
+esac

@@ -1,0 +1,52 @@
+Menu="NetworkServices:999"
+Title="FTP Server"
+Icon="ftp-server.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$ftp_userlist_file = "/boot/config/vsftpd.user_list";
+$ftp_userlist = "";
+if (file_exists($ftp_userlist_file)) {
+  $ftp_userlist = str_replace("\n", " ", trim(file_get_contents($ftp_userlist_file)));
+  if ($ftp_userlist === false) $ftp_userlist = "";
+}
+?>
+<script>
+$(function() {
+  showStatus('21');
+});
+</script>
+
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#command" value="/webGui/scripts/ftpusers">
+
+FTP user(s):
+: <input type="text" name="#arg[1]" size="40" maxlength="80" value="<?=$ftp_userlist;?>">
+
+> Enter the user names (separated by spaces) permitted to acces the server using [FTP](/Help).
+> To disable FTP, clear this setting.
+>
+> **Note:** do not enter user name `root` since this may cause problems in the future.
+
+&nbsp;
+: <input type="submit" value="Apply"><input type="button" value="Done" onclick="done()">
+
+</form>
+
+> ### Overview
+>
+> unRAID includes the popular `vsftpd` FTP server.  The configuration of `vsftp` is currently very
+> simple: **All** user names entered above are permitted to access the server via FTP and will have
+> *full read/write/delete access* to the entire server, so use with caution.

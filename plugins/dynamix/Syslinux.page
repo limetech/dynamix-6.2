@@ -1,0 +1,47 @@
+Menu="Flash"
+Title="Syslinux Configuration"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+> Use this page to make changes to your `syslinux.cfg` file.  You will
+> need to reboot your server for these changes to take effect.
+
+<?
+$file = "/boot/syslinux/syslinux.cfg";
+$text = file_get_contents($file);
+$default_text = @file_get_contents("$file-");
+if ($default_text === false) $default_text = $text;
+?>
+<script>
+function setDefault(form) {
+  form.elements['text'].value = <?=json_encode($default_text);?>;
+}
+</script>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#include" value="/webGui/include/update.file.php">
+<input type="hidden" name="#file" value="<?=$file;?>">
+Syslinux configuration:
+
+: <textarea spellcheck="false" cols="80" rows="22" maxlength="2048" name="text" style="font-family:bitstream;width:66%"><?=$text;?></textarea>
+
+<input type="button" value="Default" onclick="setDefault(this.form)">
+: <input type="submit" value="Apply"/><input type="button" value="Done" onclick="done()">
+
+> Click the **Apply** button to commit the current edits.  Click **Reset** to
+> undo any changes you make (before Saving). Click **Done** to exit this page.
+>
+> Click the **Default** button to initialize the edit box with the
+> factory-default contents.  You still need to click **Apply** in order to
+>commit the change.
+
+</form>

@@ -1,0 +1,473 @@
+Menu="Device:1"
+Title="$name Settings"
+Png="devicesettings.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$date = date('Ymd-Hi');
+if (isset($disks[$name])) {
+  $disk = $disks[$name];
+  $dev  = $disk['device'];
+  $file = "{$disk['id']}-$date.txt";
+} else {
+  $disk = [];
+  $dev  = $name;
+  $file = exec("ls -l /dev/disk/by-id/[au]*|grep '$name\$'|grep -Po '[ata|usb]-\K\S+'")."-$date.txt";
+}
+$on   = exec("hdparm -C /dev/$dev|grep -Pom1 'active'");
+$zip = str_replace(' ','_',strtolower($var['NAME']))."-smart-$date.zip";
+$refs = array(); $n = 0;
+$slot = strpos($disk['status'],'_NP')===false;
+
+foreach ($disks as $ref) {
+  if ($ref['name']=='flash' || strpos($ref['status'],'_NP')) continue;
+  $refs[] = $ref['name'];
+  if ($ref['name']==$name) $i = $n;
+  $n++;
+}
+$end  = count($refs)-1;
+$prev = $i>0 ? $refs[$i-1] : $refs[$end];
+$next = $i<$end ? $refs[$i+1] : $refs[0];
+?>
+
+<script>
+var ctrl = "<span class='status vhshift'><a href='/Main/Device?name=<?=$prev?>' title='previous device'><button type='button' style='margin-right:4px'><i class='fa fa-chevron-left'></i></button></a><a href='/Main/Device?name=<?=$next?>' title='next device'><button type='button'><i class='fa fa-chevron-right'></i></button></a></span>";
+
+function cleanUp() {
+  if (document.hasFocus()) {
+    $('input[value="Downloading..."]').val('Download').prop('disabled',false);
+    $.post('/webGui/include/Download.php',{cmd:'delete',file:'<?=$file?>'});
+    $.post('/webGui/include/Download.php',{cmd:'delete',file:'<?=$zip?>'});
+  } else {
+    setTimeout(cleanUp,4000);
+  }
+}
+function saveSMART() {
+  $('input[value="Download"]').val('Downloading...').prop('disabled',true);
+  $.post('/webGui/include/SmartInfo.php',{cmd:'save',port:'<?=$dev?>',file:'<?=$file?>'}, function() {
+    $.post('/webGui/include/Download.php',{cmd:'save',source:'<?=$file?>',file:'<?=$zip?>'},function(zip) {
+      location = zip;
+      setTimeout(cleanUp,4000);
+    });
+  });
+}
+function testUpdate(init) {
+  $.post('/webGui/include/SmartInfo.php',{cmd:'update',port:'<?=$dev?>',name:'<?=$disk['name']?>'},function(data) {
+    $('#test_result').html(data);
+    if (data.indexOf('%')>=0) {
+      if (!init) timers.tester = setTimeout(testUpdate, 3000);
+    } else {
+      $('#short_test').val('Start');
+      $('#long_test').val('Start');
+<?if ($on):?>
+      $('#short_test').removeAttr('disabled');
+      $('#long_test').removeAttr('disabled');
+<?endif;?>
+      $.removeCookie('tester.<?=$dev?>',{path:'/'});
+    }
+  });
+}
+function selftestLog() {
+  $('#selftest').toggle('slow');
+  var text = $('#toggle_log').val()=='Show' ? 'Hide' : 'Show';
+  $('#toggle_log').val(text);
+}
+function errorLog() {
+  $('#errorlog').toggle('slow');
+  var text = $('#toggle_error').val()=='Show' ? 'Hide' : 'Show';
+  $('#toggle_error').val(text);
+}
+function startShortTest() {
+  if ($('#short_test').val()=='Start') {
+    $('#short_test').val('Stop');
+    $('#long_test').attr('disabled','disabled');
+    $.cookie('tester.<?=$dev?>','short',{path:'/'});
+    $.post('/webGui/include/SmartInfo.php',{cmd:'short',port:'<?=$dev?>'},function() {timers.tester = setTimeout(testUpdate,0);});
+  } else {
+    clearTimeout(timers.tester);
+    $.removeCookie('tester.<?=$dev?>',{path:'/'});
+    $.post('/webGui/include/SmartInfo.php',{cmd:'stop',port:'<?=$dev?>'}, function() {setTimeout(testUpdate,0);});
+  }
+}
+function startLongTest() {
+  if ($('#long_test').val()=='Start') {
+    $('#long_test').val('Stop');
+    $('#short_test').attr('disabled','disabled');
+    $.cookie('tester.<?=$dev?>','long',{path:'/'});
+    $.post('/webGui/include/SmartInfo.php',{cmd:'long',port:'<?=$dev?>'},function(){timers.tester = setTimeout(testUpdate,0);});
+  } else {
+    clearTimeout(timers.tester);
+    $.removeCookie('tester.<?=$dev?>',{path:'/'});
+    $.post('/webGui/include/SmartInfo.php',{cmd:'stop',port:'<?=$dev?>'}, function() {setTimeout(testUpdate,0);});
+  }
+}
+$(function() {
+<?if ($tabbed):?>
+  $('.tabs').append(ctrl);
+<?else:?>
+  $('div[id=title]:not(".nocontrol")').each(function(){$(this).append(ctrl);});
+<?endif;?>
+<?if ($slot):?>
+  var tester = $.cookie('tester.<?=$dev?>');
+  testUpdate(tester===undefined);
+  if (tester !== undefined) $('#'+tester+'_test').val('Stop').removeAttr('disabled');
+<?if ($on):?>
+  $('#toggle_log').removeAttr('disabled');
+  $('#toggle_error').removeAttr('disabled');
+  $.post('/webGui/include/SmartInfo.php',{cmd:'selftest',port:'<?=$dev?>'},function(data) { $('#selftest').html(data); });
+  $.post('/webGui/include/SmartInfo.php',{cmd:'errorlog',port:'<?=$dev?>'},function(data) { $('#errorlog').html(data); });
+<?endif;?>
+<?endif;?>
+});
+</script>
+
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+
+Name:
+: <big><?=my_disk($name)?></big>
+
+Partition size:
+: <?=my_number($disk['size'])?> KB (K=1024)
+
+Partition format:
+: <?=$disk['format']?>
+
+<?if ($disk['type']!="Parity"):?>
+<?if ($disk['type']=="Data" || $disk['name']=="cache"):?>
+
+Comments:
+: <input type="text" name="diskComment.<?=$disk['idx'];?>" maxlength="256" value="<?=$disk['comment']?>">
+
+> This text will appear under the *Comments* column for the share in Windows Explorer.
+> Enter anything you like, up to 256 characters.
+
+<?endif;?>
+
+File system status:
+: <?=$disk['fsStatus']?><?if ($disk['fsError']) echo " - {$disk['fsError']}";?>&nbsp;
+
+<?endif;?>
+<?if ($disk['type']=="Data" || ($disk['type']=="Cache" && $var['SYS_CACHE_SLOTS']==1)):?>
+<?if ($var['fsState']=="Stopped"):?>
+
+File system type:
+: <select name="diskFsType.<?=$disk['idx'];?>" size="1">
+  <?=mk_option($disk['fsType'], "auto", "auto")?>
+  <?=mk_option($disk['fsType'], "btrfs", "btrfs")?>
+  <?=mk_option($disk['fsType'], "reiserfs", "reiserfs")?>
+  <?=mk_option($disk['fsType'], "xfs", "xfs")?>
+  </select>
+
+<?else:?>
+
+File system type:
+: <select name="diskFsType.<?=$disk['idx'];?>" size="1" disabled>
+  <?=mk_option($disk['fsType'], "auto", "auto")?>
+  <?=mk_option($disk['fsType'], "btrfs", "btrfs")?>
+  <?=mk_option($disk['fsType'], "reiserfs", "reiserfs")?>
+  <?=mk_option($disk['fsType'], "xfs", "xfs")?>
+  </select> Array must be **Stopped** to change
+
+<?endif;?>
+<?elseif ($disk['type']=="Cache" && $var['SYS_CACHE_SLOTS']>1):?>
+
+File system type:
+: <?=$disk['fsType'];?>&nbsp;
+
+<?endif;?>
+
+Spin down delay:</td>
+: <select name="diskSpindownDelay.<?=$disk['idx']?>" size="1">
+  <?=mk_option($disk['spindownDelay'], "-1", "Use default")?>
+  <?=mk_option($disk['spindownDelay'], "0",  "Never")?>
+  <?=mk_option($disk['spindownDelay'], "15", "15 minutes")?>
+  <?=mk_option($disk['spindownDelay'], "30", "30 minutes")?>
+  <?=mk_option($disk['spindownDelay'], "45", "45 minutes")?>
+  <?=mk_option($disk['spindownDelay'], "1",  "1 hour")?>
+  <?=mk_option($disk['spindownDelay'], "2",  "2 hours")?>
+  <?=mk_option($disk['spindownDelay'], "3",  "3 hours")?>
+  <?=mk_option($disk['spindownDelay'], "4",  "4 hours")?>
+  <?=mk_option($disk['spindownDelay'], "5",  "5 hours")?>
+  <?=mk_option($disk['spindownDelay'], "6",  "6 hours")?>
+  <?=mk_option($disk['spindownDelay'], "7",  "7 hours")?>
+  <?=mk_option($disk['spindownDelay'], "8",  "8 hours")?>
+  <?=mk_option($disk['spindownDelay'], "9",  "9 hours")?>
+  </select>
+
+<?if (($var['spinupGroups']=="yes")&&($disk['name']!="cache")):?>
+
+Spinup group(s):
+: <input type="text" name="diskSpinupGroup.<?=$disk['idx'];?>" maxlength="256" value="<?=$disk['spinupGroup']?>">
+
+<?endif;?>
+
+&nbsp;
+: <input type="submit" name="changeDisk" value="Apply"><input type="button" value="Done" onclick="done()">
+
+</form>
+<?if ($name=="cache" && $var['SYS_CACHE_SLOTS']>1):?>
+
+<div id="title" class="nocontrol"><span class="left"><img src="/plugins/dynamix/icons/poolinformation.png" class="icon">Pool Information</span></div>
+
+btrfs filesystem show:
+: <?echo "<pre>".shell_exec("/sbin/btrfs filesystem show {$disk['uuid']}")."</pre>";?>
+
+<?if ($disk['fsStatus']=="Mounted"):?>
+
+btrfs filesystem df:
+: <?echo "<pre>".shell_exec("/sbin/btrfs filesystem df /mnt/{$disk['name']}")."</pre>";?>
+
+<?endif;?>
+<?if ($var['cacheSbNumDisks']>1):?>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<?if ($disk['fsStatus']=="Mounted"):?>
+<?exec("/usr/local/emhttp/webGui/scripts/btrfs_balance status /mnt/{$disk['name']}", $balance_status, $retval);?>
+
+<div id="title" class="nocontrol"><span class="left"><img src="/plugins/dynamix/icons/balancestatus.png" class="icon">Balance Status</span></div>
+
+btrfs balance status:
+: <?echo "<pre>" . implode("\n", $balance_status) . "</pre>";?>
+
+<?if ($retval != 0):?>
+<input type="hidden" name="#command" value="/webGui/scripts/btrfs_balance">
+<input type="hidden" name="#arg[1]" value="start">
+<input type="hidden" name="#arg[2]" value="/mnt/<?=$disk['name']?>">
+
+&nbsp;
+: <input type="submit" value="Balance"><input type="text" name="#arg[3]" maxlength="256" value="-dconvert=raid1 -mconvert=raid1"> Options (see Help)
+
+> **Balance** will run the *btrfs balance* program to restripe the extents across all pool devices.
+>
+> The default *Options* are appropriate for btrfs-raid1.  Do not change this unless you know what you are doing!
+
+<?else:?>
+<input type="hidden" name="#command" value="/webGui/scripts/btrfs_balance">
+<input type="hidden" name="#arg[1]" value="cancel">
+<input type="hidden" name="#arg[2]" value="/mnt/<?=$disk['name']?>">
+
+&nbsp;
+: <input type="button" value="Refresh" onclick="refresh()"><input type="submit" value="Cancel"> *Running*
+
+> **Cancel** will cancel the balance operation in progress.
+
+<?endif;?>
+<?else:?>
+
+&nbsp;
+: <input type="submit" value="Balance" disabled>
+
+> **Balance** is only available when the Device is Mounted.
+
+<?endif;?>
+</form>
+<?endif;?>
+<?endif;?>
+<?if ($disk['fsType']=="btrfs"):?>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<?if ($disk['fsStatus']=="Mounted"):?>
+<?exec("/usr/local/emhttp/webGui/scripts/btrfs_scrub status /mnt/{$disk['name']}", $scrub_status, $retval);?>
+
+<div id="title" class="nocontrol"><span class="left"><img src="/plugins/dynamix/icons/scrubstatus.png" class="icon">Scrub Status</span></div>
+
+btrfs scrub status:
+: <?echo "<pre>" . implode("\n", $scrub_status) . "</pre>";?>
+
+<?if ($retval != 0):?>
+<input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
+<input type="hidden" name="#arg[1]" value="start">
+<input type="hidden" name="#arg[2]" value="/mnt/<?=$disk['name']?>">
+
+&nbsp;
+: <input type="submit" value="Scrub"><input type="text" name="#arg[3]" maxlength="256" value="-r"> Options (see Help)
+
+> **Scrub** runs the *btrfs scrub* program to check file system integrity.
+>
+> The *Options* field is initialized to include *-r* which specifies read-only.  If repair is needed, you should run
+> a second Scrub pass, removing the *-r* option; this will permit *btrfs scrub* to fix the file system.
+
+<?else:?>
+<input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
+<input type="hidden" name="#arg[1]" value="cancel">
+<input type="hidden" name="#arg[2]" value="/mnt/<?=$disk['name']?>">
+
+&nbsp;
+: <input type="button" value="Refresh" onclick="refresh()"><input type="submit" value="Cancel"> *Running*
+
+> **Cancel** will cancel the Scrub operation in progress.
+
+<?endif;?>
+<?else:?>
+
+&nbsp;
+: <input type="submit" value="Scrub" disabled>
+
+> **Scrub** is only available when the Device is Mounted.
+
+<?endif;?>
+</form>
+<?endif;?>
+<?if ($disk['fsType']=="reiserfs"):?>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<?if ($var['fsState']=="Started" && $var['startMode']=='Maintenance'):?>
+<?exec("/usr/local/emhttp/webGui/scripts/reiserfs_check status /dev/{$disk['deviceSb']} {$disk['id']}", $check_status, $retval);?>
+
+<div id="title" class="nocontrol"><span class="left"><img src="/plugins/dynamix/icons/filesystemstatus.png" class="icon">Check Filesystem Status</span></div>
+
+reiserfsck status:
+: <?echo "<pre>" . implode("\n", $check_status) . "</pre>";?>
+
+<?if ($retval != 0):?>
+<input type="hidden" name="#command" value="/webGui/scripts/reiserfs_check">
+<input type="hidden" name="#arg[1]"  value="start">
+<input type="hidden" name="#arg[2]"  value="/dev/<?=$disk['deviceSb']?>">
+<input type="hidden" name="#arg[3]"  value="<?=$disk['id']?>">
+
+&nbsp;
+: <input type="submit" value="Check"><input type="text" name="#arg[4]" maxlength="256" value=""> Options (see Help)
+
+> **Check Filesystem** will run the *reiserfsck* program to check file system integrity on the device.
+>
+> The *Options* field may be filled in with specific options used to fix problems in the file system. Typically, you
+> first run a Check Filesytem pass leaving *Options* blank.  Upon completion, if *reiserfsck* finds any problems, you must
+> run a second Check Filesystem pass, using a specific option as instructed by the first *reiserfsck* pass.
+>
+> After starting a Check Filesystem, you should Refresh to monitor progress and status.  Depending on
+> how large the file system is, and what errors might be present, the operation can take **a long time** to finish (hours).
+> Not much info is printed in the window, but you can verify the operation is running by observing the read/write counters
+> increasing for the device on the Main page.
+
+<?else:?>
+<input type="hidden" name="#command" value="/webGui/scripts/reiserfs_check">
+<input type="hidden" name="#arg[1]"  value="cancel">
+<input type="hidden" name="#arg[2]"  value="/dev/<?=$disk['deviceSb']?>">
+<input type="hidden" name="#arg[3]"  value="<?=$disk['id']?>">
+
+&nbsp;
+: <input type="button" value="Refresh" onclick="refresh()"><input type="submit" value="Cancel"> *Running*
+
+> **Cancel** will cancel the Check Filesystem operation in progress.
+
+<?endif;?>
+<?else:?>
+
+&nbsp;
+: <input type="submit" value="Check" disabled>
+
+> **Check Fileystem** is only available when array is Started in **Mainenance** mode.
+
+<?endif;?>
+</form>
+<?endif;?>
+<?if ($disk['fsType']=="xfs"):?>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<?if ($var['fsState']=="Started" && $var['startMode']=='Maintenance'):?>
+<?exec("/usr/local/emhttp/webGui/scripts/xfs_check status /dev/{$disk['deviceSb']} {$disk['id']}", $check_status, $retval);?>
+
+<div id="title" class="nocontrol"><span class="left"><img src="/plugins/dynamix/icons/filesystemstatus.png" class="icon">Check Filesystem Status</span></div>
+
+xfs_repair status:
+: <?echo "<pre>" . implode("\n", $check_status) . "</pre>";?>
+
+<?if ($retval != 0):?>
+<input type="hidden" name="#command" value="/webGui/scripts/xfs_check">
+<input type="hidden" name="#arg[1]"  value="start">
+<input type="hidden" name="#arg[2]"  value="/dev/<?=$disk['deviceSb']?>">
+<input type="hidden" name="#arg[3]"  value="<?=$disk['id']?>">
+
+&nbsp;
+: <input type="submit" value="Check"><input type="text" name="#arg[4]" maxlength="256" value="-n"> Options (see Help)
+
+> **Check Filesystem** will run the *xfs_repair* program to check file system integrity on the device.
+>
+> The *Options* field is initialized with *-n* which specifies check-only.  If repair is needed, you should run
+> a second Check Filesystem pass, setting the *Options* blank; this will permit *xfs_repair* to fix the file system.
+>
+> After starting a Check Filesystem, you should Refresh to monitor progress and status.  Depending on
+> how large the file system is, and what errors might be present, the operation can take **a long time** to finish (hours).
+> Not much info is printed in the window, but you can verify the operation is running by observing the read/write counters
+> increasing for the device on the Main page.
+
+<?else:?>
+<input type="hidden" name="#command" value="/webGui/scripts/xfs_check">
+<input type="hidden" name="#arg[1]"  value="cancel">
+<input type="hidden" name="#arg[2]"  value="/dev/<?=$disk['deviceSb']?>">
+
+&nbsp;
+: <input type="button" value="Refresh" onclick="refresh()"><input type="submit" value="Cancel"> *Running*
+
+> **Cancel** will cancel the Check Filesystem operation in progress.
+
+<?endif;?>
+<?else:?>
+
+&nbsp;
+: <input type="submit" value="Check" disabled>
+
+> **Check Fileystem** is only available when array is Started in **Mainenance** mode.
+
+<?endif;?>
+</form>
+<?endif;?>
+
+<div id="title" class="nocontrol"><span class="left"><img src="/plugins/dynamix/icons/self-test.png" class="icon">Self-Test</span></div>
+<div markdown="1">
+Download SMART report:
+: <input type='button' value='Download' onclick='saveSMART()'<?if (!$slot):?> disabled<?endif;?>>
+
+SMART self-test history:
+: <input type="button" value="Show" id="toggle_log" onclick="selftestLog()" disabled>
+
+> Press **Show** to view the self-test history as is kept on the disk itself.
+> This feature is only available when the disk is in active mode.
+
+<pre id="selftest" style="display:none"></pre>
+
+SMART error log:
+: <input type="button" value="Show" id="toggle_error" onclick="errorLog()" disabled>
+
+> Press **Show** to view the error report as is kept on the disk itself.
+> This feature is only available when the disk is in active mode.
+
+<pre id="errorlog" style="display:none"></pre>
+
+SMART short self-test:
+: <input type='button' value='Start' id='short_test' onclick="startShortTest()" disabled>
+
+> Starts a *short* SMART self-test, the estimated duration can be viewed under the *Capabilities* section. This is usually a few minutes.
+>
+> When the disk is spun down, it will abort any running self-test.
+> This feature is only available when the disk is in active mode.
+
+SMART extended self-test:
+: <input type='button' value='Start' id='long_test' onclick="startLongTest()" disabled>
+
+> Starts an *extended* SMART self-test, the estimated duration can be viewed under the *Capabilities* section. This is usually several hours.
+>
+> When the disk is spun down, it will abort any running self-test. It is advised to disable the spin down timer of the disk
+> to avoid interruption of this self-test.
+>
+> This feature is only available when the disk is in active mode.
+
+Last SMART test result:
+<?if ($slot):?>
+: <span id="test_result"></span>
+<?else:?>
+: ---
+<?endif;?>
+
+> When no test is running it will show here the latest obtained self-test result (if available).
+> Otherwise a progress indicator (percentage value) is shown for a running test.
+
+</div>

@@ -1,0 +1,63 @@
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "dynamix">
+<!ENTITY author    "Bergware">
+<!ENTITY version   "2015.09.20">
+<!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/plugins/&name;/&name;.plg">
+]>
+
+<PLUGIN  name="&name;"
+         author="&author;"
+         version="&version;">
+<!--
+Prevent independent update for now
+         pluginURL="&pluginURL;">
+-->
+
+<CHANGES>
+Dynamix webGui v&version;
+-------------------------
+
+Please refer to
+**&lt;a href="https://github.com/limetech/dynamix/commits/master" target="_blank">commit history&lt;/a>**
+on github.
+</CHANGES>
+
+<!--
+Get from github as tarball.
+-->
+<FILE Name="/boot/config/plugins/&name;/&name;-&version;.tar.gz">
+<URL>"https://github.com/limetech/&name;/archive/&version;.tar.gz"</URL>
+</FILE>
+
+<!--
+The 'install' script.
+-->
+<FILE Run="/bin/bash">
+<INLINE>
+rm -r /tmp/plugins/&name;-&version; 2&gt;/dev/null
+tar -xf /boot/config/plugins/&name;/&name;-&version;.tar.gz -C /tmp/plugins
+mv /tmp/plugins/&name;-&version;/* /usr/local/emhttp 2&gt;/dev/null
+for Plugin in /tmp/plugins/&name;-&version;/plugins/* ; do
+  rm -r /usr/local/emhttp/plugins/$(basename $Plugin) 2&gt;/dev/null
+  mv $Plugin /usr/local/emhttp/plugins/$(basename $Plugin)
+done
+rm -r /tmp/plugins/&name;-&version;
+find /boot/config/plugins/&name; -type f -iname "*.tar.gz" ! -iname "&name;-&version;.tar.gz" -delete
+</INLINE>
+</FILE>
+
+<!--
+The 'remove' script.
+-->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+rm -r /boot/config/plugins/&name;/&name;-&version;.tar.gz 2&gt;/dev/null
+echo "*********************"
+echo "Please reboot server."
+echo "*********************"
+</INLINE>
+</FILE>
+
+</PLUGIN>

@@ -1,0 +1,172 @@
+Menu="OtherSettings"
+Title="Network Settings"
+Icon="network-settings.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<? $disabled = $var['fsState']!='Stopped' ? 'disabled' : ''; ?>
+<script>
+function checkNetworkSettings() {
+  var form = document.network_settings;
+  var disabled = "<?=$disabled?>".length != 0; //yes this is a hack
+  form.BONDING.disabled = disabled;
+  form.BONDING_MODE.disabled = (form.BONDING.value != "yes") || disabled;
+  form.BRIDGING.disabled = disabled;
+  form.BRNAME.disabled = (form.BRIDGING.value != "yes") || disabled;
+  form.BRSTP.disabled = (form.BRIDGING.value != "yes") || disabled;
+  form.BRFD.disabled = (form.BRIDGING.value != "yes") || disabled;
+  form.USE_DHCP.disabled = disabled;
+  form.IPADDR.disabled = (form.USE_DHCP.value == "yes") || disabled;
+  form.NETMASK.disabled = (form.USE_DHCP.value == "yes") || disabled;
+  form.GATEWAY.disabled = (form.USE_DHCP.value == "yes") || disabled;
+  form.DHCP_KEEPRESOLV.disabled = (form.USE_DHCP.value != "yes") || disabled;
+  if (form.USE_DHCP.value != "yes") form.DHCP_KEEPRESOLV.value = "yes";
+  form.DNS_SERVER1.disabled = (form.DHCP_KEEPRESOLV.value != "yes") || disabled;
+  form.DNS_SERVER2.disabled = (form.DHCP_KEEPRESOLV.value != "yes") || disabled;
+  form.DNS_SERVER3.disabled = (form.DHCP_KEEPRESOLV.value != "yes") || disabled;
+}
+function checkBondingSettings() {
+  var form = document.network_settings;
+  var mode=form.BONDING_MODE.value;
+  if (mode==1 || mode>4 || form.BONDING.value=="no") {$('#attention').hide();} else {$('#attention').show();}
+}
+$(checkNetworkSettings);
+$(checkBondingSettings);
+</script>
+<form markdown="1" name="network_settings" method="POST" action="/update.htm" target="progressFrame">
+
+MAC address:
+: <?=$var['HWADDR'];?>
+
+Enable bonding:
+: <select name="BONDING" size="1" onchange="checkNetworkSettings()">
+  <?=mk_option($var['BONDING'], "no", "No");?>
+  <?=mk_option($var['BONDING'], "yes", "Yes");?>
+  </select>
+
+> Bonding is a feature that combines all of your physical Ethernet interfaces into a
+> single *bond* interface named **bond0**.  This lets you connect
+> all of your ethernet ports to the same switch.
+
+Bonding mode:
+: <select name="BONDING_MODE" size="1" onchange="checkBondingSettings()">
+  <?=mk_option($var['BONDING_MODE'], "0", "balance-rr (0)");?>
+  <?=mk_option($var['BONDING_MODE'], "1", "active-backup (1)");?>
+  <?=mk_option($var['BONDING_MODE'], "2", "balance-xor (2)");?>
+  <?=mk_option($var['BONDING_MODE'], "3", "broadcast (3)");?>
+  <?=mk_option($var['BONDING_MODE'], "4", "802.3ad (4)");?>
+  <?=mk_option($var['BONDING_MODE'], "5", "balance-tlb (5)");?>
+  <?=mk_option($var['BONDING_MODE'], "6", "balance-alb (6)");?>
+  </select><span id="attention" style="display:none;color:red"><b>Attention:</b> this mode requires a switch with proper setup and support...</span>
+
+> Mode 1 (active-backup) is the recommended default.  Other modes may require switch support.
+
+Setup bridge:
+: <select name="BRIDGING" size="1" onchange="checkNetworkSettings()">
+  <?=mk_option($var['BRIDGING'], "no", "No");?>
+  <?=mk_option($var['BRIDGING'], "yes", "Yes");?>
+  </select>
+
+> Bridging is a feature that combines all of your physical Ethernet interfaces into
+> a single logical network segment.  If **bonding** is also enabled, the bridge sits
+> on top of the bond; this is useful for VM configurations.
+>
+> **Caution:** if bonding is also not enabled, do not connect two or more
+> ethernet ports to the same switch unless you have STP enabled *and* the switch supports STP
+> (most consumer switches **do not**).
+>
+> Doing so will cause an "ARP broadcast storm" and can bring down your
+> entire network (unplugging all sever ethernet ports except one
+> typically will restore your network).
+
+Bridge name:
+: <input type="text" name="BRNAME" maxlength="80" value="<?=$var['BRNAME']?>" class="narrow">
+
+> This is the name of the bridge interface.  If left blank, the name of the bridge will be **br0**.
+
+Bridge enable STP:
+: <select name="BRSTP" size="1" onchange="checkNetworkSettings()">
+  <?=mk_option($var['BRSTP'], "yes", "Yes");?>
+  <?=mk_option($var['BRSTP'], "no", "No");?>
+  </select>
+
+> STP (Spanning Tree Protocol) prevents loops in multi-NIC bridges.  This is enabled by default but
+> can cause delays upon network setup; in most configurations it would be safe to disable.  If unsure
+> however, leave this set to **Yes**.
+
+Bridge forward delay:
+: <input type="text" name="BRFD" maxlength="10" value="<?=$var['BRFD']?>" class="narrow">
+
+> Defines the bridge **forward delay** in seconds.
+>
+> Forwarding delay time is the time spent in each of the Listening and Learning states before the
+> Forwarding state is entered. This delay is so that when a new bridge comes onto a busy network it
+> looks at some traffic before participating.
+>
+> If the bridge is being used standalone (no other bridges near by), then it is safe to turn the
+> forwarding delay off (set it to zero), before adding interface to a bridge.
+
+Obtain IP address automatically:
+: <select name="USE_DHCP" size="1" onchange="checkNetworkSettings()">
+  <?=mk_option($var['USE_DHCP'], "yes", "Yes");?>
+  <?=mk_option($var['USE_DHCP'], "no", "No");?>
+  </select>
+
+> If set to 'Yes' the server will attempt to obtain its IP address from the local DHCP server.
+
+IP address:
+: <input type="text" name="IPADDR" maxlength="40" value="<?=$var['IPADDR']?>" class="narrow" onchange="checkNetworkSettings()">
+
+> Greyed out when using DHCP server. Otherwise specify here the IP address of the system.
+
+Network mask:
+: <input type="text" name="NETMASK" maxlength="40" value="<?=$var['NETMASK']?>" class="narrow" onchange="checkNetworkSettings()">
+
+> Greyed out when using DHCP server. Otherwise specify here the associated network mask, usually 255.255.255.0
+
+Default gateway:
+: <input type="text" name="GATEWAY" maxlength="40" value="<?=$var['GATEWAY']?>" class="narrow" onchange="checkNetworkSettings()">
+
+> Greyed out when using DHCP server. Otherwise specify here the IP address of your router.
+
+Obtain DNS server address automatically:
+: <select name="DHCP_KEEPRESOLV" size="1" onchange="checkNetworkSettings()">
+  <?=mk_option($var['DHCP_KEEPRESOLV'], "yes", "No");?>
+  <?=mk_option($var['DHCP_KEEPRESOLV'], "no", "Yes");?>
+  </select>
+
+> If set to 'Yes' the server will use DNS server IP address returned by the local DHCP server.<br>
+> If set to 'No' you may enter your own list.  This is useful in Active Directory configruations where
+> you need to set the first DNS Server entry to the IP address of your AD Domain server.
+
+DNS server 1:
+: <input type="text" name="DNS_SERVER1" maxlength="80" value="<?=$var['DNS_SERVER1'];?>" class="narrow" onchange="checkNetworkSettings()">
+
+> This is the primary DNS server to use.  Enter a FQDN or an IP address.
+> Note: for *Active Directory* you **must** ensure this is set to the IP address of your
+> AD Domain server.
+
+DNS server 2:
+: <input type="text" name="DNS_SERVER2" maxlength="80" value="<?=$var['DNS_SERVER2'];?>" class="narrow" onchange="checkNetworkSettings()">
+
+> This is the DNS server to use when DNS Server 1 is down.
+
+DNS server 3:
+: <input type="text" name="DNS_SERVER3" maxlength="80" value="<?=$var['DNS_SERVER3'];?>" class="narrow" onchange="checkNetworkSettings()">
+
+> This is the DNS server to use when DNS Servers 1 and 2 are both down.
+
+&nbsp;
+: <input type="submit" name="changeNetwork" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?=$disabled ? "Array must be <strong>Stopped</strong> to change" : ""?>
+
+</form>

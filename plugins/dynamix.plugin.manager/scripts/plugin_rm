@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# put some restrictions on 'rm'
+echo "Deleting $1 ..."
+[[ $1 == /boot/config/plugins-error/* ]] && rm $1
+[[ $1 == /boot/config/plugins-stale/* ]] && rm $1

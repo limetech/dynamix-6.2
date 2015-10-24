@@ -1,0 +1,82 @@
+Menu="Main:2"
+Title="Cache Devices"
+Cond="($var['fsState']=='Stopped' || $var['cacheSbNumDisks'])"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<script>
+function cache_status() {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'cache',width:window.innerWidth,timer:timer},function(data) {
+    if (data) $('#cache_device').html(data);
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
+<?if ($display['tabs']==0):?>
+    if ($('#tab2').is(':checked')) timer = setTimeout(cache_status,<?=abs($display['refresh'])?>);
+<?else:?>
+    setTimeout(cache_status,<?=abs($display['refresh'])?>);
+<?endif;?>
+<?endif;?>
+  });
+}
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started' && $display['tabs']==0):?>
+$('#tab2').bind({click:function() {clearTimeout(timer); cache_status();}});
+<?endif;?>
+
+cache_status();
+</script>
+
+<table class="disk_status <?=($var['fsState']=='Stopped'?'small':$display['view']).' '.$display['align']?>">
+<thead><tr><td>Device</td><td>Identification</td><td>Temp.</td><td>Reads</td><td>Writes</td><td>Errors</td><td>FS</td><td>Size</td><td>Used</td><td>Free</td><td>View</td></tr></thead>
+<tbody id="cache_device">
+<?
+foreach ($disks as $disk):
+  if ($disk['type']=='Cache') echo "<tr><td colspan='11'>&nbsp;</td></tr>";
+endforeach;
+?>
+</tbody>
+</table>
+
+> **Colored Status Indicator** the significance of the color indicator at the beginning of each line in *Cache Devices* is as follows:
+>
+> <img src='/webGui/images/green-on.png' class='icon'>Normal operation, device is active.
+>
+> <img src='/webGui/images/green-blink.png' class='icon'>Device is in standby mode (spun-down).
+>
+> <img src='/webGui/images/blue-on.png' class='icon'>New device.
+>
+> <img src='/webGui/images/grey-off.png' class='icon'>No device present, position is empty.
+>
+> **Cache** is a device, or device pool, *outside* the unRAID array.  It may be exported for network access just
+> like an Array device.  Being outside the unRAID array results in significantly faster write access.
+>
+> There are two ways to configure the Cache:
+>
+> 1. As a single device, or
+> 2. As a multi-device pool.
+>
+> When configured as a single device you may format the device using any supported file system (btrfs, reiserfs,
+> or xfs).  This configuration offers the highest performance, but at the cost of no data protection - if the
+> single Cache device fails all data contained on it may be lost.
+>
+> When configured as a multi-device pool, unRAID OS will automatically select *btrfs-raid1* format (for both data
+> and meta-data).  btrfs permits any number of devices to be added to the pool and each copy of data is guaranteed
+> to be written to two different devices.  Hence the pool can withstand a single-disk failure without losing data.
+>
+> When [User Shares](/Settings/ShareSettings) are enabled, user shares may be configured to
+> automatically make use of the Cache in order to
+> speed up writes.  A special background process called the *mover* can be scheduled to run
+> periodically to move user share files off the Cache and onto the Array.
+
+<?if ($var['fsState'] == "Stopped"):?>
+<div></div>
+> **Slots** select the number of device slots in your server designated for Cache devices.
+<?endif;?>

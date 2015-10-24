@@ -1,0 +1,31 @@
+Menu="Device"
+Title="Identity"
+Cond="strpos($disks[$name]['status'],'_NP')===false"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<script>
+$(function() {
+  $.post("/webGui/include/SmartInfo.php",{cmd:'identify',port:'<?=isset($disks[$name]['device'])?$disks[$name]['device']:$name?>'}, function(data) {
+    $('#disk_identify').html(data);
+  });
+});
+</script>
+<table class='share_status small'>
+<thead><td style="width:33%">Title</td><td>Information</td></thead>
+<tbody id="disk_identify"><tr><td colspan='2'><br><center><i class='fa fa-spinner fa-spin'></i>&nbsp;<em>Please wait... retrieving S.M.A.R.T. information!</em></center></td></tr></tbody>
+</table>
+<input type="button" value="Done" onclick="done()">
+
+> This list shows the SMART identity information of this disk

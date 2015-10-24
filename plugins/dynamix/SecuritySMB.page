@@ -1,0 +1,73 @@
+Menu="Disk Share Flash"
+Title="SMB Security Settings"
+Cond="(($var['shareSMBEnabled']!='no') && (isset($name)?array_key_exists($name,$sec):0))"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name?>">
+
+Share name:
+: <big><?=$name?></big>
+
+Export:
+: <select name="shareExport" size="1">
+  <?=mk_option($sec[$name]['export'], "-", "No");?>
+  <?=mk_option($sec[$name]['export'], "e", "Yes");?>
+  <?=mk_option($sec[$name]['export'], "eh", "Yes (hidden)");?>
+  </select>
+
+> This setting determines whether the share is visible and/or accessible.  The 'Yes (hidden)' setting
+> will *hide* the share from *browsing* but is still accessible if you know the share name.
+
+Security:
+: <select name="shareSecurity" size="1">
+  <?=mk_option($sec[$name]['security'], "public", "Public");?>
+  <?=mk_option($sec[$name]['security'], "secure", "Secure");?>
+  <?=mk_option($sec[$name]['security'], "private", "Private");?>
+  </select>
+
+> Summary of security modes:
+>
+> **Public** All users including guests have full read/write access.
+>
+> **Secure** All users including guests have read access, you select which of your users
+> have write access.
+>
+> **Private** No guest access at all, you select which of your users have read/write or 
+> read-only access.
+
+&nbsp;
+: <input type="submit" name="changeShareSecurity" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+
+<?if ($sec[$name]['security'] == 'secure'):?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name?>">
+<div id="title" class="nocontrol"><dt>User Access</dt><i>Guests have <b>read-only</b> access.</i></div>
+<?input_secure_users($sec);?>
+
+&nbsp;
+: <input type="submit" name="changeShareAccess" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+
+<?elseif ($sec[$name]['security'] == 'private'):?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name?>">
+<div id="title" class="nocontrol"><dt>User Access</dt><i>Guests have <b>no</b> access.</i></div>
+<?input_private_users($sec);?>
+
+&nbsp;
+: <input type="submit" name="changeShareAccess" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+<?endif;?>

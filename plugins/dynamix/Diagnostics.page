@@ -1,0 +1,74 @@
+Menu="UNRAID-OS"
+Title="Diagnostics"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+$zip = str_replace(' ','_',strtolower($var['NAME']))."-diagnostics-".date('Ymd-Hi').".zip";
+?>
+<style>ul,li{margin:0;padding-top:0;padding-bottom:0;}</style>
+
+<script>
+function cleanUp() {
+  if (document.hasFocus()) {
+    $('input[value="Downloading..."]').val('Download').prop('disabled',false);
+    $('#pleaseWait').hide('slow');
+    $.post('/webGui/include/Download.php',{cmd:'delete',file:'<?=$zip?>'});
+  } else {
+    setTimeout(cleanUp,2000);
+  }
+}
+function diagnostics() {
+  $('input[value="Download"]').val('Downloading...').prop('disabled',true);
+  $('#pleaseWait').show('slow');
+  $.post('/webGui/include/Download.php',{cmd:'diag',file:'<?=$zip?>'},function(zip) {
+    location = zip;
+    setTimeout(cleanUp,4000);
+  });
+}
+</script>
+This utility is used for troubleshooting purposes. It will collect all of the system information and configuration files, and package these files in a single ZIP file which can be saved locally.
+Subsequently, this file can be included in your correspondence with Limetech or the unRAID forum.
+
+This will help others to quickly get the inside information of your system and provide better support to your problem. The following information
+and configuration files are collected:
+
+<pre markdown="1">
++ */config*
+  <br>copy all *\*.cfg files*, *go* file and the *super.dat* file. These are configuration files.
++ */config/shares*
+  <br>copy all *\*.cfg* files. These are user share settings files.
++ *Syslog file(s)*
+  <br>copy the current *syslog* file and any previous existing *syslog* files.
++ *System*
+  <br>save output of the following commands:
+  <br>lsscsi, lspci, free, lsof, ps, ethtool & ifconfig.
+  <br>display of iommu groups.
+  <br>display of command line parameters (e.g. pcie acs override, pci stubbing, etc).
+  <br>save system variables.
++ *SMART reports*
+  <br>save a SMART report of each individual disk present in your system.
++ *Docker*
+  <br>save files *docker.log*, *libvirtd.log* and *libvirt/qemu/\*.log*.
+</pre>
+
+Clicking **Download** will start the collection process and then instruct your browser to save the zip file locally.
+
+*No personal information such as user names, passwords, or any other file contents not specified above is included
+by unRAID Server OS; however, your server name, IP address, and user share names* **will** *be included.*  
+*Note that 3rd-party plugins **may** or may not store personal information in plugin-specific configuration files and/or output
+to the system log.*
+
+<input type="button" value="Download" onclick="diagnostics()"><input type="button" value="Done" onclick="done()">
+
+<br><div id="pleaseWait" style="display:none;font-weight:bold;color:red;text-align:center">Please wait, collecting diagnostic information...</div>

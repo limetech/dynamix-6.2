@@ -1,0 +1,504 @@
+<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "unRAIDServer">
+<!ENTITY author    "LimeTech">
+<!ENTITY version   "6.2-beta7">
+<!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
+
+<!ENTITY category  "beta">
+<!ENTITY zip       "https://s3.amazonaws.com/dnld.lime-technology.com/&category;/unRAIDServer-&version;-x86_64.zip">
+<!ENTITY md5       "https://s3.amazonaws.com/dnld.lime-technology.com/&category;/unRAIDServer-&version;-x86_64.md5">
+<!ENTITY files     "bzimage,bzroot,make_bootable.bat,make_bootable_mac,memtest,*.txt">
+
+<!ENTITY infozip   "infozip-6.0-i486-1.txz">
+]>
+
+<PLUGIN  name="&name;"
+         author="&author;"
+         version="&version;"
+         pluginURL="&pluginURL;">
+
+<CHANGES>
+<![CDATA[
+unRAID Server OS Change Log
+===========================
+
+Version 6.2-beta7
+-----------------
+- linux: 4.1.11
+- emhtt: no attached device limit for Pro
+
+Version 6.2-beta6
+-----------------
+- emhttp: support USB storage devices assignable to array and cache/pool
+
+Version 6.2-beta5
+-----------------
+- samba: remove 'max protocol = SMB3' from /etc/samba/smb.conf (automatic negotiation chooses the appropriate protocol)
+- sync with Eric
+
+Version 6.2-beta4
+-----------------
+- linux: 4.1.10
+- fix super.dat corruption when upgrading to 6.2 from earlier versions
+
+Version 6.2-beta3
+-----------------
+- emhttp: support dual parity
+- unraid: support dual parity (P+Q)
+
+Version 6.2-beta2
+-----------------
+- php: version 5.6.12
+- samba: version 4.2.3
+
+Version 6.2-beta1
+-----------------
+- switch to 'slackware64-current' base packages
+
+Version 6.1.3 2015-09-20
+------------------------
+- firmware: version 20150820
+
+    These are firmware files for the linux kernel loaded into devices by certain drivers.  There are some
+    updates to Realtek firmware which may or may not improve certain Realtek NIC performance.
+
+- linux: version 4.1.7
+- linux: add kernel options (all per user request):
+  - CONFIG_SENSORS_NCT7904: Nuvoton NCT7904
+  - CONFIG_FMC_CHARDEV: FMC mezzanine driver that registers a char device
+  - CONFIG_FMC_TRIVIAL: FMC trivial mezzanine driver (software testing)
+  - CONFIG_FMC_WRITE_EEPROM: FMC mezzanine driver to write I2C EEPROM
+
+- linux: removed kernel options:
+  - CONFIG_SCSI_AIC94XX: Adaptec AIC94xx SAS/SATA support
+
+        This was removed because required firmware file is not redistributable.  This is for an old PCI-X
+        card anyway.  If you are using this card contact <support@lime-technology.com>.
+
+  - CONFIG_EXT2_FS: Second extended fs support
+  - CONFIG_EXT3_FS: Ext3 journalling file system support
+
+        Removing these options omits the code for these file systems because the ext4 file system driver
+        now also handles ext2 and ext3 mounts.
+
+- php: version 5.4.45
+
+    This is a security update.  Refer to <http://php.net/ChangeLog-5.php#5.4.45>.
+
+- webGUI changes:
+  - Remember view selection on Dashboard page
+  - Correct disk utilization on dashboard page
+  - Correction in days calculation of parity in statuscheck script
+  - Return disk PoH value as years, months, days, hours
+  - Allow SMART info for unassigned devices
+  - Corrected display of flash device in Main
+  - VM Manager: allow 128MB and 256MB memory options
+
+Version 6.1.2 2015-09-08
+------------------------
+- emhttp: fix possible infinite loop if client closes HTTP connection during POST data transmission
+
+    This should fix some instances of webGui *hanging*.
+
+- emhttp: force close smb share connections if that share security mode or access list is changed
+
+    Used to be that Windows would close SMB connections shortly after last I/O to a server.  These days
+    Windows likes to keep conections open.  Consequently, changing a share security mode or user access
+    list would appear to not take effect.  This change fixes that behavior.
+
+- linux: add kernel options:
+  - CONFIG_SCSI_MVSAS_TASKLET: Support for interrupt tasklet
+
+        The was removed to test effect on mvsas *slowdown* issue.  Since it did not fix the issue we are
+	restoring it.
+
+- slack: added a couple terminfo mappings (user request):
+  - xterm-color
+  - xterm-256color
+
+Version 6.1.1 2015-09-06
+------------------------
+- emhttp: fix: for new installations: disk share export set to 'Auto', user share export set to 'Yes'
+- docker: fix: create initial docker template repo
+- emhttp: for new installations: disk spindown delay set to 0 (never spin down)
+- linux: enable kernel options:
+  - CONFIG_BLK_DEV_NVME: NVM Express block device
+  - CONFIG_USB_ACM: USB Modem (CDC ACM) support
+- linux: remove kernel options:
+  - CONFIG_SCSI_MVSAS_TASKLET: Support for interrupt tasklet
+- linux: patch to ignore logging those useless and harmless msr errors that flood the syslog when running VMs
+- qemu: ovmf: firmware Date: 20150904
+- qemu: remove unneeded UefiShell.iso file
+- VM Manager: noVNC: performance improvements and enhancements
+
+Version 6.1.0 2015-08-31
+------------------------
+- avahi: supress "Invalid response packet from host" messages
+- btrfs-progs: version 4.1.2
+- docker: less verbose logging by default
+- docker: version 1.7.1
+- emhttp: bridge forward delay configurable
+- emhttp: disk share export Yes/No/Auto support
+- emhttp: fix problem not able to start multiple btrfs scrubs
+- emhttp: get rid of passing arbitrary commands in URL
+- emhttp: let Pro start regardless of attached device count
+- emhttp: let Trial support disks in any slots
+- emhttp: properly handle non-rotational devices standby mode (ie, 'spindown')
+- emhttp: properly handle requests from localhost (IP address 127.0.0.1)
+- emhttp: require credentials on all accesses, not just webGui pages
+- gnutls: 3.3.17.1 (SSA:2015-233-01)
+- libvirt: version 1.2.18
+- linux: version 4.1.5
+- linux: support "Lite-On IT Corp. / Plextor M6e PCI Express SSD [Marvell 88SS9183] (rev 14)", see https://lkml.org/lkml/2015/2/2/226
+- mover: only move objects where "Use Cache" is set to "Yes" for a share
+- ntp: enable by default
+- ntp: 4.2.8p3 (SSA:2015-188-03)
+- OpenELEC: added 6.0-beta3 image (beta3 includes hdmi sound fixes for nvidia cards and corrected 'addon_url' to allow plugins in Kodi once again)
+- OpenELEC: use readonly for openelec disk image
+- openssl: 1.0.1p (SSA:2015-190-01)
+- php: enable pcntl
+- php: version 5.4.44
+- samba: include linux "dot" objects in directory listings
+- samba: version 4.1.19
+- slack: ca-certificates version 20150426
+- slack: check USB Flash device upon startup (set 6th field of fstab to 1)
+- unRAIDServer.plg: improvements in unRAID-5 update: ping google instead of local gateway to determine if network up
+- VM Manager: allow usb devices to be used that do not have a name/desciption
+- VM Manager: Fix: OVMF+Q35 needs the bus set to 'usb' instead of 'ide' for CD-ROMs
+- VM Manager: support OpenELEC template
+- VM Manager: Updated noVNC (using latest as of 8/5/15, commit 8f3c0f6)
+- webGui: Add APCUPS summary to dashboard page
+- webGui: Add refresh button to Docker Scrub operation
+- webGui: added "Hide dot files" control on SMB Settings page
+- webGUI: added banner and user thumbnail image upload support
+- webGui: additional options for text/graphical display of Used/Free.
+- webGui: all '#command' and 'cmd' values must reference scripts within /usr/local/emhttp/ jail.
+- webGui: Corrected: default settings were not applied for apcupsd
+- webGui: disable Array Stop button when mover is running
+- webGui: enhanced report generation
+- webGui: feedback for kool kids
+- webGui: fix issues with uploading thumbnails, banner
+- webGui: fix docker update regression introduced in 6.1-rc1
+- webGui: fixed memory max display in dashboard
+- webGui: fix notifications not initialized on reboot
+- webGui: force browser reload of selected scripts and css files
+- webGui: include linux "hidden" objects in directory listings
+- webGui: install key: accept pre-keyserver links to key files
+- webGui: integrate latest dynamix changes; many changes, refer to github
+- webGui: Only show docker utilization when docker is enabled
+- webGui: rearrange columns on Main page
+- webGui: Replace alert-box for SweetAlert (enhanced messaging)
+- webGui: use 'ftpusers' script to define ftp users
+- webGui: use 'agent' script to control notification agents
+- webGui: other misc. bug fixes and improvements
+
+Version 6.0.1 2015-06-26
+------------------------
+- linux: enable kernel options:
+  - CONFIG_USB_PRINTER: USB Printer support
+  - CONFIG_USB_SERIAL_CP210X: USB CP210x family of UART Bridge Controllers
+- openssl: 1.0.1o (SSA:2015-162-01)
+- php: 5.4.41 (SSA:2015-162-02)
+- unRAIDServer plugin (this file): be compatible with both unRAID-5 and unRAID-6
+- webGui: Docker: Fix: volume mappings with apostrophes not escaping correctly
+- webGui: integrate online feedback
+- wget: version 1.16.3
+
+Version 6.0.0 2015-06-15
+------------------------
+- docker: set default template repo
+- webGui: other cosmetic changes
+
+Version 6.0-rc6a
+----------------
+- docker: fix bug in docker/daemon/container.go: /etc/resolv.conf permissions should be 0644 not 0600
+- webGui: add 'restart' to docker context menu
+
+Version 6.0-rc6
+---------------
+- dhcpcd: update to 6.8.1
+- dhcpcd: put dhcpcd in background if no carrier and/or no IP address after 60 seconds
+- docker: trigger docker inotify watches on /etc/resolve.conf
+- emhttp: fix cache devices getting unassigned when array slot count decreased
+- slack: create informative /etc/issue file
+- slack: maintain /etc/hostname file
+- slack: added 'inet' command to /root - just a symlink to /etc/rc.d/rc.inet1
+- webGui: Info page memory display corrections; other misc. changes
+- webGui: other misc changes (see github)
+
+Version 6.0-rc5
+---------------
+- bonding: fix to bring ethX i/f down before adding to bond; remove dhcp delay
+- emhttp: fix disk/share status indicators
+- emhttp: fix flash share comment not showing up, added flash share 'fsColor'
+- emhttp: fix possible deadlock if http connection closed with output still pending
+- emhttp: fix single-disk cache pool not mounting after format
+- linux: enable kernel options:
+  - CONFIG_NFT_MASQ: Netfilter nf_tables masquerade support
+  - CONFIG_NFT_REDIR: Netfilter nf_tables redirect support
+  - CONFIG_NFT_MASQ_IPV4: IPv4 masquerading support for nf_tables
+  - CONFIG_NFT_REDIR_IPV4: IPv4 redirect support for nf_tables
+- slack: fix ntp configuration handling
+- syslinx: fix bug where Xen menu options are present in 'default' syslinux.cfg file
+- webGui: added symlink to /usr/local/emhttp/plugins/dynamix/scripts/diagnostics in /usr/local/sbin
+- webGui: file browswer: do not let user traverse up the tree beyond the mount point
+- webGui: add rollover status indicator text for array status and user/disk share status
+- webGui: add disclaimer to Diagnostics page (3rd party plugins may or may not expose personal information)
+- webGui: custom user thumbnail/avatars support
+- webGui: fix docker image file delete
+- webGui: VM Manger changes (see github)
+
+Version 6.0-rc4
+---------------
+- btrfs-progs: update to 4.0.1
+- emhttp: fix bug where /mnt/user0 could be mounted when slot count decreased
+- emhttp: do not count zero-size block devices against device limits
+- emhttp: handle querystring variables with embedded single-quotes
+- emhttp: added comment field for disk shares
+- libvirt: patched rc.libvirt to eliminate bogus errors output to syslog
+- libvirt: enabled virtual port capability 
+- linux: enable kernel options:
+  - CONFIG_MACVLAN: MAC-VLAN support
+  - CONFIG_MACVTAP: MAC-VLAN based tap driver
+  - CONFIG_NF_TABLES_BRIDGE: Ethernet Bridge nf_tables support
+  - CONFIG_NFT_BRIDGE_META: Netfilter nf_table bridge meta support
+  - CONFIG_BRIDGE_NF_EBTABLES: Ethernet Bridge tables (ebtables) support
+  - CONFIG_BRIDGE_EBT_*: (19 total Ethernet bridge tables)
+- qemu: upgraded to SeaBIOS 1.8.1
+- shfs: add NOCOW share support
+- unRAIDServer plugin: preserve only "previous" release; removing current release will restore previous release
+- webGui: fix Active Directory export settings not being active
+- webGui: let user configure share COW flag
+- webGui: make apcupsd driver_loaded script executable
+- webGui: VM Manager: added Force Stop context menu option when VM is paused
+- webGui: VM Manager: Fix: raw disk size display and adjustment capabilities
+- webGUI: Docker: Fix: correctly calculate total data pulled stat
+- webGUI: Docker: permit image to exist on user share
+- webGUI: create Disk Shares page under Shares, move disk share settings
+- webGUI: correct handling of sinqle quotes in share names
+- webGUI: other misc changes/bug fixes
+
+Version 6.0-rc3
+---------------
+- emhttp: fix Maintenance-mode array Start
+- emhttp: properly output 'progress' strings output by emhttp_event scripts
+- emhttp: let Pro start regardless of attached device count
+- linux: update to 4.0.4 (btrfs fix from 4.0.3, spinlock fix from 4.0.4, btrfs balance patch)
+- webGui: VM Manager bug fixes
+- webGui: integrated improvements to apcupsd component
+
+Version 6.0-rc2
+---------------
+- emhttp: restore default number of array slots to 24 (from 5 introduced in -rc1)
+- slack: add package: patch version 2.7.4
+- webGui: expunge all Xen "hooks"
+- webGui: VM Manager bug fixes (refer to commit history on github)
+
+Version 6.0-rc1
+---------------
+- docker: update to 1.6.2
+- webGui: support replacement keys
+- webGui: must be Stopped to change Identifcation settings
+]]>
+</CHANGES>
+
+<!--
+Be compatible with unRAID-5 installplg
+-->
+<FILE Name="/tmp/&name;.sh" Run="/bin/bash">
+<INLINE>
+rm /tmp/&name;.sh
+# cleanup possibly failed previous download/install attempt
+rm -rf /tmp/&name;*
+mkdir /tmp/&name;
+# check if this is unRAID-5
+source /etc/unraid-version
+if [ "${version:0:2}" == "5." ]; then
+  # prevent endless install loop
+  rm -rf /boot/plugins/&name;.plg
+  rm -rf /boot/config/plugins/&name;.plg
+  # check if 64-bit capable CPU
+  if ! grep -q " lm" /proc/cpuinfo ; then
+    echo "CPU is not 64-bit capable"
+    exit 1
+  fi
+  # Wait until network is ready by pinging google - thanks bonienl!
+  ip=8.8.4.4
+  timer=30
+  while [[ $timer -gt 0 ]]; do
+    if [[ -n $(route -n|awk '/^0.0.0.0/{print $2}') &amp;&amp; $(ping -qnc1 $ip|awk '/received/{print $4}') -eq 1 ]]; then
+      break
+    fi
+    ((timer--))
+    sleep 1
+  done
+  if [[ $timer -eq 0 ]]; then
+    echo "No network communication !!!"
+    exit 1
+  fi
+  # unRAID-5 needs infozip
+  if [ ! -f /boot/extra/&infozip; ]; then
+    echo "Downloading &infozip; package"
+    mkdir -p /boot/extra
+    wget http://slackware.cs.utah.edu/pub/slackware/slackware-13.1/slackware/a/&infozip; -O /boot/extra/&infozip;
+    upgradepkg --install-new /boot/extra/&infozip;
+  fi
+  # download the release
+  if ! wget --no-check-certificate &zip; -O /tmp/&name;.zip ; then
+    echo "&zip; download error $?"
+    exit 1
+  fi
+  if ! wget --no-check-certificate &md5; -O /tmp/&name;.md5 ; then
+    echo "&md5; download error $?"
+    exit 1
+  fi
+fi
+</INLINE>
+</FILE>
+
+<!--
+Download release from S3
+For unRAID-5 this will be skipped because already downloaded above
+For unRAID-6 we download here, verifying certificiate
+-->
+<FILE Name="/tmp/&name;.zip">
+<URL>&zip;</URL>
+</FILE>
+<FILE Name="/tmp/&name;.md5">
+<URL>&md5;</URL>
+</FILE>
+
+<FILE Name="/tmp/&name;.sh" Run="/bin/bash">
+<INLINE>
+rm /tmp/&name;.sh
+# check download and extract
+sum1=$(/usr/bin/md5sum /tmp/&name;.zip)
+sum2=$(cat /tmp/&name;.md5)
+if [ "${sum1:0:32}" != "${sum2:0:32}" ]; then
+  echo "wrong md5"
+  exit 1
+fi
+if ! unzip -d /tmp/&name; /tmp/&name;.zip ; then
+  echo "unzip error $?"
+  exit 1
+fi
+# check if enough free space on flash
+have=$(df -k /boot | awk ' END { print $4 } ')
+need=$(du -Ssk /tmp/&name; | awk ' END { print $1 } ')
+source /etc/unraid-version
+if [ "${version:0:2}" == "5." ]; then
+  # to permit another upgrade
+  need=$(($need * 2))
+fi
+# add some margin for possible additional config info
+need=$(($need + 8192))
+if [ $need -gt $have ]; then
+  echo "boot device shows $have free but upgrade needs $need"
+  exit 1
+fi
+# move release files to flash
+mkdir -p /boot/&name;
+rm -rf /boot/&name;/*
+if ! mv /tmp/&name;/{&files;} /boot/&name; ; then
+  echo "flash write error $?, maybe corrupted?"
+  rm -rf /boot/&name;/*
+  exit 1
+fi
+# preserve previous version
+source /etc/unraid-version
+if [ "${version:0:2}" == "6." ]; then
+  mkdir -p /boot/previous
+  rm -rf /boot/previous/*
+  mv /boot/{&files;} /boot/previous
+else
+  mkdir -p /boot/unRAID5
+  rm -rf /boot/unRAID5/*
+  # preserve all files in root of flash except ldlinux.sys needed to boot
+  find /boot -maxdepth 1 -type f -not -name ldlinux.sys -exec mv {} /boot/unRAID5 \;
+  # preserve a few directories
+  mv /boot/extra /boot/unRAID5 &amp;&gt; /dev/null
+  mv /boot/packages /boot/unRAID5 &amp;&gt; /dev/null
+  mv /boot/plugins /boot/unRAID5 &amp;&gt; /dev/null
+  mkdir /boot/unRAID5/config
+  mv /boot/config/plugins /boot/unRAID5/config &amp;&gt; /dev/null
+  # grab a fresh 'go' file
+  mv /boot/config/go /boot/unRAID5/config
+  cp /tmp/&name;/config/go /boot/config
+  # ensure key file is in the 'config' directory
+  cp /boot/unRAID5/*.key /boot/config &amp;&gt; /dev/null
+fi
+# move new version files into place
+mv /boot/&name;/* /boot
+rmdir /boot/&name;
+# if unRaid-6 replace the readme file
+if [ "${version:0:2}" == "6." ]; then
+  echo "**REBOOT REQUIRED!**" &gt; /usr/local/emhttp/plugins/&name;/README.md
+fi
+# when upgading any version prior to 6.1
+if [ "${version:0:3}" \&lt; "6.1" ]; then
+  if ! grep -q 'shareDisk' /boot/config/share.cfg &amp;&gt; /dev/null ; then
+    echo 'shareDisk="yes"' &gt;&gt; /boot/config/share.cfg
+  fi
+fi
+# when upgrading from 6.0.x
+if [ "${version:0:3}" == "6.0" ]; then
+  sed -i 's|dynamix.docker.manager/dockerupdate.php|dynamix.docker.manager/scripts/dockerupdate.php|g' /boot/config/plugins/dynamix/docker-update.cron &amp;&gt; /dev/null
+  sed -i 's|sbin/monitor|emhttp/plugins/dynamix/scripts/monitor|g' /boot/config/plugins/dynamix/monitor.cron &amp;&gt; /dev/null
+  sed -i 's|/root/mdcmd|/usr/local/sbin/mdcmd|g' /boot/config/plugins/dynamix/parity-check.cron &amp;&gt; /dev/null
+  sed -i 's|sbin/plugincheck|emhttp/plugins/dynamix.plugin.manager/scripts/plugincheck|g' /boot/config/plugins/dynamix/plugin-check.cron &amp;&gt; /dev/null
+  sed -i 's|sbin/statuscheck|emhttp/plugins/dynamix/scripts/statuscheck|g' /boot/config/plugins/dynamix/status-check.cron &amp;&gt; /dev/null
+fi
+# if template-repos does not exist
+if [ ! -e /boot/config/plugins/dockerMan/template-repos ]; then
+  mkdir -p /boot/config/plugins/dockerMan
+  echo "https://github.com/limetech/docker-templates" &gt; /boot/config/plugins/dockerMan/template-repos
+fi
+echo "syncing - please wait..."
+sync
+echo "Update successful - PLEASE REBOOT YOUR SERVER"
+</INLINE>
+</FILE>
+
+<!--
+The 'remove' script.
+-->
+<FILE Name="/tmp/&name;.sh" Run="/bin/bash" Method="remove">
+<INLINE>
+rm /tmp/&name;.sh
+# unRAID-5 doesn't support 'remove' method, so we're done
+source /etc/unraid-version
+if [ "${version:0:2}" == "5." ]; then
+  exit 0
+fi
+if [ -d /boot/previous ]; then
+  # restore previous unRAID-6 release
+  mv /boot/previous/* /boot
+  rmdir /boot/previous
+  echo "**REBOOT REQUIRED!**" &gt; /usr/local/emhttp/plugins/&name;/README.md
+elif [ -d /boot/unRAID5 ]; then
+  # restore previous unRAID-5 release
+  rm -rf /boot/extra
+  mv /boot/unRAID5/extra /boot &amp;&gt; /dev/null
+  rm -rf /boot/plugins
+  mv /boot/unRAID5/plugins /boot &amp;&gt; /dev/null
+  rm -rf /boot/packages
+  mv /boot/unRAID5/packages /boot &amp;&gt; /dev/null
+  rm -rf /boot/config/plugins
+  mv /boot/unRAID5/config/plugins /boot/config &amp;&gt; /dev/null
+  mv /boot/unRAID5/config/go /boot/config
+  rmdir /boot/unRAID5/config
+  mv /boot/unRAID5/* /boot
+  rmdir /boot/unRAID5
+else
+  echo "Cannot remove, no previous version"
+  exit 1
+fi
+echo "syncing..."
+sync
+echo "Remove successful - PLEASE REBOOT YOUR SERVER"
+</INLINE>
+</FILE>
+
+</PLUGIN>

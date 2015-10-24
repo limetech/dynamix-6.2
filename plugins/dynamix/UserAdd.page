@@ -1,0 +1,146 @@
+Menu="UserList"
+Title="Add User"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$void = "<img src='/webGui/images/user.png' width='48' height='48' onclick='$(&quot;#drop&quot;).click()' style='cursor:pointer' title='Click to select PNG file'>";
+$icon = "<i class='fa fa-trash top' title='Restore default image' onclick='restore()'></i>";
+?>
+
+<style>
+<?if ($display['theme'] == 'black'):?>
+span#dropbox{border:1px solid #202020;border-radius:5px;background:-webkit-radial-gradient(#303030,#101010);background:linear-gradient(#303030,#101010);padding:28px 12px;line-height:72px;margin-right:16px;}
+<?else:?>
+span#dropbox{border:1px solid #D0D0D0;border-radius:5px;background:-webkit-radial-gradient(#B0B0B0,#F0F0F0);background:linear-gradient(#B0B0B0,#F0F0F0);padding:28px 12px;line-height:72px;margin-right:16px;}
+<?endif;?>
+i.top{position:absolute;padding-top:4px;cursor:pointer;}
+</style>
+
+<script src="/webGui/javascript/jquery.filedrop.js"></script>
+<script>
+var path = '/boot/config/plugins/dynamix/users';
+var filename = '';
+
+function restore() {
+  // restore original image
+  $('#dropbox').html("<?=$void?>");
+  filename = '';
+}
+
+function upload() {
+  // gets invoked when the user clicks APPLY, at this point image will be saved
+  var username = document.user_edit.userName.value.trim();
+  if (username && filename) $.post("/webGui/include/FileUpload.php",{cmd:'save',filename:filename,path:path,output:username});
+}
+
+function checkUsername(form) {
+  var username = form.userName.value.trim();
+  if (username.length==0) {
+    swal({title:"Missing user name",text:"Please enter a user name",type:"error"});
+    return false;
+  }
+  if (username.match('[A-Z]| ')) {
+    swal({title:"Invalid user name",text:"Do not use uppercase or space characters",type:"error"});
+    return false;
+  }
+  if (username.match('^(disk[0-9]+|cache[0-9]*|flash)$')) {
+    swal({title:"Invalid user name",text:"Do not use reserved names",type:"error"});
+    return false;
+  }
+  return true;
+}
+
+$(function(){
+  var dropbox = $('#dropbox');
+  // attach the drag-n-drop feature to the 'dropbox' element
+  dropbox.filedrop({
+    maxfiles:1,
+    maxfilesize:95, // KB
+    url:'/webGui/include/FileUpload.php',
+    data:{path:path},
+    beforeEach:function(file) {
+      if (!file.type.match(/^image\/png/)) {
+        swal({title:"Warning",text:"Only PNG images are allowed!",type:"warning"});
+        return false;
+      }
+    },
+    error: function(error, file, i) {
+      switch (error) {
+      case 'BrowserNotSupported':
+        swal({title:"Browser error",text:"Your browser does not support HTML5 file uploads!",type:"error"});
+        break;
+      case 'TooManyFiles':
+        swal({title:"Too many files",text:"Please select one file only!",type:"error"});
+        break;
+      case 'FileTooLarge':
+        swal({title:"File too large",text:"Maximum file upload size is 95 kB (97,280 bytes)",type:"error"});
+        break;
+      }
+    },
+    uploadStarted:function(i,file,count) {
+      var image = $('img', $(dropbox));
+      var reader = new FileReader();
+      image.width = 48;
+      image.height = 48;
+      reader.onload = function(e){image.attr('src',e.target.result);};
+      reader.readAsDataURL(file);
+    },
+    uploadFinished:function(i,file,response) {
+      if (response == '200 OK') {
+        if (!filename) $(dropbox).append("<?=$icon?>");
+        $('input[name="userDesc"]').trigger('change');
+        filename = file.name;
+      } else {
+        swal({title:"Upload error",text:response,type:"error"});
+      }
+    }
+  });
+  // simulate a drop action when manual file selection is done
+  $('#drop').bind('change', function(e) {
+    var files = e.target.files;
+    if ($('#dropbox').triggerHandler({type:'drop',dataTransfer:{files:files}})==false) e.stopImmediatePropagation();
+  });
+});
+</script>
+
+<form markdown="1" name="user_edit" method="POST" action="/update.htm" target="progressFrame" onsubmit="return checkUsername(this)">
+User name:
+: <input type="text" name="userName" maxlength="32">
+
+> Usernames may be up to 32 characters long and must start with a **lower case letter** or an underscore,
+> followed by **lower case letters**, digits, underscores, or dashes. They can end with a dollar sign.
+> In regular expression terms: `[a-z_][a-z0-9_-]*[$]?`
+  
+Description:
+: <input type="text" name="userDesc" maxlength="64">
+
+> Up to 64 characters.
+
+Custom image:
+: <span id="dropbox"><?=$void?></span><em>Drag-n-drop a PNG file or click the image at the left.</em><input type="file" id="drop" accept=".png" style="display:none">
+
+> The image will be scaled to 48x48 pixels in size. The maximum image file upload size is 95 kB (97,280 bytes).
+
+Password:
+: <input type="password" name="userPassword" maxlength="40" onKeyUp="this.form.cmdUserEdit.disabled=(this.form.userPassword.value!=this.form.userPasswordConf.value);">
+
+> Up to 40 characters.
+
+Retype password:
+: <input type="password" name="userPasswordConf" maxlength="40" onKeyUp="this.form.cmdUserEdit.disabled=(this.form.userPassword.value!=this.form.userPasswordConf.value);">
+
+&nbsp;
+: <input type="submit" name="cmdUserEdit" value="Add" onclick="upload()"><input type="button" value="Done" onclick="done()">
+</form>

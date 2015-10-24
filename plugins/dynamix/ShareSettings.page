@@ -1,0 +1,117 @@
+Menu="OtherSettings"
+Type="xmenu"
+Title="Global Share Settings"
+Icon="share-settings.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<? $disabled = $var['fsState']!='Stopped' ? 'disabled' : ''; ?>
+
+<script>
+$(function() {
+  $("#s1").dropdownchecklist({emptyText:'All', width:300, explicitClose:'...close'});
+  $("#s2").dropdownchecklist({emptyText:'None', width:300, explicitClose:'...close'});
+  presetShare(document.share_settings);
+});
+// Simulate the original input field
+function prepareShare(form) {
+  var include = '';
+  for (var i=0,item; item=form.shareUserInclude.options[i]; i++) {
+    if (item.selected) {
+      if (include.length) include += ',';
+      include += item.value;
+      item.selected = false;
+    }
+  }
+  item = form.shareUserInclude.options[0];
+  item.value = include;
+  item.selected = true;
+  var exclude = '';
+  for (var i=0,item; item=form.shareUserExclude.options[i]; i++) {
+    if (item.selected) {
+      if (exclude.length) exclude += ',';
+      exclude += item.value;
+      item.selected = false;
+    }
+  }
+  item = form.shareUserExclude.options[0];
+  item.value = exclude;
+  item.selected = true;
+}
+function presetShare(form) {
+  var disabled = <?=$disabled ? 'true' : 'false'?>;
+  var onOff = disabled ? 'disable' : 'enable';
+  form.shareUserInclude.disabled = disabled;
+  form.shareUserExclude.disabled = disabled;
+  $("#s1").dropdownchecklist(onOff);
+  $("#s2").dropdownchecklist(onOff);
+}
+</script>
+<form markdown="1" name="share_settings" method="POST" action="/update.htm" target="progressFrame" onsubmit="prepareShare(this)">
+
+Enable disk shares:
+: <select name="shareDisk" size="1" onchange="presetShare(this.form)" <?=$disabled?>>
+  <?=mk_option($var['shareDisk'], "no", "No")?>
+  <?=mk_option($var['shareDisk'], "yes", "Yes")?>
+  <?=mk_option($var['shareDisk'], "auto", "Auto")?>
+  </select>
+
+> If set to No, disk shares are unconditionally not exported.
+>
+> If set to Yes, disk shares may be exported.  **WARNING:** Do not copy data from a disk share to a user share
+> unless you *know* what you are doing.  This may result in the loss of data and is not supported.
+>
+> If set to Auto, only disk shares not participating in User Shares may be exported.
+
+Enable user shares:
+: <select name="shareUser" size="1" onchange="presetShare(this.form)" <?=$disabled?>>
+  <?=mk_option($var['shareUser'], "e", "Yes")?>
+  <?=mk_option($var['shareUser'], "-", "No")?>
+  </select>
+
+> If set to 'Yes' the User Shares feature is activated.
+
+Included disk(s):
+: <select id="s1" name="shareUserInclude" size="1" multiple="multiple" style="display:none">
+  <?foreach ($disks as $disk):?>
+  <?=mk_option_check($disk['name'], $var['shareUserInclude'])?>
+  <?endforeach;?>
+  </select>
+
+> This setting defines the set of array disks which are *included* in User Shares.
+> Set this field to *blank* in order to allow **all** array disks to be included.
+>
+> To specify a set of disks name them like this:
+> * disk1,disk2,disk3 *disk names seperated by commas*
+> * disk1-3 *a range of disks*
+> * disk2,disk4-6,disk10 *another example*
+
+Excluded disk(s):
+: <select id="s2" name="shareUserExclude" size="1" multiple="multiple" style="display:none">
+  <?foreach ($disks as $disk):?>
+  <?=mk_option_check($disk['name'], $var['shareUserExclude'])?>
+  <?endforeach;?>
+  </select>
+
+> This setting defines the set of array disk which are *excluded* from User Shares. Set this
+> field to *blank* in order to not exclude any disks; otherwise, set this field as above to define the set
+> of disks to exclude.
+>
+> **Note:** Each separate User Share also includes its own set of Included and Excluded disks which represent
+> a subset of the Included/Excluded disks defined here.
+
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?if ($disabled):?>Array must be **Stopped** to change<?endif;?>
+
+</form>

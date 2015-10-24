@@ -1,0 +1,56 @@
+Menu="UNRAID-OS"
+Title="New Permissions"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+This is a one-time action to be taken after upgrading from a pre-5.0 unRAID server
+release to version 5.0.  It is also useful for restoring default ownership/permissions on files and
+directories when transitioning back from Active Directory to non-Active Directory integration.
+
+This utility starts a background process that goes to each of your data disks and cache disk
+and changes file and directory ownership to nobody/users (i.e., uid/gid to 99/100), and sets permissions
+as follows:
+~~~
+For directories:
+  drwxrwxrwx
+
+For read/write files:
+  -rw-rw-rw-
+
+For readonly files:
+  -r--r--r--
+~~~
+Clicking Start will open another window and start the background process. Closing the window before
+completion will terminate the background process - so don't do that. This process can take a long time if you have many files.
+
+<form method="POST" action="/update.htm" target="progressFrame">
+<select id="includeDisk" size="1">
+<option value=''>(All)</option>
+<?if (isset($disks['cache'])):?>
+<option value='/mnt/cache'>Cache</option>
+<?endif;?>
+<?foreach ($disks as $disk):?>
+<?if ($disk['type']=='Data'):?>
+<?=mk_option("","/mnt/{$disk['name']}",my_disk($disk['name']))?>
+<?endif;?>
+<?endforeach;?>
+</select>
+
+<?if ($var['fsState']!="Started"):?>
+<input type="button" value="Start" disabled><input type="button" value="Done" onclick="done()"> Array must be <strong><big>started</big></strong> to change permissions.
+<?else:?>
+<input type="button" name="submit_button" value="Start" onclick="openBox('/webGui/scripts/newperms&arg1='+document.getElementById('includeDisk').value,'New Permissions',490,430)" disabled><input type="button" value="Done" onclick="done()">
+<input type="checkbox" onClick="submit_button.disabled=!this.checked"><small>Yes I want to do this</small>
+<?endif;?>
+
+</form>

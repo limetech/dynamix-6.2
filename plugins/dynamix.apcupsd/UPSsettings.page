@@ -1,0 +1,153 @@
+Menu="OtherSettings"
+Type="xmenu"
+Title="UPS Settings"
+Icon="dynamix.apcupsd.png"
+---
+<?PHP
+/* Copyright 2015, Dan Landon.
+ * Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$sName = "dynamix.apcupsd";
+$cfg = parse_plugin_cfg($sName);
+?>
+
+<style>
+table.ups thead tr th{width:16.6%;padding-left:10px;}
+table.ups tbody tr td{padding-left:10px;font-weight:bold;}
+</style>
+<script>
+function toggleCustomCable(form) {
+  var readonly = form.UPSCABLE.value != 'custom';
+  form.CUSTOMUPSCABLE.readOnly = readonly;
+  if (readonly) form.CUSTOMUPSCABLE.value = '';
+}
+function toggleDevice(form) {
+  var readonly = form.UPSTYPE.value == 'usb';
+  form.DEVICE.readOnly = readonly;
+  if (readonly) form.DEVICE.value = '';
+}
+$(function() {
+  showStatus('pid','apcupsd');
+  toggleCustomCable(document.apcupsd_settings);
+  toggleDevice(document.apcupsd_settings);
+});
+</script>
+<table class="tablesorter shift ups" <?if (!file_exists("/var/run/apcupsd.pid")):?>style="display:none"<?endif;?>>
+<thead><tr><th>UPS Status</th><th>Battery Charge</th><th>Runtime Left</th><th>Nominal Power</th><th>UPS Load</th><th>UPS Load %</th></tr></thead>
+<tbody id="ups_summary"><tr><td colspan="6">&nbsp;</td></tr></tbody>
+</table>
+
+<form markdown="1" name="apcupsd_settings" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="<?=$sName?>/<?=$sName?>.cfg">
+<input type="hidden" name="#include" value="/plugins/<?=$sName?>/include/update.apcupsd.php">
+<span style="float:right;margin-right:10px"><a href="http://apcupsd.org/manual/manual.html" target="_blank" title="APC UPS Daemon user manual"><i class="fa fa-file-text-o"></i> <u>Online Manual</u></a></span>
+
+Start APC UPS daemon:
+: <select name="SERVICE" size="1">
+  <?=mk_option($cfg['SERVICE'], "disable", "No");?>
+  <?=mk_option($cfg['SERVICE'], "enable", "Yes");?>
+  </select>
+
+> Set to 'Yes' to enable apcupsd and start the daemon, set to 'No' to disable apcupsd and stop the daemon.
+
+UPS cable:
+: <select name="UPSCABLE" size="1" onChange="toggleCustomCable(this.form)">
+  <?=mk_option($cfg['UPSCABLE'], "usb", "USB");?>
+  <?=mk_option($cfg['UPSCABLE'], "simple", "Simple");?>
+  <?=mk_option($cfg['UPSCABLE'], "smart", "Smart");?>
+  <?=mk_option($cfg['UPSCABLE'], "ether", "Ether");?>
+  <?=mk_option($cfg['UPSCABLE'], "custom", "Custom");?>
+  </select>
+
+> Defines the type of cable connecting the UPS to your computer.Possible generic choices for 'cable' are:
+>
+> + USB, Simple, Smart, Ether, or Custom to specify a special cable.
+
+Custom UPS cable:
+: <input type="text" name="CUSTOMUPSCABLE" class="narrow" maxlength="40" value="<?=$cfg['CUSTOMUPSCABLE'];?>">
+
+> Specify a special cable by model number, only applicable when *UPS cable* is set to Custom.
+>
+> + 940-0119A, 940-0127A, 940-0128A, 940-0020B
+> + 940-0020C, 940-0023A, 940-0024B, 940-0024C
+> + 940-1524C, 940-0024G, 940-0095A, 940-0095B
+> + 940-0095C, 940-0625A, M-04-02-2000
+
+UPS type:
+: <select name="UPSTYPE" size="1" onChange="toggleDevice(this.form)">
+  <?=mk_option($cfg['UPSTYPE'], "usb", "USB");?>
+  <?=mk_option($cfg['UPSTYPE'], "apcsmart", "APCsmart");?>
+  <?=mk_option($cfg['UPSTYPE'], "net", "Net");?>
+  <?=mk_option($cfg['UPSTYPE'], "snmp", "SNMP");?>
+  <?=mk_option($cfg['UPSTYPE'], "dumb", "Dumb");?>
+  <?=mk_option($cfg['UPSTYPE'], "pcnet", "PCnet");?>
+  <?=mk_option($cfg['UPSTYPE'], "modbus", "ModBus");?>
+  </select>
+
+> Define a *UPS type*, which corresponds to the type of UPS you have (see the Description for more details).
+>
+> + **USB** - most new UPSes are USB
+> + **APCsmart** - newer serial character device, appropriate for SmartUPS models using a serial cable (not USB)
+> + **Net** - network link to a master apcupsd through apcupsd's Network Information Server. This is used if the UPS powering your computer is connected to a different computer for monitoring
+> + **SNMP** - SNMP network link to an SNMP-enabled UPS device
+> + **Dumb** - old serial character device for use with simple-signaling UPSes
+> + **PCnet** - PowerChute Network Shutdown protocol which can be used as an alternative to SNMP with the AP9617 family of smart slot cards
+> + **ModBus** - serial device for use with newest SmartUPS models supporting the MODBUS protocol
+
+Device:
+: <input type="text" name="DEVICE" maxlength="40" value="<?=$cfg['DEVICE'];?>">
+
+> Enter the *device* which correspondes to your situation, only applicable when *UPS type* is not set to USB.
+>
+> + **apcsmart** - /dev/tty**
+> + **net** - hostname:port. Hostname is the IP address of the NIS server. The deafult port is 3551
+> + **snmp** - hostname:port:vendor:community. Hostname is the ip address or hostname of the UPS on the network. Vendor can be can be "APC" or "APC_NOTRAP". "APC_NOTRAP" will disable SNMP trap catching; you usually want "APC". Port is usually 161. Community is usually "private"
+> + **dumb** - /dev/tty**
+> + **pcnet** - ipaddr:username:passphrase:port. ipaddr is the IP address of the UPS management card. username and passphrase are the credentials for which the card has been configured. port is the port number on which to listen for messages from the UPS, normally 3052. If this parameter is empty or missing, the default of 3052 will be used
+> + **modbus** - /dev/tty**
+
+Battery level to initiate shutdown (%):
+: <input type="text" name="BATTERYLEVEL" class="narrow" maxlength="3" value="<?=$cfg['BATTERYLEVEL'];?>">
+
+> If during a power failure, the remaining battery percentage (as reported by the UPS) is below or equal to *Battery level*, apcupsd will initiate a system shutdown.
+
+Runtime left to initiate shutdown (minutes):
+: <input type="text" name="MINUTES" class="narrow" maxlength="3" value="<?=$cfg['MINUTES'];?>">
+
+> If during a power failure, the remaining runtime in minutes (as calculated internally by the UPS) is below or equal to *minutes*, apcupsd, will initiate a system shutdown.
+
+Time on battery before shutdown (seconds):
+: <input type="text" name="TIMEOUT" class="narrow" maxlength="4" value="<?=$cfg['TIMEOUT'];?>">
+
+> If during a power failure, the UPS has run on batteries for *time-out* many seconds or longer; apcupsd will initiate a system shutdown. A value of zero disables this timer.
+>
+> If you have a Smart UPS, you will most likely want to disable this timer by setting it to zero.
+> That way, your UPS will continue on batteries until either the % charge remaining drops to or below *Battery level* or the remaining battery runtime drops to or below *minutes*.
+>
+> Of course - when testing - setting this to 60 causes a quick system shutdown if you pull the power plug.
+> If you have an older dumb UPS, you will want to set this to less than the time you know you can run on batteries.
+<div></div>
+> **Note:** *Battery level*, *Runtime left*, and *Time on battery* work in conjunction, so the first that occurs will cause the initiation of a shutdown.
+
+Turn off UPS after shutdown:
+: <select name="KILLUPS" size="1">
+  <?=mk_option($cfg['KILLUPS'], "no", "No");?>
+  <?=mk_option($cfg['KILLUPS'], "yes", "Yes");?>
+  </select>
+
+> Set to *Yes* to turn off the power to the UPS after a shutdown.
+
+<input type="submit" name="#default" value="Default">
+: <input type="submit" name="#apply" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>

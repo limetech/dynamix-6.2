@@ -1,0 +1,41 @@
+Menu="WebGui"
+Title="Page Map"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+function show_map($menu, $level) {
+  $pages = find_pages( $menu);
+  if (empty($pages))
+    return;
+  echo "<ul>";
+  foreach ($pages as $page) {
+    $link="<a href='/{$page['name']}'>{$page['name']}</a>";
+    if ($page['Type'] == "menu") {
+      echo "{$level} ({$link}) - {$page['Title']}<br>";
+    } else if ($page['Type'] == "xmenu") {
+      echo "{$level} [{$link}] - {$page['Title']}<br>";
+    } else {
+      echo "{$level} {$link} - {$page['Title']}<br>";
+    }
+    show_map($page['name'], $level+1);
+  }
+  echo "</ul>";
+}
+echo "<div class='up'>";
+show_map("Tasks", 1);
+show_map("Buttons", 1);
+echo "</div>";
+?>
+<input type="button" value="Done" onclick="done()">

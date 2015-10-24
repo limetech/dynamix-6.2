@@ -1,0 +1,41 @@
+Type="xmenu"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+if (count($pages)==2) $tabbed = false;
+$refs = array(); $n = 0;
+
+foreach ($disks as $ref) {
+  if ($ref['type']=='Flash') continue;
+  if ($ref['fsColor']=='grey-off') continue;
+  $refs[] = $ref['name'];
+  if ($ref['name']==$name) $i = $n;
+  $n++;
+}
+$end  = count($refs)-1;
+$prev = $i>0 ? $refs[$i-1] : $refs[$end];
+$next = $i<$end ? $refs[$i+1] : $refs[0];
+?>
+<script>
+var ctrl = "<span class='ctrl2 status vhshift'><a href='/Shares/Disk?name=<?=$prev?>' title='previous disk share'><button type='button' style='margin-right:4px'><i class='fa fa-chevron-left'></i></button></a><a href='/Shares/Disk?name=<?=$next?>' title='next disk share'><button type='button'><i class='fa fa-chevron-right'></i></button></a></span>";
+
+$(function() {
+<?if ($tabbed):?>
+  $('.tabs').append(ctrl);
+<?else:?>
+  $('div[id=title]:not(".nocontrol")').each(function(){$(this).append(ctrl);});
+<?endif;?>
+});
+</script>

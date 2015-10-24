@@ -1,0 +1,117 @@
+Menu="OtherSettings"
+Title="Disk Settings"
+Icon="disk-settings.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+Enable auto start:
+: <select name="startArray" size="1">
+  <?=mk_option($var['startArray'], "no", "No")?>
+  <?=mk_option($var['startArray'], "yes", "Yes")?>
+  </select>
+
+> If set to 'Yes' then if the device configuration is correct upon server start-up,
+> the array will be automatically Started and shares exported.<br>
+> If set to 'No' then you must Start the array yourself.
+
+Default spin down delay:
+: <select name="spindownDelay" size="1">
+  <?=mk_option($var['spindownDelay'], "0",  "Never")?>
+  <?=mk_option($var['spindownDelay'], "15", "15 minutes")?>
+  <?=mk_option($var['spindownDelay'], "30", "30 minutes")?>
+  <?=mk_option($var['spindownDelay'], "45", "45 minutes")?>
+  <?=mk_option($var['spindownDelay'], "1",  "1 hour")?>
+  <?=mk_option($var['spindownDelay'], "2",  "2 hours")?>
+  <?=mk_option($var['spindownDelay'], "3",  "3 hours")?>
+  <?=mk_option($var['spindownDelay'], "4",  "4 hours")?>
+  <?=mk_option($var['spindownDelay'], "5",  "5 hours")?>
+  <?=mk_option($var['spindownDelay'], "6",  "6 hours")?>
+  <?=mk_option($var['spindownDelay'], "7",  "7 hours")?>
+  <?=mk_option($var['spindownDelay'], "8",  "8 hours")?>
+  <?=mk_option($var['spindownDelay'], "9",  "9 hours")?>
+  </select>
+
+> This setting defines the 'default' time-out for spinning hard drives down after a period
+> of no I/O activity.  You may override the default value for an individual disk on the Disk Settings
+> page for that disk.
+
+Enable spinup groups:
+: <select name="spinupGroups" size="1">
+  <?=mk_option($var['spinupGroups'], "no", "No")?>
+  <?=mk_option($var['spinupGroups'], "yes", "Yes")?>
+  </select>
+
+> If set to 'Yes' then the [Spinup Groups](/Help) feature is enabled.
+
+Default partition format:
+: <select name="defaultFormat" size="1">
+  <?=mk_option($var['defaultFormat'], "1", "MBR: unaligned")?>
+  <?=mk_option($var['defaultFormat'], "2", "MBR: 4K-aligned")?>
+  </select>
+
+> Defines the type of partition layout to create when formatting hard drives 2TB in size and
+> smaller **only**. (All devices larger then 2TB are always set up with GPT partition tables.)
+>
+> **MBR: unaligned** setting will create MBR-style partition table, where the single
+> partition 1 will start in the **63rd sector** from the start of the disk.  This is the *traditional*
+> setting for virtually all MBR-style partition tables.
+>
+> **MBR: 4K-aligned** setting will create an MBR-style partition table, where the single
+> partition 1 will start in the **64th sector** from the start of the disk. Since the sector size is 512 bytes,
+> this will *align* the start of partition 1 on a 4K-byte boundry.  This is required for proper
+> support of so-called *Advanced Format* drives.
+>
+> Unless you have a specific requirement do not change this setting from the default **MBR: 4K-aligned**.
+
+Default file system:
+: <select name="defaultFsType" size="1">
+  <?=mk_option($var['defaultFsType'], "btrfs", "Btrfs");?>
+  <?=mk_option($var['defaultFsType'], "reiserfs", "ReiserFS");?>
+  <?=mk_option($var['defaultFsType'], "xfs", "XFS");?>
+  </select>
+
+> Defines the default file system type to create when an *unmountable* array device is formatted.
+>
+> The default file system type for a single or multi-device cache is always Btrfs.
+
+Force NCQ disabled:
+: <select name="queueDepth" size="1">
+  <?=mk_option($var['queueDepth'], "0", "No")?>
+  <?=mk_option($var['queueDepth'], "1", "Yes")?>
+  </select>
+
+> This is a system "tunable" parameter.
+>
+> If set to 'Yes' then "Native Command Queuing" to array drives is disabled.<br>
+> If set to 'No' then it is enabled.  Most users find that overall system performance is better with
+> NCQ turned off.
+
+Tunable (poll_attributes):
+: <input type="text" name="poll_attributes" maxlength="10" value="<?=$var['poll_attributes']?>" class="narrow"><?=$var['poll_attributes_status']?>
+
+> This "tunable" defines the disk SMART polling interval, in seconds.  A value of 0 disables SMART polling (not recommended).
+
+Tunable (md_num_stripes):
+: <input type="text" name="md_num_stripes" maxlength="10" value="<?=$var['md_num_stripes']?>" class="narrow"><?=$var['md_num_stripes_status']?>
+
+Tunable (md_sync_window):
+: <input type="text" name="md_sync_window" maxlength="10" value="<?=$var['md_sync_window']?>" class="narrow"><?=$var['md_sync_window_status']?>
+
+> These tunables let you control [certain properties](/Help) of the unRAID driver.
+>
+> Note: For each of these settings, if you delete the value and click Apply, the value is restored to its default.
+
+&nbsp;
+: <input type="submit" name="changeDisk" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>

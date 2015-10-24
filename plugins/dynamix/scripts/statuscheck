@@ -1,0 +1,177 @@
+#!/usr/bin/php
+<?PHP
+/* Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+require_once('/usr/local/emhttp/webGui/include/Wrappers.php');
+
+function plus($val, $word, $last) {
+  return $val>0 ? (($val || $last) ? ($val.' '.$word.($val!=1?'s':'').($last ?'':', ')) : '') : '';
+}
+
+function my_temp($value) {
+  global $unraid;
+  if ($value=='*') return ' - standby';
+  $unit = $unraid['display']['unit'];
+  return ' - active '.($unit=='F' ? round(9/5*$value+32) : str_replace('.', $unraid['display']['number'][0], $value)).' '.$unit;
+}
+
+function my_disk($name) {
+  return ucfirst(preg_replace('/^(disk|cache)([0-9]+)/','$1 $2',$name));
+}
+
+function my_scale($value, &$unit, $precision = NULL) {
+  global $unraid;
+  $scale = $unraid['display']['scale'];
+  $number = $unraid['display']['number'];
+  $units = array('B','KB','MB','GB','TB','PB');
+  if ($scale==0 && !$precision) {
+    $unit = '';
+    return number_format($value, 0, $number[0], ($value>=10000 ? $number[1] : ''));
+  } else {
+    $base = $value ? floor(log($value, 1000)) : 0;
+    if ($scale>0 && $base>$scale) $base = $scale;
+    $unit = $units[$base];
+    $value = round($value/pow(1000, $base), $precision ? $precision : 2);
+    return number_format($value, $precision ? $precision : (($value-intval($value)==0 || $value>=100) ? 0 : ($value>=10 ? 1 : 2)), $number[0], ($value>=10000 ? $number[1] : ''));
+  }
+}
+
+function my_check($time) {
+  global $var;
+  if (!$time) return "unavailable (system reboot or log rotation)";
+  $days = floor($time/86400);
+  $hmss = $time-$days*86400;
+  $hour = floor($hmss/3600);
+  $mins = $hmss/60%60;
+  $secs = $hmss%60;
+  return plus($days,'day',($hour|$mins|$secs)==0).plus($hour,'hour',($mins|$secs)==0).plus($mins,'minute',$secs==0).plus($secs,'second',true)."Average speed: ".my_scale($var['mdResyncSize']*1024/$time,$unit,1)." $unit/sec";
+}
+
+function my_time($time) {
+  global $unraid;
+  $date = strftime($unraid['display']['date'].($unraid['display']['date']!='%c' ? ", {$unraid['display']['time']}" : ""), $time);
+  $now  = new DateTime("@".intval(time()/86400)*86400);
+  $last = new DateTime("@".intval($time/86400)*86400);
+  $days = date_diff($last,$now)->format('%a');
+  switch (true) {
+  case ($days<0):
+    return $date;
+  case ($days==0):
+    return "$date (today)";
+  case ($days==1):
+    return "$date (yesterday)";
+  default:
+    return "$date ($days days ago)";
+  }
+}
+
+function my_clock($time) {
+  if (!$time) return 'less than a minute';
+  $days = floor($time/1440);
+  $hour = $time/60%24;
+  $mins = $time%60;
+  return plus($days,'day',($hour|$mins)==0).plus($hour,'hour',$mins==0).plus($mins,'minute',true);
+}
+
+exec("wget -qO /dev/null 127.0.0.1:$(lsof -lbnPi4 -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K[\d]+')/update.htm?cmdStatus=apply");
+
+$disks  = parse_ini_file("/var/local/emhttp/disks.ini",true);
+$var    = parse_ini_file("/var/local/emhttp/var.ini");
+$unraid = parse_plugin_cfg("dynamix",true);
+
+$output = $unraid['notify']['report'];
+$hot    = $unraid['display']['hot'];
+$max    = $unraid['display']['max'];
+$server = strtoupper($var['NAME']);
+
+$data   = array();
+$parity = false;
+$cache  = false;
+$error0 = 0;
+$error1 = 0;
+$error2 = 0;
+$error3 = 0;
+
+// Generate report of individual disks
+foreach ($disks as $disk) {
+  $name = $disk['name'];
+  if ($name=='flash' || substr($disk['status'],-3)=='_NP') continue;
+  $temp = $disk['temp'];
+  if ($temp>=$max) {
+    $fail = ' (disk is overheated';
+    $error0++;
+  } else if ($temp>=$hot) {
+    $fail = ' (disk is hot';
+    $error1++;
+  } else {
+    $fail = '';
+  }
+  if ($disk['numErrors']>0) {
+    if ($fail) $fail .= ', '; else $fail = ' (';
+    $fail .= 'disk has read errors';
+    $error2++;
+  }
+  if ($fail) $fail .= ')';
+  $status = $fail ? ' [NOK]' : ' [OK]';
+  $color = strtok($disk['color'],'-');
+  if ($name=='parity') $parity = true;
+  if ($name=='cache') $cache = true;
+  if ($color=='red'||$color=='yellow') { $error3++; $status = ' ['.str_replace(array('NP_','_'),array('',' '),$disk['status']).']'; }
+  $info = "{$disk['id']} ({$disk['device']})";
+  if ($info==" ()") $info = 'No device identification present';
+  $data[] = my_disk($name)." - $info".my_temp($temp).$fail.$status;
+}
+$size = count($data);
+$data[] = "";
+
+// Generate parity report
+$mdResync = $var['mdResync'];
+if ($mdResync>0) {
+  $mdResyncPos = $var['mdResyncPos'];
+  $mdResyncDb = $var['mdResyncDb'];
+  $mdResyncDt = $var['mdResyncDt'];
+  $data[] = ($var['mdNumInvalid']==0 ? 'Parity check' : ($var['mdInvalidDisk']==0 ? 'Parity sync' : 'Data rebuild'))." in progress.";
+  $data[] = "Total size: ".my_scale($mdResync*1024, $unit)." $unit";
+  $data[] = "Elapsed time: ".my_clock(floor((time()-$var['sbUpdated'])/60));
+  $data[] = "Current position: ".my_scale($mdResyncPos*1024, $unit)." $unit (".number_format(($mdResyncPos/($mdResync/100+1)),1,$unraid['display']['number'][0],'')." %)";
+  $data[] = "Estimated speed: ".my_scale($mdResyncDb/$mdResyncDt*1024, $unit, 1)." $unit/sec";
+  $data[] = "Estimated finish: ".my_clock(round(((($mdResyncDt*(($mdResync-$mdResyncPos)/($mdResyncDb/100+1)))/100)/60),0));
+  $data[] = "Sync errors ".($var['mdResyncCorr']==0 ? 'detected: ' : 'corrected: ').$var['sbSyncErrs'];
+} else {
+  $sbSynced = $var['sbSynced'];
+  if ($sbSynced==0) {
+    $data[] = "Parity has not been checked yet";
+  } else {
+    $data[] = $var['mdNumInvalid']==0 ? 'Parity is valid' : ($var['mdInvalidDisk']==0 ? 'Parity is invalid' : 'Data is invalid');
+    $sbSyncErrs = $var['sbSyncErrs'];
+    exec("awk '/sync completion/ {gsub(\"(time=|sec)\",\"\",x);print x;print \$NF};{x=\$NF}' /var/log/syslog|tail -2", $time);
+    if (!count($time)) $time = array_fill(0,2,0);
+    if ($time[1]==0) {
+      $data[] = "Last checked on ".my_time($sbSynced).", finding $sbSyncErrs error".($sbSyncErrs==1?'.':'s.');
+      $data[] = "Duration: ".my_check($time[0]);
+    } else {
+      $data[] = "Last check incomplete on ".my_time($sbSynced).", finding $sbSyncErrs error".($sbSyncErrs==1?'.':'s.');
+      $data[] = "Error code: {$time[1]}";
+    }
+  }
+}
+
+$word = $size==1 ? "" : "including ";
+$warn = ($error0 || $error3) ? "alert" : (($error1 || $error2) ? "warning" : "normal");
+$stat = $warn=="normal" ? "[PASS]" : "[FAIL]";
+$info = "Array has $size disk".($size==1 ? "" : "s").($parity ? " ({$word}parity".($cache ? " & cache)" : ")") : ($cache ? " ({$word}cache)" : ""));
+$message = implode('\n', $data);
+exec("/usr/local/emhttp/webGui/scripts/notify -s \"Notice [$server] - array health report $stat\" -d \"$info\" -m \"$message\" -i \"$warn $output\"");
+
+exit(0);
+?>

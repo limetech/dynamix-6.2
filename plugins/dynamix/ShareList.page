@@ -1,0 +1,103 @@
+Menu="Shares:1"
+Title="User Shares"
+Cond="$var['fsState']=="Started" && $var['shareUser']=='e'"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+// Display export settings
+function user_share_settings($protocol,$share) {
+  if (empty($share)) return;
+  if ($protocol!='yes' || $share['export']=='-') return "-";
+  if ($share['export']=='e') return ucfirst($share['security']);
+  return '<em>'.ucfirst($share['security']).'</em>';
+}
+// Share size per disk
+$preserve = $path==$prev;
+$ssz1 = array();
+foreach (glob("state/*.ssz1", GLOB_NOSORT) as $entry) {
+  if ($preserve) {
+    $ssz1[basename($entry, ".ssz1")] = parse_ini_file($entry);
+  } else {
+    unlink($entry);
+  }
+}
+?>
+<table class="share_status share <?=$display['view']?>">
+<thead><tr><td style="width:15%">Name</td><td style="width:33%">Comment</td><td>SMB</td><td>NFS</td><td>AFP</td><td>Size</td><td>Free</td><td>View</td></tr></thead>
+<tbody>
+<?
+foreach ($shares as $name => $share):
+  $ball = "/webGui/images/{$share['color']}.png";
+  switch ($share['color']) {
+    case 'green-on': $help = 'All files protected'; break;
+    case 'yellow-on': $help = 'Some or all files unprotected'; break;
+  }
+?><tr>
+  <td><a class='info nohand' onclick='return false'><img src='<?=$ball?>' class='icon'><span style="left:18px"><?=$help?></span></a><a href="<?=$path?>/Share?name=<?=urlencode($name)?>" onclick="$.cookie('one','tab1',{path:'/'})"><?=$share['name']?></a></td>
+  <td><?=$share['comment']?></td>
+  <td><?=user_share_settings($var['shareSMBEnabled'], $sec[$name])?></td>
+  <td><?=user_share_settings($var['shareNFSEnabled'], $sec_nfs[$name])?></td>
+  <td><?=user_share_settings($var['shareAFPEnabled'], $sec_afp[$name])?></td>
+<?if (array_key_exists("{$share['name']}", $ssz1)):?>
+  <td><?=my_scale($ssz1[$share['name']]['total']*1024, $unit).' '.$unit?></td>
+  <td><?=my_scale($share['free']*1024, $unit).' '.$unit?></td>
+  <td><a href="<?=$path?>/Browse?dir=/mnt/user/<?=urlencode($share['name'])?>"><img src="/webGui/images/explore.png" title="Browse /mnt/user/<?=urlencode($share['name'])?>"></a></td>
+  </tr>
+<?foreach ($ssz1[$share['name']] as $disk_name => $disk_size):
+    if ($disk_name!="total"):
+?>  <tr class="share_status_size">
+    <td><?=my_disk($disk_name)?>:</td>
+    <td></td>
+	  <td></td>
+	  <td></td>
+    <td></td>
+    <td><?=my_scale($disk_size*1024, $unit).' '.$unit?></td>
+    <td><?=my_scale($disks[$disk_name]['fsFree']*1024, $unit).' '.$unit?></td>
+    <td></td>
+    </tr>
+<?  endif;
+  endforeach;
+  else:
+  $cmd="/webGui/scripts/share_size" . "&arg1=" . urlencode($name) . "&arg2=" . urlencode("/var/local/emhttp/$name.ssz1");
+?><td><a href="/update.htm?cmd=<?=$cmd?>" target="progressFrame" onclick="$(this).text('Please wait...')">Compute...</a></td>
+  <td><?=my_scale($share['free']*1024, $unit).' '.$unit?></td>
+  <td><a href="<?=$path?>/Browse?dir=/mnt/user/<?=urlencode($share['name'])?>"><img src="/webGui/images/explore.png" title="Browse /mnt/user/<?=urlencode($share['name'])?>"></a></td>
+  </tr>
+<?endif;
+endforeach;
+?>
+</tbody>
+</table>
+<?if (!count($shares)):?>
+<div style="font-style:italic;font-size:14px;opacity:0.5;padding:5px;">There are no user shares</div>
+<?endif;?>
+<form method="GET" action="<?=$path?>/Share">
+<input type="hidden" name="name" value="">
+<?if ($var['startMode']=='Normal'):?>
+<p><input type="submit" value="Add Share"<?=$var['shareUser']=='e'?'>':' disabled>User shares must be <strong>enabled</strong> to add shares.'?></p>
+<?else:?>
+<p><input type="submit" value="Add Share" disabled></p>
+<?endif;?>
+</form>
+
+> **Colored Status Indicator** the significance of the color indicator at the beginning of each line in *User Shares* is as follows:
+>
+> <img src="/webGui/images/green-on.png" class="icon">All files are on protected storage.
+>
+> <img src="/webGui/images/yellow-on.png" class="icon">Some or all files are on unprotected storage.
+>
+> SMB security mode displayed in *italics* indicates exported hidden shares.
+>
+> AFP security mode displayed in *italics* indicates exported time-machine shares.

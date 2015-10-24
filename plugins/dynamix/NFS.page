@@ -1,0 +1,62 @@
+Menu="NetworkServices:2"
+Title="NFS"
+Icon="linux-logo.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<script>
+function checkNFSenable() {	
+  var form = document.nfs_enable;
+  form.fuse_remember.disabled = form.shareNFSEnabled.value=="no";	
+}
+$(checkNFSenable);
+</script>
+
+<form markdown="1" name="nfs_enable" method="POST" action="/update.htm" target="progressFrame">
+Enable NFS:
+: <select name="shareNFSEnabled" size="1" onchange="checkNFSenable()">
+  <?=mk_option($var['shareNFSEnabled'], "no", "No");?>
+  <?=mk_option($var['shareNFSEnabled'], "yes", "Yes");?>
+  </select>
+
+> Select 'Yes' to enable the NFS protocol.
+
+Tunable (fuse_remember):
+: <input type="text" name="fuse_remember" maxlength="10" value="<?=$var['fuse_remember']?>" class="narrow"><?=$var['fuse_remember_status']?>
+
+> When NFS is enabled, this Tunable may be used to alleviate or solve instances of "NFS Stale File Handles"
+> you might encounter with your NFS client.
+> 
+> In essence, (fuse_remember) tells an internal subsystem (named "fuse") how long to "remember" or "cache"
+> file and directory information associated with user shares.  When an NFS client attempts to access a file
+> (or directory) on the server, and that file (or directory) name is not cached, then you could encounter
+> "stale file handle".
+> 
+> The numeric value of this tunable is the number of seconds to cache file/directory name entries,
+> where the default value of 330 indicates 5 1/2 minutes.  There are two special values you may also set
+> this to:
+> 
+> * 0 which means, do not cache file/directory names at all, and
+> * -1 which means cache file/directory names forever (or until array is stopped)
+> 
+> A value of 0 would be appropriate if you are enabling NFS but only plan to use it for disk shares,
+> not user shares.
+> 
+> A value of -1 would be appropriate if no other timeout seems to solve the "stale file handle" on
+> your client.  Be aware that setting a value of -1 will cause the memory footprint to grow by approximatel
+> 108 bytes per file/directory name cached.  Depending how much RAM is installed in your server and how many
+> files/directories you access via NFS this may or may not lead to out-of-memory conditions.
+
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>

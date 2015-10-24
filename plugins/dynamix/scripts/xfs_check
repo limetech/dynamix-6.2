@@ -1,0 +1,22 @@
+#!/bin/bash
+# xfs_check start <dev> <id> <options>
+# xfs_check status <dev> <id>
+# xfs_check cancel <dev> 
+
+case "$1" in
+'start')
+  # using /var/lib because that's where btrfs puts status
+  exec /sbin/xfs_repair $4 $2 &> /var/lib/xfs/check.status.$3 &
+;;
+'status')
+  if [ -f /var/lib/xfs/check.status.$3 ]; then
+    cat /var/lib/xfs/check.status.$3
+  else
+    echo "Not available"
+  fi;
+  pgrep -f "/sbin/xfs_repair.*$2" >/dev/null
+;;
+'cancel')
+  pkill -f "/sbin/xfs_repair.*$2"
+;;
+esac

@@ -1,0 +1,337 @@
+Menu="UserPreferences"
+Title="Display Settings"
+Icon="display-settings.png"
+---
+<?PHP
+/* Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$file = "/boot/config/plugins/dynamix/banner.png";
+$void = "<img src='/webGui/images/banner.png' id='image' width='330' height='30' onclick='$(&quot;#drop&quot;).click()' style='cursor:pointer' title='Click to select PNG file'>";
+$icon = "<i class='fa fa-trash top' title='Restore default image' onclick='restore()'></i>";
+?>
+
+<style>
+span#dropbox{margin-right:20px;}
+i.top{position:absolute;padding-left:4px;cursor:pointer;}
+</style>
+
+<script src="/webGui/javascript/jquery.filedrop.js"></script>
+<script>
+var path = '/boot/config/plugins/dynamix';
+var filename = '';
+
+function restore() {
+  // restore original image and activate APPLY button
+  $('#dropbox').html("<?=$void?>");
+  $('select[name="banner"]').trigger('change');
+  filename = 'reset';
+}
+
+function forceReload() {
+  window.onload = parent.location.reload(true);
+}
+
+function upload(remove) {
+  // gets invoked when the user clicks APPLY, at this point image will be saved or deleted
+  if (remove || filename=='reset') {
+    $.post("/webGui/include/FileUpload.php",{cmd:'delete',filename:filename,path:path,output:"banner"});
+  } else if (filename) {
+    $.post("/webGui/include/FileUpload.php",{cmd:'save',filename:filename,path:path,output:"banner"});
+    window.onload = forceReload();
+  }
+}
+
+$(function() {
+  // appending a time dummy will make the browser think/realize the image has changed
+  $('#image').attr('src', $('#image').attr('src')+'?t='+new Date().getTime());
+  var dropbox = $('#dropbox');
+  // attach the drag-n-drop feature to the 'dropbox' element
+  dropbox.filedrop({
+    maxfiles:1,
+    maxfilesize:95, // KB
+    url:'/webGui/include/FileUpload.php',
+    beforeEach:function(file) {
+      if (!file.type.match(/^image\/png/)) {
+        swal({title:"Warning",text:"Only PNG images are allowed!",type:"warning"});
+        return false;
+      }
+    },
+    error: function(err, file, i) {
+      switch (err) {
+      case 'BrowserNotSupported':
+        swal({title:"Browser error",text:"Your browser does not support HTML5 file uploads!",type:"error"});
+        break;
+      case 'TooManyFiles':
+        swal({title:"Too many files",text:"Please select one file only!",type:"error"});
+        break;
+      case 'FileTooLarge':
+        swal({title:"File too large",text:"Maximum file upload size is 95 kB (97,280 bytes)",type:"error"});
+        break;
+      }
+    },
+    uploadStarted:function(i,file,count) {
+      var image = $('img', $(dropbox));
+      var reader = new FileReader();
+      image.width = 330;
+      image.height = 30;
+      reader.onload = function(e){image.attr('src',e.target.result);};
+      reader.readAsDataURL(file);
+    },
+    uploadFinished:function(i,file,response) {
+      if (response == '200 OK') {
+        if (!filename || filename=='reset') $(dropbox).append("<?=$icon?>");
+        $('select[name="banner"]').trigger('change');
+        filename = file.name;
+      } else {
+        swal({title:"Upload error",text:response,type:"error"});
+      }
+    }
+  });
+  // simulate a drop action when manual file selection is done
+  $('#drop').bind('change', function(e) {
+    var files = e.target.files;
+    if ($('#dropbox').triggerHandler({type:'drop',dataTransfer:{files:files}})==false) e.stopImmediatePropagation();
+  });
+  presetTime(document.display_settings);
+  presetBanner(document.display_settings);
+});
+
+function prepareDisplay(form) {
+  if (!form.critical.value | !form.warning.value) {
+    swal({title:"Missing value",text:"An empty percentage value is not allowed!",type:"error"});
+    return false;
+  }
+  if (form.warning.value>form.critical.value) {
+    swal({title:"Wrong value",text:"Warning percentage must be lower than Critical percentage!",type:"error"});
+    return false;
+  }
+  if (!form.number.value) form.number.value='.,';
+  if (form.unit.selectedIndex==1) {
+    form.hot.value = Math.round(5/9*(form.hot.value-32));
+    form.max.value = Math.round(5/9*(form.max.value-32));
+  }
+  return true;
+}
+
+function presetTime(form) {
+  var system = form.date.selectedIndex==0;
+  if (system) form.time.selectedIndex = 0;
+  form.time.disabled = system;
+}
+
+function presetBanner(form) {
+  if (form.banner.selectedIndex == 0) $('#custom').hide(); else $('#custom').show();
+}
+
+function presetTemp(form) {
+  var hot = $('#hot').html();
+  var max = $('#max').html();
+  if (form.unit.selectedIndex==0) {
+    form.hot.value = Math.round(5/9*(form.hot.value-32));
+    form.max.value = Math.round(5/9*(form.max.value-32));
+  $('#hot').html(hot.replace('F)','C)'));
+  $('#max').html(max.replace('F)','C)'));
+  } else {
+    form.hot.value = Math.round((9/5*form.hot.value)+32);
+    form.max.value = Math.round((9/5*form.max.value)+32);
+  $('#hot').html(hot.replace('C)','F)'));
+  $('#max').html(max.replace('C)','F)'));
+  }
+}
+
+function presetRefresh(form) {
+  for (var i=0,item; item=form.refresh.options[i]; i++) item.value *= -1;
+}
+
+function presetPassive(index) {
+  if (index==0) $('#passive').hide(); else $('#passive').show();
+}
+
+function checkTemp(form,what) {
+  if (form.hot.value>=form.max.value) {
+    var message = what ? 'Warning temperature must be lower than Critical temperature' : 'Critical temperature must be higher than Warning temperature';
+    swal({title:"Incorrect value",text:message,type:"warning"});
+  }
+}
+</script>
+
+> The display settings below determine how items are displayed on screen. Use these settings to tweak the visual effects to your likings.
+>
+> You can experiment with these settings as desired, they only affect visual properties.
+
+<form markdown="1" name="display_settings" method="POST" action="/update.php" target="progressFrame" onsubmit="return prepareDisplay(this)">
+<input type="hidden" name="#file" value="dynamix/dynamix.cfg"/>
+<input type="hidden" name="#section" value="display"/>
+Date format:
+: <select name="date" size="1" onchange="presetTime(this.form)">
+  <?=mk_option($display['date'], "%c", "System Setting")?>
+  <?=mk_option($display['date'], "%A, %Y %B %e", "Day, YYYY Month D")?>
+  <?=mk_option($display['date'], "%A, %e %B %Y", "Day, D Month YYYY")?>
+  <?=mk_option($display['date'], "%A, %B %e, %Y", "Day, Month D, YYYY")?>
+  <?=mk_option($display['date'], "%A, %m/%d/%Y", "Day, MM/DD/YYYY")?>
+  <?=mk_option($display['date'], "%A, %d-%m-%Y", "Day, DD-MM-YYYY")?>
+  <?=mk_option($display['date'], "%A, %d.%m.%Y", "Day, DD.MM.YYYY")?>
+  <?=mk_option($display['date'], "%A, %Y-%m-%d", "Day, YYYY-MM-DD")?>
+  </select>
+
+Time format:
+: <select name="time" size="1">
+  <?=mk_option($display['time'], "%I:%M %p", "12 hours")?>
+  <?=mk_option($display['time'], "%R", "24 hours")?>
+  </select>
+
+Number format:
+: <select name="number" size="1">
+  <?=mk_option($display['number'], ".,", "American")?>
+ <?=mk_option($display['number'], ",.", "European")?>
+  </select>
+
+Number scaling:
+: <select name="scale" size="1">
+  <?=mk_option($display['scale'], "-1", "Automatic")?>
+  <?=mk_option($display['scale'], "0", "Disabled")?>
+  <?=mk_option($display['scale'], "1", "KB")?>
+  <?=mk_option($display['scale'], "2", "MB")?>
+  <?=mk_option($display['scale'], "3", "GB")?>
+  <?=mk_option($display['scale'], "4", "TB")?>
+  <?=mk_option($display['scale'], "5", "PB")?>
+  </select>
+
+Number alignment:
+: <select name="align" size="1">
+  <?=mk_option($display['align'], "left", "Left")?>
+  <?=mk_option($display['align'], "center", "Center")?>
+  <?=mk_option($display['align'], "right", "Right")?>
+  </select>
+
+Page view:
+: <select name="tabs" size="1">
+  <?=mk_option($display['tabs'], "0", "Tabbed")?>
+  <?=mk_option($display['tabs'], "1", "Non-tabbed")?>
+  </select>
+
+Table view spacing:
+: <select name="view" size="1">
+  <?=mk_option($display['view'], "", "Normal")?>
+  <?=mk_option($display['view'], "small", "Narrow")?>
+  <?=mk_option($display['view'], "wide", "Wide")?>
+  </select>
+
+Display array totals:
+: <select name="total" size="1">
+  <?=mk_option($display['total'], "0", "No")?>
+  <?=mk_option($display['total'], "1", "Yes")?>
+  </select>
+
+Show array utilization indicator:
+: <select name="usage" size="1">
+  <?=mk_option($display['usage'], "0", "No")?>
+  <?=mk_option($display['usage'], "1", "Yes")?>
+  </select>
+
+Show banner:
+: <select name="banner" size="1" onchange="presetBanner(this.form)">
+  <?=mk_option($display['banner'], "", "No")?>
+  <?=mk_option($display['banner'], "image", "Yes")?>
+  </select>
+
+<div id="custom" markdown="1" style="display:none">
+Custom banner:
+<input type="hidden" name="custom" value="custom">
+: <span id="dropbox">
+<?if (file_exists($file)):?>
+  <img src="<?=$file?>" width="330" height="30" onclick="$('#drop').click()" style="cursor:pointer" title="Click to select PNG file"><?=$icon?>
+<?else:?>
+  <?=$void?>
+<?endif;?>
+  </span><em>Drag-n-drop a PNG file or click the image at the left.</em><input type="file" id="drop" accept=".png" style="display:none">
+</div>
+
+> Image will be scaled to 1270x90 pixels. The maximum image file upload size is 95 kB (97,280 bytes).
+
+Show Dashboard apps:
+: <select name="dashapps" size="1">
+  <?=mk_option($display['dashapps'], "icons", "Docker + VMs")?>
+  <?=mk_option($display['dashapps'], "docker", "Docker only")?>
+  <?=mk_option($display['dashapps'], "vms", "VMs only")?>
+  <?=mk_option($display['dashapps'], "none", "None")?>
+  </select>
+
+Dynamix color theme:
+: <select name="theme" size="1">
+  <?=mk_option($display['theme'], "white", "White")?>
+  <?=mk_option($display['theme'], "black", "Black")?>
+  </select>
+
+Used / Free columns:
+: <select name="text" size="1">
+  <?=mk_option($display['text'], "0", "Text")?>
+  <?=mk_option($display['text'], "1", "Bar (gray)")?>
+  <?=mk_option($display['text'], "2", "Bar (color)")?>
+  <?=mk_option($display['text'], "10", "Text - Bar (gray)")?>
+  <?=mk_option($display['text'], "20", "Text - Bar (color)")?>
+  <?=mk_option($display['text'], "11", "Bar (gray) - Text")?>
+  <?=mk_option($display['text'], "21", "Bar (color) - Text")?>
+  </select>
+
+Warning disk utilization level (%):
+: <input type="number" min="0" max="99" name="warning" class="narrow" maxlength="2" value="<?=$display['warning']?>">
+
+> *Warning disk utilization* sets the warning threshold for a hard disk utilization. Exceeding this threshold will result in a warning notification.
+>
+> When the warning level is set equal or greater than the critical level, there will be only critical notifications (warnings are not existing).
+
+Critical disk utilization level (%):
+: <input type="number" min="0" max="100" name="critical" class="narrow" maxlength="3" value="<?=$display['critical']?>">
+
+> *Critical disk utilization* sets the critical threshold for a hard disk utilization. Exceeding this threshold will result in an alert notification.
+
+Temperature unit:
+: <select name="unit" size="1" onchange="presetTemp(this.form)">
+  <?=mk_option($display['unit'], "C", "Celsius")?>
+  <?=mk_option($display['unit'], "F", "Fahrenheit")?>
+  </select>
+
+> Selects the temperature unit for the disk temperature thresholds. Changing the unit will adjust the existing value in the disk temperature thresholds as appropriate.
+>
+> Make sure any newly entered values represent the selected temperature unit.
+
+<span id="hot">Warning disk temperature threshold (&deg;<?=$display['unit']?>):</span>
+: <input type="number" min="0" max="300" name="hot" class="narrow" maxlength="3" value="<?=$display['unit']=='C'?$display['hot']:round(9/5*$display['hot']+32)?>" onchange="checkTemp(this.form,true)">
+
+> *Warning disk temperature* sets the warning threshold for a hard disk temperature. Exceeding this threshold will result in a warning notification.
+
+<span id="max">Critical disk temperature threshold (&deg;<?=$display['unit']?>):</span>
+: <input type="number" min="0" max="300" name="max" class="narrow" maxlength="3" value="<?=$display['unit']=='C'?$display['max']:round(9/5*$display['max']+32)?>" onchange="checkTemp(this.form,false)">
+
+> *Critical disk temperature* sets the critical threshold for a hard disk temperature. Exceeding this threshold will result in an alert notification.
+
+Page update frequency:
+: <select name="refresh" size="1" onchange="presetPassive(this.selectedIndex)">
+  <?=mk_option($display['refresh'], "0", "Disabled")?>
+  <?=mk_option($display['refresh'], $display['refresh']<0?"-1000":"1000", "Real-time")?>
+  <?=mk_option($display['refresh'], $display['refresh']<0?"-10000":"10000", "Regular")?>
+  <?=mk_option($display['refresh'], $display['refresh']<0?"-60000":"60000", "Slow")?>
+  </select><span id="passive"<?=$display['refresh']==0?" style='display:none'":""?>>&nbsp;<input type="checkbox" name="#passive"<?=$display['refresh']<0?' checked':''?> onchange="presetRefresh(this.form)">disable page updates while parity operation is running.</span>
+
+> *Page update* determines how often the browser will query the unRAID server to obtain the latest information.
+>
+> By default 'real-time' is selected. In case issues are experienced in the operation of the unRAID server, then the update frequency can be lowered or disabled altogether.
+> In the latter case a 'refresh' button appears in the top of the screen to do manual page refreshing.
+>
+> A special option exists to disable screen updates while a parity operation is in progress. Use this option when degradation of the parity operation is observed.
+
+<input type="submit" name="#default" value="Default" onclick="filename='reset';upload()">
+: <input type="submit" name="#apply" value="Apply" onclick="upload()"><input type="button" value="Done" onclick="done()">
+</form>

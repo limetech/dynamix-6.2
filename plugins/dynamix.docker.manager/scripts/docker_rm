@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# delete the docker image file
+if [ -f /boot/config/docker.cfg ]; then
+  . /boot/config/docker.cfg
+  if [ "${DOCKER_IMAGE_FILE}" != "" -a -f "${DOCKER_IMAGE_FILE}" ]; then
+    echo "Deleting ${DOCKER_IMAGE_FILE} ..."
+    rm "${DOCKER_IMAGE_FILE}"
+  fi
+fi

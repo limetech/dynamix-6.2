@@ -1,0 +1,70 @@
+Menu="Plugins"
+Title="Plugin History"
+Cond="glob('/boot/config/plugins-stale/*.plg')"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+require_once('plugins/dynamix.plugin.manager/include/PluginHelpers.php');
+
+echo "<table class='tablesorter plugins shift' id='plugin_table'><thead>";
+echo "<tr><th></th><th>Plugin</th><th>Author</th><th>Version</th><th>Status</th><th></th></tr>";
+echo "</thead><tbody>";
+
+foreach (glob("/boot/config/plugins-stale/*.plg", GLOB_NOSORT) as $plugin_file) {
+  // plugin name
+  $name = plugin("name", $plugin_file);
+  if ($name === false) $name = basename($plugin_file, ".plg");
+
+  // icon
+  $icon = icon($name);
+
+  // desc
+  $readme = "plugins/{$name}/README.md";
+  if (file_exists($readme))
+    $desc = Markdown(file_get_contents($readme));
+  else
+    $desc = Markdown("**{$name}**");
+
+  // author
+  $author = plugin("author", $plugin_file);
+  if ($author === false) $author = "anonymous";
+
+  // version
+  $version = plugin("version", $plugin_file);
+  if ($version === false) $version = "unknown";
+
+  // version info
+  $version_info = $version;
+
+  // status info
+  $status_info = "STALE";
+
+  // action
+  $action = make_link("delete", $plugin_file);
+
+  // echo our plugin information
+  echo "<tr>";
+  echo "<td><img src=\"/{$icon}\" /></td>";
+  echo "<td>{$desc}</td>";
+  echo "<td>{$author}</td>";
+  echo "<td>{$version_info}</td>";
+  echo "<td>{$status_info}</td>";
+  echo "<td>{$action}</td>";
+  echo "</tr>";
+}
+
+echo "</tbody></table>";
+?>
+> These plugins were not installed because newer code already exists.  It is safe to simply delete these.

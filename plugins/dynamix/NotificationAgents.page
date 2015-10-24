@@ -1,0 +1,143 @@
+Menu="Notifications:3"
+Title="Notification Agents"
+---
+<script>
+var scripts = new Object();
+var enabledAgents = new Object();
+var disabledAgents = new Object();
+var openPage = true;
+
+<?if ($tabbed):?>
+$('#tab3').bind({click:function(){initDropdown();}});
+$(function(){if ($('#tab3').is(':checked')) initDropdown();});
+<?else:?>
+$(function(){initDropdown();});
+<?endif;?>
+
+if (!String.prototype.format) {
+  String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) {
+      return typeof args[number] != 'undefined' ? args[number] : match;
+    });
+  };
+}
+function addSlashes(text) {
+  return text.replace(/\"/g, "\\\"");
+}
+function prepareService(el, name) {
+  var script = scripts[name];
+  var vars = "";
+  var form = $(el).parents('form:first');
+  form.find('.variable').each(function() {
+    vars += $(this).attr('name')+'="'+addSlashes($(this).val())+"\"\n";
+  });
+  $('[name="'+name+'"] [id^="slot_"]').each(function() {
+    var include = '';
+    $(this).find('option').each(function() {
+      if ($(this).is(':selected')) {
+        if (include.length) include += '\\n';
+        include += $(this).val();
+        $(this).removeAttr('selected');
+      }
+    });
+    vars += $(this).attr('name')+'="'+include+"\"\n";
+  });
+  var cmd = (form.find('select[name=Enabled]').val()=='yes' ? 'enable' : 'disable');
+  form.find('input[name=#arg\\[1\\]]').val(cmd);
+  form.find('input[name=#arg\\[2\\]]').val(name+'.sh');
+  form.find('input[name=text]').val(script.format(vars,'\n'));
+}
+function execCmd(cmd, name) {
+  var form = $('#formExec');
+  form.find('input[name=#arg\\[1\\]]').val(cmd);
+  if (name) form.find('input[name=#arg\\[2\\]]').val(name+'.sh');
+  form.submit();
+}
+function testService(name) {
+  var form = $('#formExec');
+  form.find('input[name=#arg\\[1\\]]').val('test');
+  form.find('input[name=#arg\\[2\\]]').val(name+'.sh');
+  form.append('<input type="hidden" name="#env[]" value="EVENT='+name+' test.">');
+  form.append('<input type="hidden" name="#env[]" value="SUBJECT='+name+' test.">');
+  form.append('<input type="hidden" name="#env[]" value="DESCRIPTION='+name+' test.">');
+  form.append('<input type="hidden" name="#env[]" value="IMPORTANCE=normal">');
+  form.submit();
+}
+function initDropdown() {
+  if (openPage) {$("[id^='slot_']").dropdownchecklist({width:300,explicitClose:'...close'}); openPage = false;}
+}
+</script>
+<form method='POST' id="formExec" action='/update.php' target='progressFrame'>
+<input type='hidden' name='#command' value='/webGui/scripts/agent'>
+<input type='hidden' name='#arg[1]' value=''>
+<input type='hidden' name='#arg[2]' value=''>
+</form>
+<?
+$fields = array('Event','Subject','Timestamp','Description','Importance','Content');
+$xml_file = "webGui/include/NotificationAgents.xml";
+$xml = @simplexml_load_file($xml_file) or die("Failed to open $xml_file");
+foreach ($xml->Agent as $agent) {
+  $name = $agent->Name;
+  $enabledAgent = agent_fullname("$name.sh", "enabled");
+  $disabledAgent = agent_fullname("$name.sh", "disabled");
+  if (is_file($disabledAgent)) {
+    $file = $disabledAgent;
+    if (is_file($enabledAgent)) unlink($enabledAgent);
+  } else {
+    $file = $enabledAgent;
+  }
+  $values = array();
+  $script = "";
+  if (is_file($file)) {
+    preg_match("/[#]{6,100}([^#]*?)[#]{6,100}/si", file_get_contents($file), $match);
+    if (isset($match[1])) {
+      foreach (explode(PHP_EOL, $match[1]) as $line) {
+        if (strpos($line, "=")) {
+          list($k, $v) = explode("=",str_replace(array("\""), "", $line),2);
+          $values[$k] = $v;
+        }
+      }
+    }
+  }
+  foreach (explode(PHP_EOL,(String) $agent->Script) as $line) if (trim($line)) $script .= trim($line)."{1}";
+  echo "<div id='title' style='position:relative;margin:0px;top:-21px;'><span class='left'><img src='/plugins/dynamix/icons/".strtolower($name).".png' class='icon' style='height:16px;width:16px;'>$name</span><span class='status'>".(is_file($enabledAgent) ? "<span class='green'>Enabled</span>": "<span class='red'>Disabled</span>")."</span></div>";
+  echo "<form method='POST' name='$name' action='/update.php' target='progressFrame'>";
+  echo "<input type='hidden' name='#include' value='/webGui/include/update.file.php'>";
+  echo "<input type='hidden' name='#file' value='$file'>";
+  echo "<input type='hidden' name='#command' value='/webGui/scripts/agent'>";
+  echo "<input type='hidden' name='#arg[1]' value=''>";
+  echo "<input type='hidden' name='#arg[2]' value=''>";
+  echo "<input type='hidden' name='text' value=''>";
+  echo "<dl><dt>Agent function:</dt><dd><select name='Enabled' size='1'>";
+  echo mk_option(is_file($disabledAgent), 'no', 'Disabled');
+  echo mk_option(is_file($enabledAgent), 'yes', 'Enabled');
+  echo "</select></dd></dl>";
+  echo "<script>scripts['$name']=".json_encode($script).";enabledAgents['$name']='$enabledAgent';disabledAgents['$name']='$disabledAgent';</script>";
+  $i = 1;
+  foreach ($agent->Variables->children() as $var) {
+    $vName = preg_replace('#\[([^\]]*)\]#', '<$1>', (string) $var);
+    $vDesc = ucfirst(strtolower(preg_replace('#\[([^\]]*)\]#', '<$1>', (String) $var->attributes()->Desc)));
+    $vDefault = preg_replace('#\[([^\]]*)\]#', '<$1>', (String) $var->attributes()->Default);
+    $vHelp = preg_replace('#\[([^\]]*)\]#', '<$1>', (String) $var->attributes()->Help);
+    echo "<dl><dt>${vDesc}:</dt><dd>";
+    if (preg_match('/title|message/', ${vDesc})) {
+      echo "<select id=\"slot_$i\" name=\"${vName}\" size=\"1\" multiple style=\"display:none\">"; $i++;
+      $value = str_replace('\n',',',isset($values[$vName]) ? $values[$vName] : $vDefault);
+      foreach ($fields as $field) echo mk_option_check($value,'$'.strtoupper($field),$field);
+      echo "</select>";
+    } else {
+      echo "<input type=\"text\" name=\"${vName}\" class=\"variable\" required value=\"".( isset($values[$vName]) ? $values[$vName] : $vDefault )."\">";
+    }
+    echo "</dd></dl>";
+    if ($vHelp) echo "<blockquote class='inline_help'>$vHelp</blockquote>";
+  }
+  echo "<dl><dt>&nbsp;</dt><dd><input type='submit' value='Apply' onclick='prepareService(this, \"$name\")'>";
+  echo "<input type='button' value='Done' onclick='done()'>";
+  if (is_file($file)) {
+    echo "<input type='button' value='Delete' onclick='execCmd(\"delete\",\"$name\")'>";
+    echo "<input type='button' value='Test' onclick='testService(\"$name\")'".($file==$enabledAgent ? ">" : " disabled>");
+  }
+  echo "</dd></dl></form><div style='min-height:50px;'></div>";
+}
+?>

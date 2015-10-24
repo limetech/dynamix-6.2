@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<link type="text/css" rel="stylesheet" href="/webGui/styles/default-fonts.css">
+<style>
+.logLine{font-family:bitstream;font-size:10px;color:#505050;margin:0 8px;padding:0;}
+.logLine.spacing{margin:10px;}
+button[type=button],a.button{font-family:arimo;font-size:11px;position:relative;display:inline-block;padding:5px 10px;border:1px solid #E8E8E8;border-radius:5px;margin:7px 14px 0 0;text-decoration:none;white-space:nowrap;cursor:pointer;outline:none;color:#303030;background:-webkit-radial-gradient(#F0F0F0,#C8C8C8);background:linear-gradient(#F0F0F0,#C8C8C8);}
+button:hover[type=button],a.button:hover{border-color:#6AB034;text-shadow:-1px -1px 0 rgba(0,0,0,0.3);color:#FFFFFF;background:-webkit-radial-gradient(#5E9E2E,#8FD956);background:linear-gradient(#5E9E2E,#8FD956);}
+button:active[type=button]{border-color:#6AB034;box-shadow:inset 0 0 8px 4px #548C29,0 1px 0 0 #E0E0E0;}
+
+</style>
+<script>
+var progressframe = parent.document.getElementById('progressFrame');
+if (progressframe) progressframe.style.zIndex = 10;
+var lastLine = 0;
+var cursor;
+function addLog(logLine) {
+  var scrollTop = (window.pageYOffset !== undefined) ? window.pageYOffset : (document.documentElement || document.body.parentNode).scrollTop;
+  var clientHeight = (document.documentElement || document.body.parentNode).clientHeight;
+  var scrollHeight = (document.documentElement || document.body.parentNode).scrollHeight;
+  var isScrolledToBottom = scrollHeight - clientHeight <= scrollTop + 1;
+  if (lastLine == 0) {
+    lastLine = document.body.innerHTML.length;
+    cursor = lastLine;
+  }
+  if (logLine.slice(-1) == "\n") {
+    document.body.innerHTML = document.body.innerHTML.slice(0,cursor) + logLine.slice(0,-1) + "<br>";
+    lastLine = document.body.innerHTML.length;
+    cursor = lastLine;
+  }
+  else if (logLine.slice(-1) == "\r") {
+    document.body.innerHTML = document.body.innerHTML.slice(0,cursor) + logLine.slice(0,-1);
+    cursor = lastLine;
+  }
+  else if (logLine.slice(-1) == "\b") {
+    if (logLine.length > 1)
+      document.body.innerHTML = document.body.innerHTML.slice(0,cursor) + logLine.slice(0,-1);
+    cursor += logLine.length-2;
+  }
+  else {
+    document.body.innerHTML += logLine;
+    cursor += logLine.length;
+  }
+  if (isScrolledToBottom) {
+    window.scrollTo(0,document.body.scrollHeight);
+  }
+}
+function addCloseButton() {
+  addLog("<br><center><button class='logLine' type='button' onclick='" + (top.Shadowbox ? "top.Shadowbox" : "window") + ".close()'>Done</button></center>");
+}
+</script>
+</head>
+<body class="logLine spacing" onload="addCloseButton()"></body>
+</html>

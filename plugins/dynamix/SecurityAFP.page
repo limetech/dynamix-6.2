@@ -1,0 +1,116 @@
+Menu="Disk Share"
+Title="AFP Security Settings"
+Cond="(($var['shareAFPEnabled']!='no') && (isset($name)?array_key_exists($name,$sec_afp):0))"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<script>
+function checkShareSettingsAFP() {
+  var form = document.afp_security_form;
+  form.shareVolsizelimitAFP.disabled = form.shareExportAFP.value!="et";
+}
+$(checkShareSettingsAFP);
+</script>
+
+> This section is used to configure the security settings for the share when accessed using AFP and
+> appears only when AFP is enabled on the Network Services page.
+
+<form markdown="1" name="afp_security_form" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name;?>">
+
+Share name:
+: <big><?=$name?></big>
+
+Export:
+: <select name="shareExportAFP" size="1" onchange="checkShareSettingsAFP()">
+  <?=mk_option($sec_afp[$name]['export'], "-", "No");?>
+  <?=mk_option($sec_afp[$name]['export'], "e", "Yes");?>
+  <?=mk_option($sec_afp[$name]['export'], "et", "Yes (TimeMachine)");?>
+  </select>
+
+> The Export setting determines whether this share is exported via AFP (Yes or No)
+> The Export setting also includes a third option (Yes - TimeMachine).  This setting enables various
+> special options for TimeMachine; in particular a "volume size limit".  Note: Apple recommends not
+> to use the volume for anything but TimeMachine due to the way locks are used.
+
+TimeMachine volume size limit:
+: <input type="text" name="shareVolsizelimitAFP" maxlen="20" value="<?=$sec_afp[$name]['volsizelimit']?>"> MB
+
+> This limits the reported volume size, preventing TimeMachine from using the entire real disk space
+> for backup.  For example, setting this value to "1024" would limit the reported disk space to 1GB.
+
+Volume dbpath:
+: <input type="text" name="shareVoldbpathAFP" maxlen="20" value="<?=$sec_afp[$name]['voldbpath'];?>">
+
+> Sets where to store netatalk database information.  A directory with same name as the share will be
+> created here.
+>
+> Leave this field blank to have the database created in the root of the share.
+
+Security:
+: <select name="shareSecurityAFP" size="1">
+  <?=mk_option($sec_afp[$name]['security'], "public", "Public");?>
+  <?=mk_option($sec_afp[$name]['security'], "secure", "Secure");?>
+  <?=mk_option($sec_afp[$name]['security'], "private", "Private");?>
+  </select>
+
+> The unRAID AFP implementation supports Guest access and fully supports the three security
+> modes: Public, Secure, and Private.
+> In general, when you click on your server's icon in Finder, you will be asked to log in as Guest or to
+> specify a set of login credentials (user name/password).  In order to use Secure or Private security on
+> a share, you must have a user already defined on the server with appropriate access rights.
+>
+> Note: netatalk does not permit the user name <tt>root</tt> to be used for log in purposes.
+>
+> **Public** When logged into the server as Guest, an OS X user can view and read/write all shares set as
+> Public.  Files created or modified in the share will be owned by user `nobody` of
+> the `users` group.<br>
+> OSX users logged in with a user name/password previously created on the server can also view
+> and read/write all shares set as Public.  In this case, files created or modified on the server will
+> be owned by the logged in user.
+>
+> **Secure** When logged into the server as Guest, an OS X user can view and read (but not write) all
+> shares set as Secure.<br>
+> OS X users logged in with a user name/password previously created on the server can also view and
+> read all shares set as Secure.  If their access right is set to read/write for the share on the server,
+> they may also write the share.
+>
+> **Private** When logged onto the server as Guest, no Private shares are visible or accessible to any
+> OS X user.<br>
+> OS X users logged in with a user name/password previously created on the server may read or
+> read/write (or have no access) according their access right for the share on the server.
+
+&nbsp;
+: <input type="submit" name="changeShareSecurityAFP" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+
+<?if ($sec_afp[$name]['security'] == 'secure'):?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name;?>">
+<div id="title" class="nocontrol"><dt>User Access</dt><i>Guests have <b>read-only</b> access.</i></div>
+<?input_secure_users($sec_afp);?>
+
+&nbsp;
+: <input type="submit" name="changeShareAccessAFP" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+
+<?elseif ($sec_afp[$name]['security'] == 'private'):?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name;?>">
+<div id="title" class="nocontrol"><dt>User Access</dt><i>Guests have <b>no</b> access.</i></div>
+<?input_private_users($sec_afp);?>
+
+&nbsp;
+: <input type="submit" name="changeShareAccessAFP" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+<?endif;?>

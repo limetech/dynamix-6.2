@@ -1,0 +1,39 @@
+Menu="Docker:2"
+Title="Docker Repositories"
+Cond="(pgrep('docker')!==false)"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Guilherme Jardim, Eric Schultz, Jon Panozzo.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+// Add the Docker JSON client
+require_once('/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php');
+$docker          = new DockerClient();
+$DockerUpdate    = new DockerUpdate();
+$DockerTemplates = new DockerTemplates();
+
+// Repos file
+$template_repos = $dockerManPaths['template-repos'];
+?>
+<form markdown="1" method="POST" action="/plugins/dynamix.docker.manager/include/UpdateConfig.php" target="progressFrame">
+<input type="hidden" name="#action" value="templates" />
+Template repositories:
+: <textarea name="template_repos" rows="5" cols="100" style="width:550px"><?=@file_get_contents($template_repos);?></textarea>
+
+> Use this field to add template repositories.
+> Docker templates are used to facilitate the creation and re-creation of Docker containers.  Please setup one per line.
+>
+> For a list of popular community-supported repositories, visit here: <a href="http://lime-technology.com/forum/index.php?topic=37958.0" target="_blank">http://lime-technology.com/forum/index.php?topic=37958.0</a>
+
+&nbsp;
+: <input type="submit" value="Save" />
+</form>

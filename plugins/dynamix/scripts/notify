@@ -1,0 +1,226 @@
+#!/usr/bin/php
+<?PHP
+/* Copyright 2012, Andrew Hamer-Adams, http://www.pixeleyes.co.nz.
+ * Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+require_once('/usr/local/emhttp/webGui/include/Wrappers.php');
+
+function usage() {
+  echo <<<EOT
+notify [-e "event"] [-s "subject"] [-d "description"] [-i "normal|warning|alert"] [-m "message"] [-x] [-t] [add]
+  create a notification
+  use -e to specify the event
+  use -s to specify a subject
+  use -d to specify a short description
+  use -i to specify the severity
+  use -m to specify a message (long description)
+  use -x to create a single notification ticket
+  use -t to force send email only (for testing)
+  all options are optional
+
+notify init
+  Initialize the notification subsystem.
+
+notify smtp-init
+  Initialize sendmail configuration (ssmtp in our case).
+
+notify get
+  Output a json-encoded list of all the unread notifications.
+
+notify archive file
+  Move file from 'unread' state to 'archive' state.
+
+EOT;
+  return 1;
+}
+
+function generate_email($event, $subject, $description, $importance, $message) {
+  global $ssmtp;
+
+  $rcpt = $ssmtp['RcptTo'];
+  $to = implode(',', explode(' ', trim($rcpt)));
+  if (empty($to)) return;
+
+  $subj = "{$ssmtp['Subject']}$subject";
+
+  $headers   = array();
+  $headers[] = "MIME-Version: 1.0";
+  $headers[] = "X-Mailer: PHP/".phpversion();
+  $headers[] = "Content-type: text/plain; charset=iso-8859-1";
+  $headers[] = "From: {$ssmtp['root']}";
+  $headers[] = "Reply-To: {$ssmtp['root']}";
+  if (($importance == "warning" || $importance == "alert") && $ssmtp['SetEmailPriority']=="True") {
+    $headers[] = "X-Priority: 1 (highest)";
+    $headers[] = "X-Mms-Priority: High";
+  }
+  $headers[] = "";
+
+  $body      = array();
+  $body[]    = "Event: $event";
+  $body[]    = "Subject: $subject";
+  $body[]    = "Description: $description";
+  $body[]    = "Importance: $importance";
+  if (!empty($message)) {
+    $body[]  = "";
+    foreach (explode('\n',$message) as $line)
+    $body[]  = $line;
+  }
+  $body[]    = "";
+
+  return mail($to, $subj, implode("\n", $body), implode("\n", $headers));
+}
+
+function safe_filename($string) {
+  $special_chars = array("?", "[", "]", "/", "\\", "=", "<", ">", ":", ";", ",", "'", "\"", "&", "$", "#", "*", "(", ")", "|", "~", "`", "!", "{", "}");
+  $string = trim(str_replace($special_chars, "", $string));
+  $string = preg_replace('~[^0-9a-z -_]~i', '', $string);
+  $string = preg_replace('~[- ]~i', '_', $string);
+  return trim($string);
+}
+
+// start
+if ($argc == 1) exit(usage());
+
+extract(parse_plugin_cfg("dynamix",true));
+$unread  = "{$notify['path']}/unread";
+$archive = "{$notify['path']}/archive";
+$agents_dir = "/boot/config/plugins/dynamix/notifications/agents";
+if (is_dir($agents_dir)) {
+  $agents = array();
+  foreach (array_diff(scandir($agents_dir), array('.','..')) as $p) {
+    if (is_executable("${agents_dir}/${p}")) $agents[] = "${agents_dir}/${p}";
+  }
+} else {
+  $agents = NULL;
+}
+
+switch ($argv[1][0]=='-' ? 'add' : $argv[1]) {
+case 'init':
+  $files = glob("$unread/*.notify", GLOB_NOSORT);
+  foreach ($files as $file) if (!is_readable($file)) chmod($file,0666);
+  break;
+
+case 'smtp-init':
+  @mkdir($unread,0755,true);
+  @mkdir($archive,0755,true);
+  $conf   = $array;
+  $conf[] = "# Generated";
+  $conf[] = "Root={$ssmtp['root']}";
+  $domain = strtok($ssmtp['root'],'@');
+  $domain = strtok('@');
+  $conf[] = "rewriteDomain=$domain";
+  $conf[] = "FromLineOverride=YES";
+  $conf[] = "Mailhub={$ssmtp['server']}:{$ssmtp['port']}";
+  $conf[] = "UseTLS={$ssmtp['UseTLS']}";
+  $conf[] = "UseSTARTTLS={$ssmtp['UseSTARTTLS']}";
+  if ($ssmtp['AuthMethod'] != "none") {
+    $conf[] = "AuthMethod={$ssmtp['AuthMethod']}";
+    $conf[] = "AuthUser={$ssmtp['AuthUser']}";
+    $conf[] = "AuthPass={$ssmtp['AuthPass']}";
+  }
+  $conf[] = "";
+  file_put_contents("/etc/ssmtp/ssmtp.conf", implode("\n", $conf));
+  break;
+
+case 'cron-init':
+  @mkdir($unread,0755,true);
+  @mkdir($archive,0755,true);
+  $text = empty($notify['status']) ? "" : "# Generated array status check schedule:\n{$notify['status']} /usr/local/emhttp/plugins/dynamix/scripts/statuscheck &> /dev/null\n\n";
+  parse_cron_cfg("dynamix", "status-check", $text);
+  $text = empty($notify['version']) ? "" : "# Generated plugins version check schedule:\n{$notify['version']} /usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugincheck &> /dev/null\n\n";
+  parse_cron_cfg("dynamix", "plugin-check", $text);
+  $text = empty($notify['system']) ? "" : "# Generated system monitoring schedule:\n{$notify['system']} /usr/local/emhttp/plugins/dynamix/scripts/monitor &> /dev/null\n\n";
+  parse_cron_cfg("dynamix", "monitor", $text);
+  $text = empty($notify['docker_update']) ? "" : "# Generated docker monitoring schedule:\n{$notify['docker_update']} /usr/local/emhttp/plugins/dynamix.docker.manager/scripts/dockerupdate.php check &> /dev/null\n\n";
+  parse_cron_cfg("dynamix", "docker-update", $text);
+  break;
+
+case 'add':
+  $event = 'unRAID Status';
+  $subject = 'Notification';
+  $description = 'No description';
+  $importance = 'normal';
+  $message = '';
+  $timestamp = time();
+  $ticket = $timestamp;
+  $mailtest = false;
+  $overrule = false;
+
+  $options = getopt("e:s:d:i:m:xt");
+  foreach ($options as $option => $value) {
+    switch ($option) {
+     case 'e':
+      $event = $value;
+      break;
+     case 's':
+      $subject = $value;
+      break;
+     case 'd':
+      $description = $value;
+      break;
+     case 'i':
+      $importance = strtok($value,' ');
+      $overrule = strtok(' ');
+      break;
+     case 'm':
+      $message = $value;
+      break;
+     case 'x':
+      $ticket = 'ticket';
+      break;
+     case 't':
+      $mailtest = true;
+      break;
+    }
+  }
+  $unread = "{$unread}/".safe_filename("{$event}-{$ticket}.notify");
+  $archive = "{$archive}/".safe_filename("{$event}-{$ticket}.notify");
+  if (file_exists($archive)) break;
+  $entity = $overrule===false ? $notify[$importance] : $overrule;
+  if (!$mailtest) file_put_contents($archive,"timestamp = $timestamp\nevent = $event\nsubject = $subject\ndescription = $description\nimportance = $importance\n");
+  if (($entity & 1)==1 && !$mailtest) file_put_contents($unread,"timestamp = $timestamp\nevent = $event\nsubject = $subject\ndescription = $description\nimportance = $importance\n");
+  if (($entity & 2)==2 || $mailtest)  if (!generate_email($event, $subject, str_replace('<br>','. ',$description), $importance, $message)) exit(1);
+  if (($entity & 4)==4 && !$mailtest) { if (is_array($agents)) {foreach ($agents as $agent) {exec("TIMESTAMP='$timestamp' EVENT='$event' SUBJECT='$subject' DESCRIPTION='$description' IMPORTANCE='$importance' CONTENT='$message' ".$agent);};}};
+  break;
+
+case 'get':
+  $output = array();
+  $json = array();
+  $files = glob("$unread/*.notify", GLOB_NOSORT);
+  usort($files, create_function('$a,$b', 'return filemtime($a)-filemtime($b);'));
+  $i = 0;
+  foreach ($files as $file) {
+    if (!is_readable($file)) continue;
+    $fields = preg_split('/\n/', file_get_contents($file));
+    $time = true;
+    foreach ($fields as $field) {
+      if (!$field) continue;
+      $item = explode('=', $field);
+      if ($time) {$item[1] = date("{$notify['date']} {$notify['time']}", $item[1]); $time = false;}
+      $output[$i][] = '\"'.trim($item[0]).'\":\"'.trim($item[1]).'\"';
+    }
+    $output[$i++][] = '\"file\":\"'.basename($file).'\"';
+    chmod($file,0000);
+  }
+  for ($n=0; $n<$i; $n++) $json[] = '"{'.implode(',', $output[$n]).'}"';
+  echo '['.implode(',', $json).']';
+  break;
+
+case 'archive':
+  if ($argc != 3) exit(usage());
+  @unlink("$unread/{$argv[2]}");
+  break;
+}
+
+exit(0);
+?>

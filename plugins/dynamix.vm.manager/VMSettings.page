@@ -1,0 +1,183 @@
+Menu="OtherSettings"
+Title="VM Manager"
+Icon="dynamix.vm.manager.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Derek Macias, Eric Schultz, Jon Panozzo.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+if ($var['fsState'] != "Started") {
+  echo "<p class='notice'>Array must be Started to manage Virtual Machines.</p>";
+  return;
+}
+
+require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt.php');
+require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt_helpers.php');
+
+
+// Check for Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support
+// Attempt to load either of the kvm modules to see if virtualzation hw is supported
+exec('modprobe -a kvm_intel kvm_amd 2>/dev/null');
+
+// If either kvm_intel or kvm_amd are loaded then Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support was found
+$strLoadedModules = shell_exec("lsmod | grep '^kvm_\(amd\|intel\)'");
+
+if (empty($strLoadedModules)) {
+	?><p class="notice">Your hardware does not have Intel VT-x or AMD-V capability.  This is required to create VMs in KVM. <a href="http://lime-technology.com/wiki/index.php/UnRAID_Manual_6#Hardware-Assisted_Virtualization_.28HVM.29" target="_blank">Click here to see the unRAID Wiki for more information</a></p><?php
+	exit;
+}
+
+
+$arrValidBridges = getNetworkBridges();
+
+
+// Check for PCIE ACS capabilities
+$boolACSEnabled = (strpos(file_get_contents('/proc/cmdline'), 'pcie_acs_override=') !== false);
+
+// Check the /boot/syslinux/syslinux.cfg for the existance of pcie_acs_override=
+$arrSyslinuxCfg = file('/boot/syslinux/syslinux.cfg');
+$strCurrentLabel = '';
+$boolACSInSyslinux = false;
+
+foreach ($arrSyslinuxCfg as &$strSyslinuxCfg) {
+	if (stripos(trim($strSyslinuxCfg), 'label ') === 0) {
+		$strCurrentLabel = trim(str_ireplace('label ', '', $strSyslinuxCfg));
+	}
+	if (stripos($strSyslinuxCfg, 'append ') !== false) {
+		if (stripos($strSyslinuxCfg, 'pcie_acs_override=') !== false) {
+			// pcie_acs_override= was found
+			$boolACSInSyslinux = true;
+		}
+
+		// We just examine the first append line
+		break;
+	}
+}
+
+if ($boolACSEnabled != $boolACSInSyslinux) {
+	?><p class="notice">You must reboot for changes to take effect</p><?php
+}
+?>
+<link type="text/css" rel="stylesheet" href="/plugins/dynamix.vm.manager/styles/dynamix.vm.manager.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
+<style>
+  body { -webkit-overflow-scrolling: touch;}
+  .fileTree {
+	width: 305px;
+	max-height: 150px;
+	overflow: scroll;
+	position: absolute;
+	z-index: 100;
+	display: none;
+  }
+</style>
+
+
+<form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="<?=$domain_cfgfile;?>" />
+<input type="hidden" id="command" name="#command" value="" />
+
+Enable VMs:
+: <select id="SERVICE" name="SERVICE" class="narrow">
+<?= mk_option($libvirt_service, 'disable', 'No'); ?>
+<?= mk_option($libvirt_service, 'enable', 'Yes'); ?>
+</select>
+
+> Stopping the VM Manager will first attempt to shutdown all running VMs.  After 40 seconds, any remaining VM instances will be terminated.
+
+<? if ($libvirt_service == 'enable') {
+	$libvirt_info = libvirt_version('libvirt');
+	$qemu_info = $lv->get_connect_information(); ?>
+Libvirt Version:
+: <?= $libvirt_info['libvirt.major'] . '.' .  $libvirt_info['libvirt.minor'] . '.' .  $libvirt_info['libvirt.release']; ?>
+
+QEMU Version:
+: <?= $qemu_info['hypervisor_major'] . '.' .  $qemu_info['hypervisor_minor'] . '.' .  $qemu_info['hypervisor_release']; ?>
+<? } ?>
+
+ISO Library Share <span style="font-weight: normal">(optional)</span>:
+: <input type="text" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="MEDIADIR" value="<?=$domain_cfg['MEDIADIR']?>" placeholder="Click to Select">
+
+> Specify a user share that contains all your installation media for operating systems
+
+VirtIO Windows Drivers ISO <span style="font-weight: normal">(optional)</span>:
+: <input type="text" data-pickfilter="iso" data-pickcloseonfile="true" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="VIRTIOISO" value="<?=$domain_cfg['VIRTIOISO']?>" placeholder="Click to Select">
+
+> Specify the virtual CD-ROM (ISO) that contains the VirtIO Windows drivers as provided by the Fedora Project.
+> Download the latest ISO from here: <a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download</a>
+>
+> When installing Windows, you will reach a step where no disk devices will be found.
+> There is an option to browse for drivers on that screen.  Click browse and locate the additional CD-ROM in the menu.
+> Inside there will be various folders for the different versions of Windows.  Open the folder for the version of Windows
+> you are installing and then select the AMD64 subfolder inside (even if you are on an Intel system, select AMD64).
+> Three drivers will be found.  Select them all, click next, and the vDisks you have assigned will appear.
+
+<!--
+vDisk Share <span style="font-weight: normal">(optional)</span>:
+: <input type="text" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="/mnt/" name="DISKDIR" value="<?=$domain_cfg['DISKDIR']?>" placeholder="Click to Select (ie. /mnt/cache/images)" title="Click to Select (ie. /mnt/cache/images)">
+-->
+
+Default Network Bridge:
+: <select id="bridge" name="BRNAME">
+<?php
+	foreach ($arrValidBridges as $strBridge) {
+		echo mk_option($domain_cfg['BRNAME'], $strBridge, $strBridge);
+	}
+?>
+</select>
+
+> Enter the name of the network bridge you wish to use for your VMs here, otherwise leave the field blank and
+> libvirt will create a bridge that will utilize NAT (network address translation) and act as a DHCP server to hand out
+> IP addresses to virtual machines directly.
+>
+> NOTE:  You can also specify an network bridge on a per-VM basis.
+
+PCIe ACS Override:
+: <select id="pcie_acs_override" class="narrow">
+<?= mk_option(($boolACSInSyslinux ? '1' : '0'), '0', 'No'); ?>
+<?= mk_option(($boolACSInSyslinux ? '1' : '0'), '1', 'Yes'); ?>
+</select>
+
+> Warning:  Use of this setting could cause possible data corruption with certain hardware configurations.  Please visit the Lime Technology forums for more information.
+>
+> A reboot will be required for changes to this setting to take affect.
+
+&nbsp;
+: <input type="button" id="applyBtn" value="Apply"/><input type="button" value="Done" onclick="done()">
+</form>
+
+> View the log for libvirt: <a id="openlog" title="/var/log/libvirt/libvirtd.log" href="#" onclick="openWindow('/webGui/scripts/tail_log&arg1=libvirt/libvirtd.log','Log Information',600,900);">/var/log/libvirt/libvirtd.log</a>
+
+
+<script src="/webGui/javascript/jquery.filetree.js"></script>
+<script src="/webGui/javascript/jquery.switchbutton.js"></script>
+<script src="/plugins/dynamix.vm.manager/scripts/dynamix.vm.manager.js"></script>
+<script>
+$(function(){
+	$("#applyBtn").click(function(){
+		$("#command").val("/plugins/dynamix.vm.manager/event/" + ($("#SERVICE").val()=="enable" ? "started" : "stopping_svcs"));
+
+		if ($('#pcie_acs_override').val() == '1') {
+			$.get("/plugins/dynamix.vm.manager/VMajax.php?action=acs-override-enable", function( data ) {
+				$("#settingsForm").submit();
+			}, "json");
+		} else {
+			$.get("/plugins/dynamix.vm.manager/VMajax.php?action=acs-override-disable", function( data ) {
+				$("#settingsForm").submit();
+			}, "json");
+		}
+	});
+
+	$("input[data-pickroot]").fileTreeAttach();
+});
+</script>

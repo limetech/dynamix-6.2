@@ -1,0 +1,38 @@
+Menu="Flash"
+Title="Flash Device Settings"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+Flash Vendor:
+: <?=$var['flashVendor'];?>
+
+Flash Product:
+: <?=$var['flashProduct'];?>&nbsp;
+
+Flash GUID:
+: <?=$var['flashGUID'];?>&nbsp;
+
+<?if (strstr($var['regTy'], "blacklisted")):?>
+
+&nbsp;
+: **Blacklisted** - <a href="http://lime-technology.com/contact" target="_blank">Contact Support</a>
+
+<?else:?>
+
+&nbsp;
+: [Registration Key Manager](/Tools/Registration)
+
+<?endif;?>
+
+&nbsp;
+: <input type="button" value="Done" onclick="done()">

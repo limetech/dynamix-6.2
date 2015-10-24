@@ -1,0 +1,64 @@
+Menu="ShareSettings:2"
+Title="Cache Settings"
+Cond="((isset($disks['cache']))&&($disks['cache']['status']!='DISK_NP'))"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<? $disabled = $var['fsState']!='Stopped' ? 'disabled' : ''; ?>
+
+<script>
+function check_cache_settings() {
+  var form = document.cache_settings;
+  var enabled = (form.shareCacheEnabled.value == "no");
+  form.shareCacheFloor.disabled = enabled;
+}
+<?if ($var['fsState']=='Stopped'):?>
+$(check_cache_settings);
+<?endif;?>
+</script>
+
+<form markdown="1" name="cache_settings" method="POST" action="/update.htm" target="progressFrame">
+Use cache disk:
+: <select name="shareCacheEnabled" size="1" onchange="check_cache_settings()" <?=$disabled?>>
+  <?=mk_option($var['shareCacheEnabled'], "yes", "Yes")?>
+  <?=mk_option($var['shareCacheEnabled'], "no", "No")?>
+  </select>
+
+> If set to 'Yes' then User Shares can possibly make use of the Cache Disk. You still need to enable
+> use of the Cache Disk on individual user shares.
+
+Min. free space:
+: <input type="text" name="shareCacheFloor" maxlength="16" value="<?=$var['shareCacheFloor']?>" class="narrow" disabled>
+
+> This represents a "floor" of the amount of free space remaining on the cache disk.  If the free
+> space becomes less than this value, then new files written to user shares with cache enabled will go to
+> the array and not the cache disk.
+>
+> Enter a numeric value with one of these suffixes:
+>
+> **KB** = 1,000<br>
+> **MB** = 1,000,000<br>
+> **GB** = 1,000,000,000<br>
+> **TB** = 1,000,000,000,000
+>
+> If no suffix, a count of 1024-byte blocks is assumed.<br>
+>
+> Examples:
+>
+> **2GB** => 2,000,000,000 bytes<br>
+> **2000000** => 2,048,000,000 bytes
+
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?if ($disabled):?>Array must be **Stopped** to change<?endif;?>
+</form>

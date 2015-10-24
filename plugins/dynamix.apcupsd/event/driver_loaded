@@ -1,0 +1,30 @@
+#!/bin/bash
+conf=/etc/apcupsd/apcupsd.conf
+cfg=/boot/config/plugins/dynamix.apcupsd/dynamix.apcupsd.cfg
+
+# Daemon already running or no custom file?
+[[ -f /var/run/apcupsd.pid || ! -f $cfg ]] && exit
+
+# Read settings
+source $cfg
+
+# Apply settings
+sed -i -e '/^NISIP/c\\NISIP 0.0.0.0' $conf
+sed -i -e '/^UPSTYPE/c\\UPSTYPE '$UPSTYPE'' $conf
+sed -i -e '/^DEVICE/c\\DEVICE '$DEVICE'' $conf
+sed -i -e '/^BATTERYLEVEL/c\\BATTERYLEVEL '$BATTERYLEVEL'' $conf
+sed -i -e '/^MINUTES/c\\MINUTES '$MINUTES'' $conf
+sed -i -e '/^TIMEOUT/c\\TIMEOUT '$TIMEOUT'' $conf
+if [[ $UPSCABLE == custom ]]; then
+  sed -i -e '/^UPSCABLE/c\\UPSCABLE '$CUSTOMUPSCABLE'' $conf
+else
+  sed -i -e '/^UPSCABLE/c\\UPSCABLE '$UPSCABLE'' $conf
+fi
+if [[ $KILLUPS == yes && $SERVICE == enable ]]; then
+  ! grep -q apccontrol /etc/rc.d/rc.6 && sed -i -e 's:/sbin/poweroff:/etc/apcupsd/apccontrol killpower; /sbin/poweroff:' /etc/rc.d/rc.6
+else
+  grep -q apccontrol /etc/rc.d/rc.6 && sed -i -e 's:/etc/apcupsd/apccontrol killpower; /sbin/poweroff:/sbin/poweroff:' /etc/rc.d/rc.6
+fi
+
+# Start daemon
+[[ $SERVICE == enable ]] && /etc/rc.d/rc.apcupsd start |& logger

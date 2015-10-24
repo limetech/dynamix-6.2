@@ -1,0 +1,123 @@
+Menu="Scheduler:2"
+Title="Mover Settings"
+Cond="(($var['shareUser']!='-')&&(isset($disks['cache']))&&($disks['cache']['status']!='DISK_NP')&&($var['shareCacheEnabled']=='yes'))"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$cron = explode(' ',$var['shareMoverSchedule']);
+$move = $cron[2]!='*' ? 3 : ($cron[4]!='*' ? 2 : (substr($cron[1],0,1)!='*' ? 1 : 0));
+$mode = array('Hourly','Daily','Weekly','Monthly');
+$days = array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
+?>
+<script>
+$(function() {
+  presetMover(document.mover_schedule);
+});
+// Fool unRAID by simulating the original input field
+function prepareMover(form) {
+  var mode = form.shareMoverSchedule.value;
+  var min = mode!=0 ? form.min.value : 0;
+  var hour = mode!=0 ? form.hour1.value : form.hour2.value;
+  form.shareMoverSchedule.options[mode].value = min+' '+hour+' '+form.dotm.value+' * '+form.day.value;
+  form.min.disabled = true;
+  form.hour1.disabled = true;
+  form.hour2.disabled = true;
+  form.dotm.disabled = true;
+  form.day.disabled = true;
+}
+function presetMover(form) {
+  var mode = form.shareMoverSchedule.value;
+  form.min.disabled = false;
+  form.day.disabled = mode!=2;
+  form.dotm.disabled = mode!=3;
+  form.day.value = form.day.disabled ? '*' : '0';
+  form.dotm.value = form.dotm.disabled ? '*' : '1';
+  if (mode==0) {$('#H1').hide(); $('#H2').show();} else {$('#H2').hide(); $('#H1').show();}
+}
+</script>
+<form markdown="1" name="mover_schedule" method="POST" action="/update.htm" target="progressFrame" onsubmit="prepareMover(this)">
+Mover schedule:
+: <select name="shareMoverSchedule" size="1" onchange="presetMover(this.form)">
+  <?for ($m=0; $m<count($mode); $m++):?>
+  <?=mk_option($move, strval($m), $mode[$m])?>
+  <?endfor;?>
+  </select>
+
+> Choose a mover schedule ranging from hourly, daily, weekly and monthly.
+>
+> The interval determines how fast the mover will activated, it runs in the background.
+
+Day of the week:
+: <select name="day" size="1">
+  <?for ($d=0; $d<count($days); $d++):?>
+  <?=mk_option($cron[4], strval($d), $days[$d])?>
+  <?endfor;?>
+  <?=mk_option($cron[4], "*", "--------", "disabled")?>
+  </select>
+
+> Choose a day when the weekly schedule is selected. Otherwise disabled.
+
+Day of the month:
+: <select name="dotm" size="1">
+  <?for ($d=1; $d<=31; $d++):?>
+  <?=mk_option($cron[2], strval($d), sprintf("%02d", $d))?>
+  <?endfor;?>
+  <?=mk_option($cron[2], "*", "--------", "disabled")?>
+  </select>
+
+> Choose a date when the monthly schedule is selected. Otherwise disabled.
+
+Time of the day:
+: <span id="H1"<?if ($move==0):?> style="display:none"<?endif;?>><select name="hour1" size="1" class="narrow">
+  <?for ($d=0; $d<=23; $d++):?>
+  <?=mk_option($cron[1], strval($d), sprintf("%02d", $d))?>
+  <?endfor;?>
+  </select>
+  <select name="min" size="1" class="narrow">
+  <?for ($d=0; $d<=55; $d+=5):?>
+  <?=mk_option($cron[0], strval($d), sprintf("%02d", $d))?>
+  <?endfor;?>
+  </select>&nbsp;&nbsp;HH:MM</span>
+: <span id="H2"<?if ($move!=0):?> style="display:none"<?endif;?>><select name="hour2" size="1">
+  <?=mk_option($cron[1], "*/1", "Every hour")?>
+  <?=mk_option($cron[1], "*/2", "Every 2 hours")?>
+  <?=mk_option($cron[1], "*/3", "Every 3 hours")?>
+  <?=mk_option($cron[1], "*/4", "Every 4 hours")?>
+  <?=mk_option($cron[1], "*/6", "Every 6 hours")?>
+  <?=mk_option($cron[1], "*/8", "Every 8 hours")?>
+  </select></span>
+
+> When an hourly schedule is selected this will set the interval in hours. An interval always starts on the whole hour (minute 0).
+>
+> For the other schedules choose here the time of the day the mover should start.
+
+Mover logging:
+: <select name="shareMoverLogging" size="1">
+  <?=mk_option($var['shareMoverLogging'], "yes", "Enabled")?>
+  <?=mk_option($var['shareMoverLogging'], "no", "Disabled")?>
+  </select>
+
+> Write mover messages to the syslog file.
+
+&nbsp;
+: <input type="submit" name="changeMover" value="Apply"><input type="button" value="Done" onclick="done()">
+
+&nbsp;
+<?if (file_exists("/var/run/mover.pid")):?>
+: <input type="submit" name="cmdStartMover" value="Move now" disabled> Mover is running.
+<?else:?>
+: <input type="submit" name="cmdStartMover" value="Move now"> Click to invoke the Mover.
+<?endif;?>
+</form>

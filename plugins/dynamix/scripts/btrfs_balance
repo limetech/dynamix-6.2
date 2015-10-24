@@ -1,0 +1,17 @@
+#!/bin/bash
+# btrfs_balance start <dev> <options> 
+# btrfs_balance status <dev>
+# btrfs_balance cancel <dev> 
+
+case "$1" in
+'start')
+  exec /sbin/btrfs balance start $3 $2 &>/dev/null &
+;;
+'status')
+  /sbin/btrfs balance status $2
+  /sbin/btrfs balance status $2 | grep -q running
+;;
+'cancel')
+  /sbin/btrfs balance cancel $2 &>/dev/null
+;;
+esac

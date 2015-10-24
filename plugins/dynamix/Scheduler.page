@@ -1,0 +1,4 @@
+Menu="UserPreferences"
+Type="xmenu"
+Title="Scheduler"
+Icon="scheduler.png"

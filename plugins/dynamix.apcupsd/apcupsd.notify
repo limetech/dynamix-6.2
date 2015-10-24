@@ -1,0 +1,5 @@
+#
+# Send system notify message from apcupsd
+#
+read MESSAGE
+/usr/local/emhttp/webGui/scripts/notify -e "unRAID Server Alert" -s "UPS Alert" -d "$MESSAGE" -i "alert"

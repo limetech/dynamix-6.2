@@ -1,0 +1,41 @@
+Menu="OtherSettings"
+Title="Identification"
+Icon="ident.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<? $disabled = $var['fsState']!='Stopped' ? 'disabled' : ''; ?>
+<form markdown="1" name="NameSettings" method="POST" action="/update.htm" target="progressFrame">
+
+Server name:
+: <input type="text" name="NAME" maxlength="15" value="<?=$var['NAME'];?>" <?=$disabled?>>
+
+> The network identy of your server.  Also known as *hostname* or *short hostname*. Windows networking
+> refers to this as the *netBIOS name* and must be 15 characters or less in length.
+> Use only alphanumeric characters (that is, "A-Z", "a-z", and "0-9"), dashes ("-"), and dots (".");
+> and, the first character must be alphanumeric.
+
+Description:
+: <input type="text" name="COMMENT" value="<?=$var['COMMENT'];?>" <?=$disabled?>>
+
+> This is a text field that is seen next to a server when listed within Network or Network Neighborhood 
+> (Windows), or Finder (Mac OS X).
+
+Model:
+: <input type="text" name="SYS_MODEL" value="<?=$var['SYS_MODEL'];?>" <?=$disabled?>>
+
+> This is the server model number.
+
+&nbsp;
+: <input type="submit" name="changeNames" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?if ($disabled):?>Array must be **Stopped** to change<?endif;?>
+</form>

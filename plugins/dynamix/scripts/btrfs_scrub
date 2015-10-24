@@ -1,0 +1,23 @@
+#!/bin/bash
+# btrfs_scrub start <dev> <options> 
+# btrfs_scrub status <dev>
+# btrfs_scrub cancel <dev> 
+
+case "$1" in
+'start')
+  # one might wonder: why exec the scrub command, passing -B and put in background, vs just
+  # executing scrub without -B and without explicit background.  It's because it handles case
+  # where user adds -B themselves as one of the options, which would hang webGui process until
+  # scrub completes which would not be good.  scrub balance does not have have this btw.
+  exec /sbin/btrfs scrub start -B $3 $2 &>/dev/null &
+;;
+'status')
+  # first output whatever the status is to stdout
+  /sbin/btrfs scrub status $2
+  # establish retval of this script: 0 running, 1 not running
+  /sbin/btrfs scrub status $2 | grep -q running
+;;
+'cancel')
+  /sbin/btrfs scrub cancel $2 &>/dev/null
+;;
+esac

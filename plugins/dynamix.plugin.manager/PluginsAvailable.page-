@@ -1,0 +1,11 @@
+Menu="Plugins"
+Title="Available Plugins"
+---
+Here should come an online repository of available plugins, which can be downloaded from the web
+and instantly installed.
+
+Problably this should be hosted on a wiki page of Limetech, with control over which plugins can be
+displayed. This may be combined with a validation procedure to ensure that published plugins are
+fully compatible with unRAID.
+
+For the time being only manual installation of plugins exist.

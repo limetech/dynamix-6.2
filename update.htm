@@ -1,0 +1,32 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<link type="text/css" rel="stylesheet" href="/webGui/styles/default-fonts.css">
+<style>
+.logLine{font-family:bitstream;font-size:10px;color:#505050;margin:0 8px;padding:0;}
+.logLine.spacing{margin:10px;}
+</style>
+<script>
+parent.document.getElementById('progressFrame').style.zIndex = 10;
+var enablePage=parent.location;
+
+function replaceName(name) {
+  var x = enablePage.href.indexOf("name=");
+  if (x) enablePage.href = enablePage.href.substring(0,x+5) + name;
+}
+
+function addLog(logLine) {
+  document.body.innerHTML += logLine;
+  window.scrollTo(0,document.body.scrollHeight);
+}
+
+function disablePage() {
+  for (var i=0,element; element=top.document.querySelectorAll('input,button,select')[i]; i++) element.disabled = true;
+  for (var i=0,link; link=top.document.getElementsByTagName('a')[i]; i++) link.style.color = "gray"; //fake disable
+}
+
+disablePage();
+</script>
+</head>
+<body class="logLine" onload="parent.location=enablePage;"></body>
+</html>

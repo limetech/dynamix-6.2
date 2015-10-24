@@ -1,0 +1,53 @@
+Menu="Main:4"
+Title="Unassigned Devices"
+Cond="((count($devs)>0)&&($var['fsState']=='Started'))"
+---
+<?PHP
+/* Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$tabX = '#tab'.($var['fsState']=='Stopped'||is_dir('/mnt/cache') ? '4' : '3');
+?>
+<script>
+function open_status() {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'open',width:window.innerWidth,timer:timer},function(data) {
+    if (data) $('#open_devices').html(data);
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
+<?if ($display['tabs']==0):?>
+    if ($('<?=$tabX?>').is(':checked')) timer = setTimeout(open_status,<?=abs($display['refresh'])?>);
+<?else:?>
+    setTimeout(open_status,<?=abs($display['refresh'])?>);
+<?endif;?>
+<?endif;?>
+  });
+}
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started' && $display['tabs']==0):?>
+$('<?=$tabX?>').bind({click:function() {clearTimeout(timer); open_status();}});
+<?endif;?>
+
+open_status();
+</script>
+
+<table class="disk_status <?=($var['fsState']=='Stopped'?'small':$display['view']).' '.$display['align']?>">
+<thead><tr><td>Device</td><td>Identification</td><td>Temp.</td><td>Reads</td><td>Writes</td><td>Errors</td><td>FS</td><td>Size</td><td>Used</td><td>Free</td><td>View</td></tr></thead>
+<tbody id="open_devices">
+<?
+foreach ($devs as $dev):
+  echo "<tr><td colspan='11'>&nbsp;</td></tr>";
+endforeach;
+?>
+</tbody>
+</table>
+
+> Thse are devices installed in your server but not assigned to either the parity-proteced
+> array or the cache disk/pool.

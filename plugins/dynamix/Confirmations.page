@@ -1,0 +1,47 @@
+Menu="UserPreferences"
+Title="Confirmations"
+Icon="confirmations.png"
+---
+<?PHP
+/* Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<form markdown="1" name="confirm_settings" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="dynamix/dynamix.cfg"/>
+<input type="hidden" name="#section" value="confirm"/>
+Confirm reboot & powerdown commands:
+: <select name="down" size="1">
+  <?=mk_option($confirm['down'], "0", "No")?>
+  <?=mk_option($confirm['down'], "1", "Yes")?>
+  </select>
+
+> Choose if rebooting or powering down the server needs a confirmation checkbox.
+
+Confirm array stop command:
+: <select name="stop" size="1">
+  <?=mk_option($confirm['stop'], "0", "No")?>
+  <?=mk_option($confirm['stop'], "1", "Yes")?>
+  </select>
+
+> Choose if stopping the array needs a confirmation checkbox.
+
+<?if (isset($confirm['sleep'])):?>
+Confirm sleep command:
+: <select name="sleep" size="1">
+  <?=mk_option($confirm['sleep'], "0", "No")?>
+  <?=mk_option($confirm['sleep'], "1", "Yes")?>
+  </select>
+<?endif;?>
+
+&nbsp;
+: <input type="submit" name="#apply" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>

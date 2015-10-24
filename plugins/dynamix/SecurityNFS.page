@@ -1,0 +1,49 @@
+Menu="Disk Share"
+Title="NFS Security Settings"
+Cond="(($var['shareNFSEnabled']!='no') && (isset($name)?array_key_exists($name,$sec_nfs):0))"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name;?>">
+
+Share name:
+: <big><?=$name?></big>
+
+Export:
+: <select name="shareExportNFS" size="1">
+  <?=mk_option($sec_nfs[$name]['export'], "-", "No");?>
+  <?=mk_option($sec_nfs[$name]['export'], "e", "Yes");?>
+  </select>
+    
+Security:
+: <select name="shareSecurityNFS" size="1">
+  <?=mk_option($sec_nfs[$name]['security'], "public", "Public");?>
+  <?=mk_option($sec_nfs[$name]['security'], "secure", "Secure");?>
+  <?=mk_option($sec_nfs[$name]['security'], "private", "Private");?>
+  </select>
+    
+&nbsp;
+: <input type="submit" name="changeShareSecurityNFS" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+   
+<?if ($sec_nfs[$name]['security']=="private"):?>
+<form markdown="1" method="POST" name="otherForm" action="/update.htm" target="progressFrame">
+<input type="hidden" name="shareName" value="<?=$name;?>">
+Rule:
+: <input type="text" name="shareHostListNFS" maxlength="256" value="<?=$sec_nfs[$name]['hostList'];?>">
+
+&nbsp;
+: <input type="submit" name="changeShareAccessNFS" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+<?endif;?>

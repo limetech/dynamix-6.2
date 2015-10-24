@@ -1,0 +1,283 @@
+Menu="Share:1"
+Title="Share Settings"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+if ($name == "") {
+  /* default values when adding new share */
+  $share = array("nameOrig"   => "",
+                 "name"       => "",
+                 "comment"    => "",
+                 "allocator"  => "highwater",
+                 "floor"      => "",
+                 "splitLevel" => "",
+                 "include"    => "",
+                 "exclude"    => "",
+                 "useCache"   => "no",
+                 "cow"        => "auto");
+} else if (array_key_exists($name, $shares)) {
+  /* edit existing share */
+  $share = $shares[$name];
+} else {
+  /* handle share deleted case */
+  echo "<p class='notice'>Share $name has been deleted.</p><input type='button' value='Done' onclick='done()'>";
+  return;
+}
+
+/* check for empty share */
+function shareEmpty($name) {
+  return (($files = @scandir('/mnt/user/'.$name)) && (count($files) <= 2));
+}
+
+if ($var['shareUserInclude']) {
+  $myDisks = explode(',',$var['shareUserInclude']);
+} else {
+  $myDisks = array();
+  foreach ($disks as $disk) $myDisks[] = $disk['name'];
+}
+
+if ($var['shareUserExclude']) {
+  $exclude = explode(',',$var['shareUserExclude']);
+  foreach ($exclude as $disk) {
+    $index = array_search($disk,$myDisks);
+    if ($index !== false) array_splice($myDisks,$index,1);
+  }
+}
+?>
+
+> A *Share*, also called a *User Share*, is simply the name of a top-level directory that exists on one or more of your
+> storage devices (array and cache).  Each share can be exported for network access.  When browsing a share, we return the
+> composite view of all files and subdirectories for which that top-level directory exists on each storage device.
+
+<script>
+$(function() {
+  $("#s1").dropdownchecklist({emptyText:'All', width:300, explicitClose:'...close'});
+  $("#s2").dropdownchecklist({emptyText:'None', width:300, explicitClose:'...close'});
+  setDiskList(document.share_edit.shareUseCache);
+  presetSpace(document.share_edit.shareFloor);
+});
+function setDiskList(cache) {
+  var onOff = cache=='only' ? 'disable' : 'enable';
+  $("#s1").dropdownchecklist(onOff);
+  $("#s2").dropdownchecklist(onOff);
+}
+function presetSpace(shareFloor) {
+  var unit = ['KB','MB','GB','TB','PB'];
+  var scale = shareFloor.value;
+  if (scale.replace(/[0-9.,\s]/g,'').length>0) return;
+  var base = scale>0 ? Math.floor(Math.log(scale)/Math.log(1000)) : 0;
+  if (base>=unit.length) base = unit.length-1;
+  shareFloor.value = (scale/Math.pow(1000, base))+unit[base];
+}
+// Compose input fields
+function prepareEdit(form) {
+// Test share name validity
+  var share = form.shareName.value.trim();
+  if (share.match('^(disk[0-9]+|cache[0-9]*|flash)$')) {
+    swal({title:"Invalid share name",text:"Do not use reserved names",type:"error"});
+    return false;
+  }
+  form.shareName.value = share;
+// Adjust minimum free space value to selected unit
+  var unit = 'KB,MB,GB,TB,PB';
+  var scale = form.shareFloor.value;
+  var index = unit.indexOf(scale.replace(/[0-9.,\s]/g,'').toUpperCase());
+  form.shareFloor.value = scale.replace(/[A-Z\s]/gi,'') * Math.pow(1000, (index>0 ? index/3 : 0))
+// Return include as single line input
+  var include = '';
+  for (var i=0,item; item=form.shareInclude.options[i]; i++) {
+    if (item.selected) {
+      if (include.length) include += ',';
+      include += item.value;
+      item.selected = false;
+    }
+  }
+  item = form.shareInclude.options[0];
+  item.value = include;
+  item.selected = true;
+// Return exclude as single line input
+  var exclude = '';
+  for (var i=0,item; item=form.shareExclude.options[i]; i++) {
+    if (item.selected) {
+      if (exclude.length) exclude += ',';
+      exclude += item.value;
+      item.selected = false;
+    }
+  }
+  item = form.shareExclude.options[0];
+  item.value = exclude;
+  item.selected = true;
+  return true;
+}
+</script>
+<form markdown="1" name="share_edit" method="POST" action="/update.htm" target="progressFrame" onchange="this.cmdEditShare.disabled=this.shareName.value.trim()==''" onsubmit="return prepareEdit(this)">
+<input type="hidden" name="shareNameOrig" value="<?=$share['nameOrig']?>">
+
+Share name:
+: <input type="text" name="shareName" maxlength="40" value="<?=$share['name']?>">
+
+> The share name can be up to 40 characters, and is case-sensitive with these restrictions:
+>
+> * cannot contain a double-quote character (")
+> * cannot be one of the reserved share names: flash, cache, cach2, .., disk1, disk2, ..
+>
+> We highly recommend to make your life easier and avoid special characters.
+
+Comments:
+: <input type="text" name="shareComment" maxlength="256" value="<?=$share['comment']?>">
+
+> Anything you like, up to 256 characters.
+
+Allocation method:
+: <select name="shareAllocator" size="1">
+  <?=mk_option($share['allocator'], "highwater", "High-water")?>
+  <?=mk_option($share['allocator'], "fillup", "Fill-up")?>
+  <?=mk_option($share['allocator'], "mostfree", "Most-free")?>
+  </select>
+
+> This setting determines how unRAID OS will choose which disk to use when creating a new file or directory:
+>
+> **High-water**
+> Choose the lowest numbered disk with free space still above the current *high water mark*.  The
+> *high water mark* is initialized with the size of the largest data disk divided by 2.  If no disk
+> has free space above the current *high water mark*, divide the *high water mark* by 2 and choose again.
+>
+> The goal of **High-water** is to write as much data as possible to each disk (in order to minimize
+> how often disks need to be spun up), while at the same time, try to keep the same amount of free space on
+> each disk (in order to distribute data evenly across the array).
+>
+> **Fill-up**
+> Choose the lowest numbered disk that still has free space above the current **Minimum free space**
+> setting.
+>
+> **Most-free**
+> Choose the disk that currently has the most free space.
+
+Minimum free space:
+: <input type="text" name="shareFloor" maxlength="16" value="<?=$share['floor']?>">
+
+> The *minimum free space* available to allow writing to any disk belonging to the share.<br>
+>
+> Choose a value which is equal or greater than the biggest single file size you intend to copy to the share.
+> Include units KB, MB, GB and TB as appropriate, e.g. 10MB.
+
+Split level:
+: <select name="shareSplitLevel" size="1" style="width:320px">
+  <?=mk_option($share['splitLevel'], "", "Automatically split any directory as required")?>
+  <?=mk_option($share['splitLevel'], "1", "Automatically split only the top level directory as required")?>
+  <?=mk_option($share['splitLevel'], "2", "Automatically split only the top two directory levels as required")?>
+  <?=mk_option($share['splitLevel'], "3", "Automatically split only the top three directory levels as required")?>
+  <?=mk_option($share['splitLevel'], "4", "Automatically split only the top four directory levels as required")?>
+  <?=mk_option($share['splitLevel'], "5", "Automatically split only the top five directory levels as required")?>
+  <?=mk_option($share['splitLevel'], "0", "Manual: do not automatically split directories")?>
+  </select>
+
+> Determines whether a directory is allowed to expand onto multiple disks.
+
+> **Automatically split any directory as required**
+> When a new file or subdirectory needs to be created in a share, unRAID OS first chooses which disk
+> it should be created on, according to the configured *Allocation method*.  If the parent directory containing
+> the new file or or subdiretory does not exist on this disk, then unRAID OS will first create all necessary
+> parent directories, and then create the new file or subdirectory.
+>
+> **Automatically split only the top level directory as required**
+> When a new file or subdirectory is being created in the first level subdirectory of a share, if that first
+> level subdirectory does not exist on the disk being written, then the subdirectory will be created first.
+> If a new file or subdirectory is being created in the second or lower level subdirectory of a share, the new
+> file or subdirectory is created on the same disk as the new file or subdirectorys parent directory.
+>
+> **Automatically split only the top "N" level directories as required**
+> Similar to previous: when a new file or subdirectory is being created, if the parent directory is at level "N",
+> and does not exist on the chosen disk, unRAID OS will first create all necessary parent directories.  If the
+> parent directory of the new file or subdirectory is beyond level "N", then the new file or subdirectory is
+> created on the same disk where the parent directory exists.
+>
+> **Manual: do not automatically split directories**
+> When a new file or subdirectory needs to be created in a share, unRAID OS will only condider disks where the
+> parent directory already exists.
+
+Included disk(s):
+: <select id="s1" name="shareInclude" size="1" multiple="multiple" style="display:none">
+  <?foreach ($myDisks as $disk):?>
+  <?=mk_option_check($disk, $share['include'])?>
+  <?endforeach;?>
+  </select>
+
+> Specify the disks which can be used by the share. By default all disks are included; that is, if specific
+> disks are not selected here, then the share may expand into *all* array disks.
+
+Excluded disk(s):
+: <select id="s2" name="shareExclude" size="1" multiple="multiple" style="display:none">
+  <?foreach ($myDisks as $disk):?>
+  <?=mk_option_check($disk, $share['exclude'])?>
+  <?endforeach;?>
+  </select>
+
+> Specify the disks which can *not* be used by the share. By default no disks are excluded.
+
+<?if (isset($disks['cache'])&&($disks['cache']['status']!='DISK_NP')&&($var['shareCacheEnabled']=='yes')):?>
+
+Use cache disk:
+: <select name="shareUseCache" size="1" onchange="setDiskList(this.value)">
+  <?=mk_option($share['useCache'], "no", "No")?>
+  <?=mk_option($share['useCache'], "yes", "Yes")?>
+  <?=mk_option($share['useCache'], "only", "Only")?>
+  </select>
+
+> Specify whether new files and subdirectories written on the share can be written onto the Cache disk/pool.
+>
+> **No** prohibits new files and subdirectories from being written onto the Cache disk/pool.
+>
+> **Yes** indicates that all new files and subdirectories should be written to the Cache disk/pool, provided
+> enough free space exists on the Cache disk/pool.  If there is insufficant space on the Cache disk/pool, then
+> new files and directories are created on the array.  When the *mover* is invoked, files and subdirectories are
+> transfered off the Cache disk/pool and onto the array.
+>
+> **Only** indicates that all new files and subdirectories must be writen to the Cache disk/pool.  If there
+> is insufficient free space on the Cache disk/pool, *create* operations will fail with *out of space* status.
+
+<?endif;?>
+
+Enable Copy-on-write:
+: <select name="shareCOW" size="1"<?if ($name):?> disabled<?endif;?>>
+  <?=mk_option($share['cow'], "no", "No")?>
+  <?=mk_option($share['cow'], "auto", "Auto")?>
+  </select><?if ($name):?>Set when adding new share only.<?endif;?>
+
+> Set to **No** to cause the *btrfs* NOCOW (No Copy-on-Write) attribute to be set on the share directory
+> when created on a device formatted with *btrfs* file system.  Once set, newly created files and
+> subdirectories on the device will inherit the NOCOW attribute.  We recommend this setting for shares
+> used to store vdisk images, including the Docker loopback image file.  This setting has no effect
+> on non-btrfs file systems.
+>
+> Set to **Auto** for normal operation, meaning COW will be in effect on devices formatted with *btrfs*.
+
+<?if ($share['name'] == ""):?>
+&nbsp;
+: <input type="submit" name="cmdEditShare" value="Add Share"><input type="button" value="Done" onclick="done()">
+<?elseif (shareEmpty($share['name'])):?>
+Share empty?
+: Yes
+
+Delete<input type="checkbox" name="confirmDelete" onchange="chkDelete(this.form, this.form.cmdEditShare);">
+: <input type="submit" name="cmdEditShare" value="Apply"><input type="button" value="Done" onclick="done()">
+<?else:?>
+Share empty?
+: No
+
+&nbsp;
+: <input type="submit" name="cmdEditShare" value="Apply"><input type="button" value="Done" onclick="done()">
+<?endif;?>
+</form>

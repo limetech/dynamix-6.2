@@ -1,0 +1,11 @@
+#!/usr/bin/php
+<?php
+// usage: ftpusers ['user1 user2 .. ']
+// the list of users must be within quotes, ie, as one argument
+// if no user(s) specified, deletes the config file
+$config_file = "/boot/config/vsftpd.user_list";
+if ($argc > 1)
+  file_put_contents($config_file, implode("\n", explode(' ', $argv[1]))."\n");
+else
+  @unlink($config_file);
+?>

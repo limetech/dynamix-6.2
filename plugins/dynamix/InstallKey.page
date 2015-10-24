@@ -1,0 +1,30 @@
+Menu="Registration"
+Title="Install Key"
+Cond="($var['regTy']!='Pro')"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<script>
+function installKey(file) {
+  if (file)
+    openBox('/webGui/include/InstallKey.php?url='+file,'Install Key',600,900,true);
+}
+</script>
+<form markdown="1">
+      
+To install a registration key, paste the key file URL in the box below and click **Install Key**.
+
+Key file URL:
+: <input type="text" name="file" id="key_file" maxlength="1024" value="" style="width:33%">
+  <input type="button" value="Install Key" onclick="installKey(this.form.file.value.trim())">
+      
+</form>

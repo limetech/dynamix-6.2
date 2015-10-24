@@ -1,0 +1,34 @@
+Menu="SMB:2"
+Title="Workgroup Settings"
+Cond="($var['shareSMBEnabled']=='yes')"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<form markdown="1" name="WorkGroup" method="POST" action="/update.htm" target="progressFrame">
+Workgroup:
+: <input type="text" name="WORKGROUP" maxlength="40" value="<?=$var['WORKGROUP'];?>" class="narrow">
+
+> Enter your local network Workgroup name. Usually this is "WORKGROUP".
+
+Local master:
+: <select name="localMaster">
+  <?=mk_option($var['localMaster'], "no", "No");?>
+  <?=mk_option($var['localMaster'], "yes", "Yes");?>
+  </select>
+
+> If set to 'Yes' then the server will fully participate in browser elections, and in the absense
+> of other servers, will usually become the local Master Browser.
+
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>

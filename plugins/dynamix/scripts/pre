@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# usage: pre <command>
+# Executes <command>, wrapping it's output in <pre></pre> tags.
+# Also redirects stderr to stdout, and generates syslog entry if <command> exit status > 0
+# per WeeboTech (thanks!).
+# 
+
+exec 2>&1
+
+echo '<pre style="margin-top:-20px">'
+eval "$@"
+RC=$?
+echo '</pre>'
+
+if [ ${RC} -gt 0 ] 
+   then logger -t$0 -puser.err <<-EOF
+pre $@: exit status:${RC}
+EOF
+fi
+exit ${RC}

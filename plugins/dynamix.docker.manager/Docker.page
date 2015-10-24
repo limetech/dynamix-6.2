@@ -1,0 +1,3 @@
+Menu="Tasks:60"
+Type="xmenu"
+Cond="(pgrep('docker')!==false)"

@@ -1,0 +1,40 @@
+Menu="Tasks:70"
+Type="xmenu"
+Cond="(pgrep('libvirtd')!==false)"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Derek Macias, Eric Schultz, Jon Panozzo.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<link type="text/css" rel="stylesheet" href="/plugins/dynamix.vm.manager/styles/dynamix.vm.manager.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/context.standalone.css">
+<style type="text/css">
+body{-webkit-overflow-scrolling:touch;}
+.fileTree{width:305px;max-height:150px;overflow:scroll;position:absolute;z-index:100;display:none;}
+</style>
+<script src="/webGui/javascript/jquery.filetree.js"></script>
+<script src="/webGui/javascript/jquery.switchbutton.js"></script>
+<script src="/webGui/javascript/context.js"></script>
+<script src="/plugins/dynamix.vm.manager/scripts/dynamix.vm.manager.js"></script>
+
+<?
+if ($var['fsState'] != "Started") {
+  echo "<p class='notice'>Array must be Started to manage Virtual Machines.</p>";
+  return;
+}
+
+require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt.php');
+require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt_helpers.php');
+
+if (count($pages)==2) $tabbed = false;
+?>

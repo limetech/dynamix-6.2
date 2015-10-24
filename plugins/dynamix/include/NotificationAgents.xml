@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Agents>
+  <Agent>
+    <Name>Boxcar</Name>
+    <Variables>
+      <Variable Help="Get your access token as explained [a href='http://help.boxcar.io/knowledgebase/articles/314474-how-to-get-my-boxcar-access-token' target='_blank'][u]here[/u].[/a]" Desc="Access Token" Default="">ACCESS_TOKEN</Variable>
+      <Variable Help="Specify the fields which are included in the title of the notification." Desc="Notification Title" Default="$SUBJECT">TITLE</Variable>
+      <Variable Help="Specify the fields which are included in the message body of the notification." Desc="Notification Message" Default="$DESCRIPTION">MESSAGE</Variable>
+    </Variables>
+    <Script>
+      <![CDATA[
+      #!/bin/bash
+      ############
+      {0}
+      ############
+      MESSAGE=$(echo -e "$MESSAGE")
+
+      curl -s -k -d "user_credentials=$ACCESS_TOKEN" \
+      -d "notification[title]=$TITLE" \
+      -d "notification[long_message]=$MESSAGE" \
+      -d "notification[source_name]=unRAID" \
+      -d "notification[sound]=bird-1" \
+      -d "notification[icon_url]=http://i.imgur.com/u63iSL1.png" \
+      https://new.boxcar.io/api/notifications 2>&1
+      ]]>
+    </Script>
+  </Agent>
+  <Agent>
+    <Name>Prowl</Name>
+    <Variables>
+      <Variable Help="Get your api key as explained [a href='https://www.prowlapp.com/api_settings.php' target='_blank'][u]here[/u].[/a]" Desc="Api Key" Default="">API_KEY</Variable>
+      <Variable Help="Application name, e.g., unRAID Server." Desc="Application Name" Default="unRAID Server">APP_NAME</Variable>
+      <Variable Help="Specify the fields which are included in the title of the notification." Desc="Notification Title" Default="$SUBJECT">TITLE</Variable>
+      <Variable Help="Specify the fields which are included in the message body of the notification." Desc="Notification Message" Default="$DESCRIPTION">MESSAGE</Variable>
+    </Variables>
+    <Script>
+      <![CDATA[
+      #!/bin/bash
+      ############
+      {0}
+      ############
+      TITLE=$(echo -e "$TITLE")
+      MESSAGE=$(echo -e "$MESSAGE")
+
+      case "$IMPORTANCE" in
+      'normal' )
+      PRIORITY="0"
+      ;;
+      'warning' )
+      PRIORITY="1"
+      ;;
+      'alert' )
+      PRIORITY="2"
+      ;;
+      esac
+
+      curl -s -k \
+      -F "apikey=${API_KEY}" \
+      -F "application=${APP_NAME}" \
+      -F "event=${TITLE}" \
+      -F "description=${MESSAGE}" \
+      -F "priority=$PRIORITY" \
+      https://api.prowlapp.com/publicapi/add 2>&1
+      ]]>
+    </Script>
+  </Agent>
+  <Agent>
+    <Name>Pushbullet</Name>
+    <Variables>
+      <Variable Help="The Access Token can be found [a href='https://www.pushbullet.com/account' target='_blank'] [u]here[/u].[/a]" Desc="Access Token" Default="">TOKEN</Variable>
+      <Variable Help="Specify the fields which are included in the title of the notification." Desc="Notification Title" Default="$SUBJECT">TITLE</Variable>
+      <Variable Help="Specify the fields which are included in the message body of the notification." Desc="Notification Message" Default="$DESCRIPTION">MESSAGE</Variable>
+    </Variables>
+    <Script>
+      <![CDATA[
+      #!/bin/bash
+      ##########
+      {0}
+      ##########
+      MESSAGE=$(echo "$MESSAGE" | sed -e 's:<br[ /]*>:\\n:gI' -e 's/<[^>]*>//g')
+
+      curl -s -k -X POST --header "Authorization: Bearer $TOKEN" \
+      --header  'Content-Type: application/json' \
+      -d "{\"type\": \"note\", \"title\": \"$TITLE\", \"body\": \"$MESSAGE\"}" \
+      https://api.pushbullet.com/v2/pushes 2>&1
+      ]]>
+    </Script>
+  </Agent>
+  <Agent>
+    <Name>Pushover</Name>
+    <Variables>
+      <Variable Help="The User Key can be found [a href='https://pushover.net/' target='_blank'][u]here[/u].[/a]" Desc="User Key" Default="">USER_KEY</Variable>
+      <Variable Help="The App Token can be found [a href='https://pushover.net/apps' target='_blank'][u]here[/u][/a]." Desc="App Token" Default="">APP_TOKEN</Variable>
+      <Variable Help="Specify the fields which are included in the message body of the notification." Desc="Notification Message" Default="$SUBJECT,$DESCRIPTION">MESSAGE</Variable>
+    </Variables>
+    <Script>
+      <![CDATA[
+      #!/bin/bash
+      ############
+      {0}
+      ############
+      MESSAGE=$(echo -e "$MESSAGE")
+      case "$IMPORTANCE" in
+      'normal' )
+      PRIORITY="-1"
+      ;;
+      'warning' )
+      PRIORITY="0"
+      ;;
+      'alert' )
+      PRIORITY="1"
+      ;;
+      esac
+
+      curl -k -s \
+      -F "token=$APP_TOKEN" \
+      -F "user=$USER_KEY" \
+      -F "message=$MESSAGE" \
+      -F "timestamp=$TIMESTAMP" \
+      -F "priority=$PRIORITY" \
+      -F "html=1" \
+      https://api.pushover.net/1/messages.json 2>&1
+      ]]>
+    </Script>
+  </Agent>
+</Agents>

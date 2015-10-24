@@ -1,0 +1,21 @@
+#!/bin/bash
+
+inuse="/boot/config/plugins/dynamix/notifications/agents"
+unused="/boot/config/plugins/dynamix/notifications/agents-disabled"
+
+case $1 in
+enable)
+  [[ ! -d $inuse ]] && mkdir -p $inuse
+  [[ -f $unused/$2 ]] && /bin/mv -f $unused/$2 $inuse/$2
+;;
+disable)
+  [[ ! -d $unused ]] && mkdir -p $unused
+  [[ -f $inuse/$2 ]] && /bin/mv -f $inuse/$2 $unused/$2
+;;
+delete)
+  [[ -f $inuse/$2 ]] && /bin/rm -f $inuse/$2
+;;
+test)
+  [[ -f $inuse/$2 ]] && /bin/bash $inuse/$2
+;;
+esac

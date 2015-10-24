@@ -1,0 +1,36 @@
+Menu="Dashboard:2"
+Title="UPS Summary"
+Cond="file_exists('/var/run/apcupsd.pid')"
+---
+<?PHP
+/* Copyright 2015, Dan Landon.
+ * Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<style>
+table.ups thead tr th{width:16.6%;padding-left:10px;}
+table.ups tbody tr td{padding-left:10px;font-weight:bold;}
+</style>
+<script>
+function getUPSstatus() {
+  $.get('/plugins/dynamix.apcupsd/include/UPSstatus.php',{all:'false'},function(data) {
+    if (data) $('#ups_summary').html(data);
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0))):?>
+    setTimeout(getUPSstatus, <?=max(abs($display['refresh']),15000)?>);
+<?endif;?>
+  });
+}
+$(getUPSstatus);
+</script>
+<table class="tablesorter shift ups">
+<thead><tr><th>UPS Status</th><th>Battery Charge</th><th>Runtime Left</th><th>Nominal Power</th><th>UPS Load</th><th>UPS Load %</th></tr></thead>
+<tbody id="ups_summary"><tr><td colspan="6">&nbsp;</td></tr></tbody>
+</table>

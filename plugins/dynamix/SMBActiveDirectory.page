@@ -1,0 +1,51 @@
+Menu="SMB:3"
+Title="Active Directory Settings"
+Cond="($var['shareSMBEnabled']=='ads')"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<form markdown="1" name="JoinOps" method="POST" action="/update.htm" target="progressFrame">
+AD join status:
+: <?=$var['joinStatus'];?>&nbsp;
+
+AD domain name (FQDN):
+: <input type="text" name="DOMAIN" maxlength="80" value="<?=$var['DOMAIN'];?>">
+
+AD short domain name:
+: <input type="text" name="DOMAIN_SHORT" maxlength="40" value="<?=$var['DOMAIN_SHORT'];?>">
+
+AD account login:
+: <input type="text" name="DOMAIN_LOGIN" maxlength="40" value="<?=$var['DOMAIN_LOGIN'];?>">
+
+AD account password:
+: <input type="password" name="DOMAIN_PASSWD" maxlength="40" value="<?=$var['DOMAIN_PASSWD'];?>">
+
+&nbsp;
+: <?if ($var['joinStatus']=="Joined"):?>
+  <input type="submit" name="cmdJoinDomain" value="Join" disabled><input type="submit" name="cmdLeaveDomain" value="Leave">
+  <?else:?>
+  <input type="submit" name="cmdJoinDomain" value="Join"><input type="submit" name="cmdLeaveDomain" value="Leave" disabled>
+  <?endif;?>
+</form>
+<br>
+
+<form markdown="1" name="shareOwnership" method="POST" action="/update.htm" target="progressFrame">
+AD initial owner:
+: <input type="text" name="shareInitialOwner" maxlength="40" value="<?=$var['shareInitialOwner'];?>">
+
+AD initial group:
+: <input type="text" name="shareInitialGroup" maxlength="40" value="<?=$var['shareInitialGroup'];?>">
+
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>

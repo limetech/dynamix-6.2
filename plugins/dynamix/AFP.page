@@ -1,0 +1,73 @@
+Menu="NetworkServices:1"
+Title="AFP"
+Icon="apple-logo.png"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+Enable AFP:
+: <select name="shareAFPEnabled" size="1">
+  <?=mk_option($var['shareAFPEnabled'], "no", "No");?>
+  <?=mk_option($var['shareAFPEnabled'], "yes", "Yes");?>
+  </select>
+
+> Select 'Yes' enable [AFP](/Help) protocol support.
+>
+> Note: changing this value with array Started may cause a brief interruption in network services.
+
+Connected users:
+: <?if ($var['shareAFPEnabled']=="yes"):
+      $AFPUsers = exec("ps anucx|grep -c 'afpd'");
+      if ($AFPUsers>0) $AFPUsers--;
+      echo $AFPUsers;
+    else:
+      echo "<i>not available</i>";
+    endif;?>
+
+&nbsp;
+: <input type="submit" name="changeShare" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+
+> ### Overview
+> AFP for unRAID includes both `netatalk` to implement Apple Filing Protocol, and `avahi`
+> to implement Zeroconf, aka, Bonjour.
+>
+> As with SMB and NFS, you may export both disk shares and user shares via AFP.  There are some important
+> limitations to be aware of however:
+>
+> * You must be very careful when enabling AFP export of a disk share when that disk is also enabled
+> for user shares. This is because `netatalk` creates several system directories in the root of shares,
+> and these directories will show up as user shares. To prevent this, you may exclude the disk(s)
+> from the user share file system on the [Share Settings](/Settings/ShareSettings) page.
+>
+> * The netatalk documentation includes a strong warning to not use symlinks anywhere in a file system
+> being exprted via AFP.
+>
+> AFP for unRAID supports Time Machine, and all three security modes.
+>
+> ### Bonjour
+> When AFP is enabled, your server name, with a `-AFP` suffix, should automatically appear in the left-hand pane of
+> Finder alongside an Xserve icon.  Clicking this icon permits you to explore the server shares using AFP protocol.
+>
+> In addition, if SMB is enabled, your server name, without any suffix, should also appear.  This provides
+> access to shares using the SMB protocol.
+>
+> ### Other notes
+> [Prevent .DS_Store file creation on network volumes](http://hints.macworld.com/article.php?story=2005070300463515) - from the article:
+>
+> To prevent the creation of these files, open the Terminal and type:
+>
+>     defaults write com.apple.desktopservices DSDontWriteNetworkStores true
+>
+> It may be necessary to log out and back in, or even to restart the computer for the change to take effect
+> (this is what the article states).

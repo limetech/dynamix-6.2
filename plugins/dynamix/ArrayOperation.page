@@ -1,0 +1,607 @@
+Menu="Main:5"
+Title="Array Operation"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<script>
+function tab0() {
+  $.removeCookie('one',{path:'/'});
+  $.cookie('tab','tab0',{path:'/'});
+}
+function parity_status() {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'parity',timer:timer},function(data) {
+    if (data) {$.each(data.split(';'),function(k,v) {if ($('#line'+k).length>0) $('#line'+k).html(v);});}
+<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($display['tabs']==0):?>
+    if ($('#tab'+$('input[name$="tabs"]').length).is(':checked')) timer = setTimeout(parity_status,<?=abs($display['refresh'])?>);
+<?else:?>
+    setTimeout(parity_status,<?=abs($display['refresh'])?>);
+<?endif;?>
+    if (!data && $('#cancelButton').length>0 && $('#cancelButton').val()=='Cancel'){
+      $('#cancelButton').prop('type','button').val('Done').bind({click:function(){refresh();}});
+      $('#cancelText').html('');
+      $('#line4').html('completed');
+    }
+<?endif;?>
+  });
+}
+parity_status();
+
+<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($display['tabs']==0):?>
+$('#tab'+$('input[name$="tabs"]').length).bind({click:function() {clearTimeout(timer); parity_status(); tab0();}});
+<?endif;?>
+<?if (substr($var['fsState'],-3)=='ing'):?>
+function reload_page() {
+  $.get('/webGui/include/ReloadPage.php',function(data) {
+    switch (data) {
+    case 'wait':
+      setTimeout(reload_page,10000);
+    break;
+    case 'stop':
+      setTimeout(refresh,0);
+    break;
+    default:
+      if (data) $('#fsState').html(data);
+      setTimeout(reload_page,<?=abs($display['refresh'])?>);
+    break;
+    }
+  });
+}
+reload_page();
+<?endif;?>
+<?else:?>
+$('#tab'+$('input[name$="tabs"]').length).bind({click:function() {tab0();}});
+<?endif;?>
+<?if ($display['refresh']==0 || ($display['refresh']<0 && $var['mdResync']>0)):?>
+$('.tabs').append("<span class='status vhshift'><input type='button' value='Refresh' onclick='refresh()'></span>");
+<?endif;?>
+</script>
+<?
+function maintenance_mode() {
+  echo "<tr>";
+  echo "<td></td>";
+  echo "<td><input type='checkbox' name='startMode' value='Maintenance'>Maintenance mode</td>";
+  echo "<td><strong>Maintenance mode</strong> - if checked, Start array but do not mount disks.</td>";
+  echo "</tr>";
+}
+function status_indicator() {
+  global $var;
+  $ball = "/webGui/images/{$var['mdColor']}.png";
+  switch ($var['mdColor']) {
+   case 'green-on': $help = 'Started, array protected'; break;
+   case 'green-blink': $help = 'Stopped'; break;
+   case 'yellow-on': $help = 'Started, array unprotected'; break;
+   case 'yellow-blink': $help = 'Stopped'; break;
+  }
+  return "<a class='info nohand' onclick='return false'><img src='$ball' class='icon'><span>$help</span></a>";
+}
+?>
+<form name="arrayOps" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="startState" value="<?=$var['mdState']?>">
+<table class="array_status">
+<?switch ($var['fsState']):
+  case "Started":?>
+    <tr>
+    <td><?=status_indicator()?><strong>Started<?=(($var['startMode']=='Maintenance')?' - Maintenance Mode':'')?></strong></td>
+    <td><input type="submit" name="cmdStop" value="Stop"<?=($confirm['stop']||$var['mdResync']||file_exists('/var/run/mover.pid'))?' disabled':''?>></td>
+    <td><strong>Stop</strong> will take the array off-line.
+<?if ($confirm['stop']):?>
+      <br><input type="checkbox" name="confirmStop" value="OFF" onClick="arrayOps.cmdStop.disabled=!arrayOps.confirmStop.checked"<?=$var['mdResync']>0||file_exists('/var/run/mover.pid')?'disabled':''?>><small>Yes I want to do this</small>
+<?endif;?>
+    </td>
+    </tr>
+<?  if ($var['fsNumUnmountable']>0):?>
+      <tr>
+      <td><strong>Unmountable disk<?=$var['fsNumUnmountable']==1?'':'s'?> present:</strong><br>
+<?    foreach ($disks as $disk) if ($disk['fsStatus']=='Unmountable') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+      <td><input type="submit" id="cmdFormat" name="cmdFormat" value="Format" disabled><input type="hidden" name="unmountable_mask" value="<?=$var['fsUnmountableMask']?>"></td>
+      <td><strong>Format</strong> will create a file system in all <strong>Unmountable</strong> disks, discarding all data currently on those disks.<br>
+        <input type="checkbox" name="confirmFormat" value="OFF" onClick="arrayOps.cmdFormat.disabled=!arrayOps.confirmFormat.checked"><small>Yes I want to do this</small>
+      </td>
+      </tr>
+<?  endif;
+    if ($var['mdResync']==0):
+      if (strstr($var['mdResyncAction'],"recon")):?>
+        <tr>
+        <td></td>
+        <td><input type="submit" name="cmdCheck" value="Sync"></td>
+        <td><strong>Sync</strong> will start <strong>Parity-Sync</strong> and/or <strong>Data-Rebuild</strong>.</td>
+        </tr>
+<?    elseif (strstr($var['mdResyncAction'],"clear")):?>
+        <tr>
+        <td></td>
+        <td><input type="submit" name="cmdCheck" value="Clear"></td>
+        <td><strong>Clear</strong> will start <strong>Clearing</strong> new data disk(s).</td>
+        </tr>
+<?    else:
+        if ($var['mdResyncAction']=="check"):?>
+          <tr>
+          <td></td>
+          <td><input type="submit" name="cmdCheck" value="Check"></td>
+          <td><strong>Check</strong> will start <strong>Read-Check</strong> of all data disks.</td>
+          </tr>
+<?      elseif (strstr($var['mdResyncAction'],"check")):?>
+          <tr>
+          <td>Parity is valid.</td>
+          <td><input type="submit" name="cmdCheck" value="Check"></td>
+          <td><strong>Check</strong> will start <strong>Parity-Check</strong>.
+            <br><input type="checkbox" name="optionCorrect" value="correct" checked><small>Write corrections to parity</small></td>
+          </tr>
+<?      endif;
+        if ($var['sbSyncExit']!=0):?>
+          <tr>
+          <td></td>
+          <td></td>
+          <td>Last check incomplete on <strong><?=my_time($var['sbSynced2']).day_count($var['sbSynced2'])?></strong>, finding <strong><?=$var['sbSyncErrs']?></strong> error<?=$var['sbSyncErrs']==1?'':'s'?>.
+            <br><small>Error code: <?=my_error($sbSyncExit)?></small></td>
+          </tr>
+<?      elseif ($var['sbSynced']==0):?>
+          <tr>
+          <td></td>
+          <td></td>
+          <td><em>Parity has not been checked yet.<em></td>
+          </tr>
+<?      elseif ($var['sbSynced2']==0):?>
+          <tr>
+          <td></td>
+          <td></td>
+          <td>Last checked <strong><?=my_time($var['sbSynced']).day_count($var['sbSynced'])?></strong>, finding <strong><?=$var['sbSyncErrs']?></strong> error<?=$var['sbSyncErrs']==1?'':'s'?>.</td>
+          </tr>
+<?      else:?>
+          <tr>
+          <td></td>
+          <td></td>
+          <td>Last check completed on <strong><?=my_time($var['sbSynced2']).day_count($var['sbSynced2'])?></strong>, finding <strong><?=$var['sbSyncErrs']?></strong> error<?=$var['sbSyncErrs']==1?'':'s'?>.
+            <br><small>Duration: <?=my_check($var['sbSynced2']-$var['sbSynced'])?></small></td>
+          </tr>
+<?      endif;
+      endif;
+    else:
+      if ($var['mdResyncAction']=="check"):?>
+        <tr>
+        <td>Read-Check in progress.</td>
+        <td><input type="submit" name="cmdNoCheck" id="cancelButton" value="Cancel"></td>
+        <td id="cancelText"><strong>Cancel</strong> will stop the Read-Check.</td>
+        </tr>
+<?    elseif (strstr($var['mdResyncAction'],"check")):?>
+        <tr>
+        <td>Parity-Check in progress.</td>
+        <td><input type="submit" name="cmdNoCheck" id="cancelButton" value="Cancel"></td>
+        <td id="cancelText"><strong>Cancel</strong> will stop the Parity-Check.</td>
+        </tr>
+<?    elseif (strstr($var['mdResyncAction'],"recon")):?>
+        <tr>
+        <td>Parity-Sync/Data-Rebuild in progress.</td>
+        <td><input type="submit" name="cmdNoCheck" id="cancelButton" value="Cancel"></td>
+        <td id="cancelText"><strong>Cancel</strong> will stop Parity-Sync/Data-Rebuild.
+          <br>WARNING: canceling may leave the array unprotected!</td>
+        </tr>
+<?    elseif (strstr($var['mdResyncAction'],"clear")):?>
+        <tr>
+        <td>Clearing in progress.</td>
+        <td><input type="submit" name="cmdNoCheck" id="cancelButton" value="Cancel"></td>
+        <td id="cancelText"><strong>Cancel</strong> will stop Clearing.</td>
+        </tr>
+<?    endif;?>
+      <tr>
+      <td>Total size:</td>
+      <td id="line0"></td>
+      <td></td>
+      </tr>
+      <tr>
+      <td>Elapsed time:</td>
+      <td id="line1"></td>
+      <td></td>
+      </tr>
+      <tr>
+      <td>Current position:</td>
+      <td id="line2"></td>
+      <td></td>
+      </tr>
+      <tr>
+      <td>Estimated speed:</td>
+      <td id="line3"></td>
+      <td></td>
+      </tr>
+      <tr>
+      <td>Estimated finish:</td>
+      <td id="line4"></td>
+      <td></td>
+      </tr>
+<?    if (strstr($var['mdResyncAction'],"check ")):?>
+        <tr>
+        <td>Sync errors <?if ($var['mdResyncCorr']==0):?>detected:<?else:?>corrected:<?endif;?></td>
+        <td id="line5"></td>
+        <td></td>
+        </tr>
+<?    endif;
+    endif;
+    break;
+  case "Mounting":?>
+    <tr>
+    <td><?=status_indicator()?><strong>Starting...</strong></td>
+    <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+    <td></td>
+    </tr>
+<?  break;
+  case "Formatting":?>
+    <tr>
+    <td><?=status_indicator()?><strong>Started, formatting...</strong></td>
+    <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+    <td></td>
+    </tr>
+<?  break;
+  case "Copying":?>
+    <tr>
+    <td><?=status_indicator()?><span id="fsState"><strong>Copying, <?=$var['fsCopyPrcnt']?>% complete...</strong></span></td>
+    <td><input type="submit" name="cmdNoCopy" value="Cancel"></td>
+    <td></td>
+    </tr>
+<?  break;
+  case "Clearing":?>
+    <tr>
+    <td><?=status_indicator()?><span id="fsState"><strong>Clearing, <?=$var['fsClearPrcnt']?>% complete...</strong></span></td>
+    <td><input type="submit" name="cmdNoClear" value="Cancel"></td>
+    <td></td>
+    </tr>
+<?  break;
+  case "Stopping":?>
+    <tr>
+    <td><?=status_indicator()?><strong>Stopping...</strong></td>
+    <td><input type="submit" name="cmdStop" value="Stop" disabled></td>
+    <td></td>
+    </tr>
+<?  break;
+  case "Stopped":
+    if ($var['configValid']==0):
+      if (strstr($var['regTy'], "- ")):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped.</strong></td>
+        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+        <td>Invalid or missing <a href="/Tools/Registration">registration key</a>.</td>
+        </tr>
+<?    else:?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped.</strong></td>
+        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+        <td>Too many attached devices. Please consider upgrading your <a href="/Tools/Registration">registration key</a>.</td>
+        </tr>
+<?    endif;
+    else:
+    switch ($var['mdState']):
+    case "STOPPED":
+      if (strstr($var['mdResyncAction'],"recon")):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Configuration valid.</td>
+        <td><input type="submit" name="cmdStart" value="Start"></td>
+        <td><strong>Start</strong> will bring the array on-line and start <strong>Parity-Sync</strong> and/or <strong>Data-Rebuild</strong>.</td>
+        </tr>
+<?    elseif ($var['mdResyncAction']=="clear"):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. New data disks(s) detected.</td>
+        <td><input type="submit" name="cmdStart" value="Start"></td>
+        <td><strong>Start</strong> will bring the array on-line and start <strong>Clearing</strong> new data disk(s).</td>
+        </tr>
+<?    elseif ($var['sbClean']!="yes" && $var['mdResyncAction']=="check"):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Unclean shutdown detected.</td>
+        <td><input type="submit" name="cmdStart" value="Start"></td>
+        <td><strong>Start</strong> will bring the array on-line and start <strong>Parity-Check</strong>.
+          <br><input type="checkbox" name="optionCorrect" value="correct" checked><small>Write corrections to parity</small></td>
+        </tr>
+<?    else:?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Configuration valid.</td>
+        <td><input type="submit" name="cmdStart" value="Start"></td>
+        <td><strong>Start</strong> will bring the array on-line.</td>
+        </tr>
+<?    endif;
+      maintenance_mode();
+      break;
+    case "NEW_ARRAY":
+      if (strstr($disks['parity']['status'],"DISK_NP") && strstr($disks['parity2']['status'],"DISK_NP")):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Configuration valid.</td>
+        <td><input type="submit" name="cmdStart" value="Start"></td>
+        <td><strong>Start</strong> will record all disk information and bring the array on-line.
+          <br>The array will be immediately available, but <strong>unprotected</strong> since <em>parity</em> has not been assigned.</td>
+        </tr>
+<?    else:?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Configuration valid.</td>
+        <td><input type="submit" name="cmdStart" value="Start"></td>
+        <td><strong>Start</strong> will record all disk information, bring the array on-line, and start Parity-Sync.
+          <br>The array will be immediately available, but <strong>unprotected</strong> until Parity-Sync completes.
+          <br><input type="checkbox" name="md_invalidslot" value="99">Parity is already valid.</td>
+        </tr>
+<?    endif;
+      maintenance_mode();
+      break;
+    case "UNPROTECTED_EXPANSION":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Found <?=my_word($var['mdNumNew'])?> new disk<?=$var['mdNumNew']==1?'':'s'?>.<br>
+<?    foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+      <td><input type="submit" name="cmdStart" value="Start"></td>
+      <td><strong>Start</strong> will record the new disk<?=$var['mdNumNew']==1?'':'s'?> information and bring the expanded array on-line.</td>
+      </tr>
+<?    maintenance_mode();
+      break;
+    case "PROTECTED_EXPANSION":
+      if ($var['mdNumErased']==$var['mdNumNew']):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Found <?=my_word($var['mdNumNew'])?> new erased disk<?=$var['mdNumNew']==1?'':'s'?>.<br>
+<?      foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+        <td><strong>Start</strong> will record the new disk<?=$var['mdNumNew']==1?'':'s'?> information and bring the expanded array on-line.
+        <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+        </tr>
+<?      maintenance_mode();
+      else:?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Found <?=my_word($var['mdNumNew'])?> new disk<?=$var['mdNumNew']==1?'':'s'?>.<br>
+<?      foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+        <td><input type="submit" name="cmdClear" value="Clear" disabled></td>
+        <td><strong>Clear</strong> will completely clear (set to zero) the new disk<?=$var['mdNumNew']==1?'':'s'?>.
+        <br>Once clear completes, the array may be Started, expanding the array to include the new disk<?=$var['mdNumNew']==1?'':'s'?>.
+        <br><strong>Caution: any data on the new disk<?=$var['mdNumNew']==1?'':'s'?> will be erased!</strong>
+        <br>If you want to preserve the data on the new disk<?=$var['mdNumNew']==1?'':'s'?>, reset the array configuration and rebuild parity instead.
+        <br><input type="checkbox" name="confirmClear" value="OFF" onClick="arrayOps.cmdClear.disabled=!arrayOps.confirmClear.checked"><small>Yes I want to do this</small></td>
+        </tr>
+<?    endif;
+      break;
+    case "DISABLE_DISK":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Missing disk.</td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td><strong>Start</strong> will disable the missing disk and then bring the array on-line.
+      <br>Install a replacement disk as soon as possible.
+      <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+      </tr>
+<?    maintenance_mode();
+      break;
+    case "RECON_DISK":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Replacement disk installed.</td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td><strong>Start</strong> will start <strong>Parity-Sync</strong> and/or <strong>Data-Rebuild</strong>.
+      <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+      </tr>
+<?    maintenance_mode();
+      break;
+    case "UPGRADE_DISK":
+      if ($var['mdMissingDisk']==0):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Upgrading <em>parity</em>.</td>
+        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+        <td><strong>Start</strong> will bring the array on-line and start <strong>Parity-Sync</strong>.
+        <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+        </tr>
+<?    else:?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Upgrading disk.</td>
+        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+        <td><strong>Start</strong> will bring the array on-line, start <strong>Data-Rebuild</strong>, and then expand the file system.
+        <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+        </tr>
+<?    endif;
+      maintenance_mode();
+      break;
+    case "SWAP_DSBL":
+      if ($var['fsCopyPrcnt']=="100"):?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Ugrading disk/swapping parity.</td>
+        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+        <td><strong>Start</strong> will expand the file system of the data disk (if possible); then bring the array on-line and start Data-Rebuild.
+        <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+        </tr>
+<?      maintenance_mode();
+      else:?>
+        <tr>
+        <td><?=status_indicator()?><strong>Stopped</strong>. Ugrading disk/swapping parity.</td>
+        <td><input type="submit" name="cmdCopy" value="Copy" disabled></td>
+        <td><strong>Copy</strong> will copy the parity information to the new <em>parity</em> disk.
+        <br>Once copy completes, the array may be Started, to initiate Data-Rebuild of the disabled disk.
+        <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdCopy.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+        </tr>
+<?    endif;
+      break;
+    case "RECORD_DISKS":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Two or more disks are wrong.<br>
+<?    foreach ($disks as $disk) if ($disk['status']=='DISK_WRONG') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td><strong>Start</strong> will just record the new disk positions and bring the array on-line.
+      <br>We recommend you start a Parity-Check afterwards just to be safe.
+      <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
+      </tr>
+<?    maintenance_mode();
+      break;
+    case "ERROR:INVALID_EXPANSION":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Invalid expansion.</td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>You may not add new disk(s) and also remove existing disk(s).</td>
+      </tr>
+<?    break;
+    case "ERROR:NEW_DISK_TOO_SMALL":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Replacement disk is too small.</td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>The replacement disk must be as big or bigger than the original.</td>
+      </tr>
+<?    break;
+    case "ERROR:PARITY_NOT_BIGGEST":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Disk in parity slot is not biggest.</td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>If this is a new array, move the largest disk into the <em>parity</em> slot.
+      <br>If you are adding a new disk or replacing a disabled disk, try Parity-Swap.</td>
+      </tr>
+<?    break;
+    case "ERROR:TOO_MANY_MISSING_DISKS":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. Invalid configuration.</td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>Too many wrong and/or missing disks!</td>
+      </tr>
+<?    break;
+    case "ERROR:NO_DATA_DISKS":?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped</strong>. No data disks.</td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>No array data disks have been assigned!</td>
+      </tr>
+<?    break;
+    endswitch;
+  endif;
+  endswitch;?>
+  <tr><td></td><td class="line" colspan="2"></td></tr>
+</table>
+</form>
+<form name="otherOps" method="POST" action="/update.htm" target="progressFrame">
+<input type="hidden" name="startState" value="<?=$var['mdState']?>">
+<table class="array_status">
+<?if ($var['fsState']=="Started"):?>
+  <tr>
+  <td></td>
+  <td><input type="submit" name="cmdSpindownAll" value="Spin Down"<?=$var['mdResync']==0 ? '':' disabled'?> style="width:80px"><input type="submit" name="cmdSpinupAll" value="Spin Up"<?=$var['mdResync']==0 ? '':' disabled'?> style="width:80px"></td>
+  <td><strong>Spin Down</strong> will immediately spin down all disks.<br><strong>Spin Up</strong> will immediately spin up all disks.</td>
+  </tr>
+<?endif;?>
+<?if ($var['fsState']=="Stopped"):?>
+  <tr>
+  <td></td>
+  <td><input type="submit" name="cmdIdentify" value="Identify"></td>
+  <td><strong>Identify</strong> will briefly read from each disk in order.</td>
+  </tr>
+  <tr>
+  <td></td>
+  <?if ($confirm['down']):?>
+   <td><input type="submit" name="reboot" value="Reboot" disabled></td>
+   <td><strong>Reboot</strong> will activate a system reset.
+   <br><input type="checkbox" name="confirmReboot" value="OFF" onClick="otherOps.reboot.disabled=!otherOps.confirmReboot.checked"><small>Yes I want to do this</small>
+   </tr>
+   <tr>
+   <td></td>
+   <td><input type="submit" name="shutdown" value="Power down" disabled></td>
+   <td><strong>Power down</strong> will activate a <em>clean</em> power down.
+   <br><input type="checkbox" name="confirmShutdown" value="OFF" onClick="otherOps.shutdown.disabled=!otherOps.confirmShutdown.checked"><small>Yes I want to do this</small>
+   </tr>
+  <?else:?>
+   <td><input type="submit" name="reboot" value="Reboot"></td>
+   <td><strong>Reboot</strong> will activate a system reset.
+   </tr>
+   <tr>
+   <td></td>
+   <td><input type="submit" name="shutdown" value="Power down"></td>
+   <td><strong>Power down</strong> will activate a <em>clean</em> power down.
+   </tr>
+  <?endif;?>
+<?else:?>
+  <tr>
+  <td></td>
+  <td><input type="submit" name="clearStatistics" value="Clear Statistics"></td>
+  <td><strong>Clear Statistics</strong> will immediately clear all disk statistics.</td>
+  </tr>
+<?endif;?>
+</table>
+</form>
+<?if (is_dir("/mnt/cache") && is_dir("/mnt/user0") && $var['fsState']=="Started"):?>
+<form name="mover_schedule" method="POST" action="/update.htm" target="progressFrame">
+<table class="array_status">
+  <tr><td colspan="3"></td></tr>
+  <tr>
+  <td></td>
+<?if (file_exists("/var/run/mover.pid")):?>
+  <td><input type="submit" name="cmdStartMover" value="Move now" disabled></td><td>Mover is running.</td>
+<?else:?>
+  <td><input type="submit" name="cmdStartMover" value="Move now"></td><td>Click to invoke the Mover.</td>
+<?endif;?>
+  </tr>
+</table>
+</form>
+<?endif;?>
+<?
+if (isset($display['sleep'])) @include $display['sleep'];
+?>
+
+> **Colored Status Indicator** the significance of the color indicator of the *Array* is as follows:
+>
+> <img src='/webGui/images/green-on.png' class='icon'>Array is Started and Parity is valid.
+>
+> <img src='/webGui/images/green-blink.png' class='icon'>Array is Stopped, Parity is valid.
+>
+> <img src='/webGui/images/yellow-on.png' class='icon'>Array is Started, but Parity is invalid.
+>
+> <img src='/webGui/images/yellow-blink.png' class='icon'>Array is Stopped, Parity is invalid.
+>
+
+<?if ($var['fsState'] == "Stopped"):?>
+> #### Assigning Devices
+>
+> An unRAID disk array consists of a single parity disk and a number of data disks. The data
+> disks are exclusively used to store user data, and the parity disk provides the redundancy necessary
+> to recover from any singe disk failure.
+>
+> Note that we are careful to use the term *disk* when referring to an array storage device.  We
+> use the term *hard drive* (or sometimes just *drive*) when referring to an actual hard disk drive (HDD)
+> device. This is because in a RAID system it is possible to read/write an array disk whose corresponding
+> hard drive is disabled or even missing! In addition, it is useful to be able to ask, "which device is
+> assigned to be the parity disk?"; or, "which device corresponds to disk2?".
+>
+> We therefore need a way to assign hard drives to array disks. This is accomplished here on the
+> Main page when the array is stopped. There is a drop-down box for each array disk which lists all the
+> unassigned devices. To assign a device simply select it from the list. Each time a device
+> assignment is made, the system updates a configuration file to record the assignment.
+>
+> #### Requirements
+>
+> Unlike traditional RAID systems which stripe data across all the array devices, an unRAID server
+> stores files on individual hard drives. Consequently, all file write operations will involve both the
+> data disk the file is being written to, and the parity disk. For these reasons,
+>
+> * the parity disk size must be as large or larger than any of the data disks,
+>
+> and
+>
+> * given a choice, the parity disk should be the fastest disk in your collection.
+>
+> #### Guidelines
+>
+> Here are the steps you should follow when designing your unRAID disk array:
+>
+> 1. Decide which hard drive you will use for parity, and which hard drives you will use for
+> data disk1, disk2, etc., and label them in some fashion. Also, find the serial number of each hard
+> drive and jot it down somewhere; you will need this information later.
+>
+> 2. Install your hard drive devices, boot unRAID Server and bring up the webGui. If this is a fresh system
+> build, then the Main page will show no disks installed. This doesn't mean the system can't detect your
+> hard drives; it just means that none have been assigned yet.
+>
+> 3. Remember the serial numbers you recored back in step 1? For parity and each data disk, select the
+> proper hard drive based on its serial number from the drop down list.
+>
+> #### Hot Plug
+>
+> You may also *hot plug* hard drives into your server if your hardware supports it. For example,
+> if you are using hard drive cages, you may simply plug them into your server while powered on and
+> with array Stopped. Refresh the Main page to have new unassigned devices appear in the assignment
+> dropdown lists.
+>
+> #### Next Steps
+>
+> Once you have assigned all of your hard drives, refer to the Array Status section below
+> and Start the array.
+<?endif;?>

@@ -1,0 +1,48 @@
+Menu="Notifications:4"
+Title="Archived Notifications"
+---
+<?PHP
+/* Copyright 2012, Andrew Hamer-Adams, http://www.pixeleyes.co.nz.
+ * Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$path = "{$notify['path']}/archive/*.notify";
+$files = count(glob($path, GLOB_NOSORT));
+?>
+<script>
+function archiveList(init) {
+  $.post('/webGui/include/NotificationsArchive.php',{log:'<?=$path?>',date:'<?=$notify['date']?>',time:'<?=$notify['time']?>'},function(data) {
+    if (data) $('#archive_list').html(data);
+    if (init) {
+      $('#archive_table').tablesorter({headers:{5:{sorter:false}}});
+    } else {
+      $('#archive_table').trigger('update',true);
+    }
+<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+    setTimeout(archiveList,<?=max(abs($display['refresh']),30000)?>);
+<?endif;?>
+  });
+}
+function askConfirmation() {
+  swal({title:"Are you sure?",text:"This will delete all notification files!",type:"warning",showCancelButton:true},function(){$.get('/webGui/include/DeleteLogFile.php',{log:'<?=$path?>'},function(){archiveList();});});
+}
+$(function(){
+  archiveList(true);
+});
+</script>
+
+<table class="tablesorter left shift" id="archive_table">
+<thead><tr><th>Time</th><th>Event</th><th>Subject</th><th>Description</th><th style='width:7%'>Importance</th><th style='width:4%;text-align:right'><?if ($files):?><a href="#" onclick="askConfirmation();return false" title="Delete all notifications"><i class="fa fa-trash"></i></a><?endif;?></th></tr></thead>
+<tbody id="archive_list"></tbody>
+</table>
+<input type="button" value="Done" onclick="done()">

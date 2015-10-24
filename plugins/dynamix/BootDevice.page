@@ -1,0 +1,46 @@
+Menu="Main:3"
+Title="Boot Device"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<script>
+function boot_status() {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'flash',width:window.innerWidth,timer:timer},function(data) {
+    if (data) $('#boot_device').html(data);
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
+<?if ($display['tabs']==0):?>
+    if ($('#tab3').is(':checked')) timer = setTimeout(boot_status,<?=abs($display['refresh'])?>);
+<?else:?>
+    setTimeout(boot_status,<?=abs($display['refresh'])?>);
+<?endif;?>
+<?endif;?>
+  });
+}
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started' && $display['tabs']==0):?>
+$('#tab3').bind({click:function() {clearTimeout(timer); boot_status();}});
+<?endif;?>
+
+boot_status();
+</script>
+
+<table class="disk_status <?=($var['fsState']=='Stopped'?'small':$display['view']).' '.$display['align']?>">
+<thead><tr><td>Device</td><td>Identification</td><td>Temp.</td><td>Reads</td><td>Writes</td><td>Errors</td><td>FS</td><td>Size</td><td>Used</td><td>Free</td><td>View</td></tr></thead>
+<tbody id="boot_device">
+<?if (isset($disks['flash'])) echo "<tr><td colspan='11'>&nbsp;</td></tr>";?>
+</tbody>
+</table>
+
+> Vital array configuration is maintained on the USB Flash device; for this reason, it must remain
+> plugged in to your server.  Click on [Flash](/Main/Flash?name=flash) to see the GUID and registration
+> information, and to configure export settings.  Since the USB Flash device is formatted using FAT file system,
+> it may only be exported using SMB protocol.

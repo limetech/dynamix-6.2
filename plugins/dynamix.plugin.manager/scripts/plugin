@@ -1,0 +1,540 @@
+#!/usr/bin/php
+<?PHP
+// Copyright 2015, Lime Technology LLC.
+// License: GPLv2 only
+//
+// Program updates made by Bergware International (December 2014)
+$usage = <<<EOF
+Process plugin files.
+
+Usage: plugin install PLUGIN-FILE
+  install a plugin
+
+  PLUGIN-FILE is a plugin definition XML file with ".plg" extension.
+
+  PLUGIN-FILE can be a local file, or a URL.  If a URL, the plugin file is first downloaded to /tmp/plugins.
+
+  This command will process all FILE elements in PLUGIN-FILE which are tagged with the "install" method (or
+  that have no method tag).
+
+  This command has two major use cases:
+
+  1) Invoked at system startup by /etc/rc.d/rc.local on each .plg file found int /boot/config/plugins.
+
+     Upon success we register the plugin as "installed" by creating a symlink to it in /var/log/plugins.
+
+     If any kind of error, we move the file to /boot/config/plugins-error.
+
+     If a symlink already exists for the plugin file, this indicates a plugin replacing a "built-in" plugin.  In
+     this case, if the version of PLUGIN-FILE is newer than the built-in plugin, we go ahead and install normally;
+     otherwise, we move to /boot/config/plugins-stale.
+
+  2) Invoked manually or via Plugin Manager for a .plg file not in /boot/config/plugins.
+
+     If a symlink already exists for the plugin file, this indicates a plugin update. In this case, if the version of
+     PLUGIN-FILE is newer than the built-in plugin, we go ahead and install normally and then move the old plugin
+     to /boot/config/plugins-stale.
+
+     Upon success we copy PLUGIN-FILE to /boot/config/plugins and register it as "installed" by creating a
+     symlink to it in /var/log/plugins.
+
+Usage: plugin remove PLUGIN
+  remove a plugin
+
+  PLUGIN is the file basename of a plugin, e.g., "myplugin.plg".
+
+  If PLUGIN is found in /var/log/plugins then this command will process all FILE elements in PLUGIN which are
+  tagged with the "remove" method.  Upon success we delete /var/log/plugins/PLUGIN and move the plugin
+  file to /boot/config/plugins-removed
+
+Usage: plugin check PLUGIN
+  check and output the latest version of PLUGIN
+
+  We exract the pluginURL attribute from PLUGIN and use it to download (presumably the latest
+  version of) the plugin file to /tmp/plugins/ directory, and then output the version string.
+
+Usage: plugin checkall
+  check all installed plugins
+
+  Runs 'plugin check PLUGIN' for each plugin file linked-to in /var/lib/plugins.
+
+Usage: plugin update PLUGIN
+  update the plugin
+
+  We look for the new plugin in /tmp/plugins/ directory.  If found then we first execute the "install"
+  method of each FILE in the new plugin.  (If necessary, a plugin can detect that this is an
+  "update" by checking for the existence of /var/log/plugins/PLUGIN.)  If successful, we
+  delete the "old" plugin file from /boot/config/plugins/, copy the "new" plugin file from
+  /tmp/plugins/ to /boot/config/plugins/, and finally create the new symlink.
+
+  Note: to support `plugin check` and `plugin update` the plugin file must contain both "pluginURL" and
+  "version" attributes.
+
+Usage: plugin [attribute name] PLUGIN
+
+Any method which is not one of the actions listed above is assumed to be the name of an attribute of
+the <PLUGIN> tag within PLUGIN-FILE.  If the attribute exists, its value (a string) is output and the command
+exit status is 0.  If the attribute does not exist, command exit status is 1.
+
+The plugin manager recognizes this set of attributes for the <PLUGIN> tag:
+
+name - MANDATORY plugin name, e.g., "myplugin" or "my-plugin" etc.
+  This tag defines the name of the plugin.  The name should omit embedded information such as architecture,
+  version, author, etc.
+
+  The plugin should create a directory under `/usr/local/emhttp/plugins` named after
+  the plugin, e.g., `/usr/local/emhttp/plugins/myplugin`.  Any webGui pages, icons, README files, etc, should
+  be created inside this directory.
+
+  The plugin should also create a directory under `/boot/config/plugins` named after the plugin, e.g.,
+  `/boot/config/plugins/myplugin`.  Here is where you store plugin-specific files such as a configuration
+  file and icon file.  Note that this directory exists on the users USB Flash device and writes should be
+  minimized.
+
+  Upon successful installation, the plugin manager will copy the input plugin file to `/boot/config/plugins`
+  on the users USB Flash device, and create a symlink in `/var/log/plugins` also named after the plugin,
+  e.g., `/var/log/plugins/myplugin`.  Each time the unRaid server is re-booted, all plugins stored
+  in `/boot/config/plugins` are automatically installed; plugin authors should be aware of this behavior.
+
+author - OPTIONAL
+  Whatever you put here will show up under the **Author** column in the Plugin List.  If this attribute
+  is omitted we display "anonymous".
+
+version - MANDATORY
+  Use a string suitable for comparison to determine if one version is older/same/newer than another version.
+  Any format is acceptable but LimeTech uses "YYYY.MM.DD", e.g., "2014.02.18" (if multiple versions happen
+  to get posted on the same day we add a letter suffix, e.g., "2014.02.18a").
+
+pluginURL - OPTIONAL but MANDATORY if you want "check for updates" to work with your plugin
+  This is the URL of the plugin file to download and extract the **version** attribute from to determine if
+  this is a new version.
+
+system - OPTIONAL
+  If present the plugin is considered a system plugin and is installed in '/boot/plugins'.
+  User plugins get installed in '/boot/config/plugins', which is the default.
+
+More attributes may be defined in the future.
+
+Here is the set of directories and files used by the plugin system:
+
+/boot/config/plugins/
+  This directory contains the plugin files for plugins to be (re)installed at boot-time. Upon
+  successful `plugin install`, the plugin file is copied here (if not here already).  Upon successful
+  `plugin remove`, the plugin file is deleted from here.
+
+/boot/config/plugins-error/
+  This directory contains plugin files that failed to install.
+
+/boot/config/plugins-removed/
+  This directory contains plugin files that have been removed.
+
+/boot/config/plugins-stale/
+  This directory contains plugin files that failed to install because a newer version of the same plugin is
+  already installed.
+
+/tmp/plugins/
+  This directory is used as a target for downloaded plugin files.  The `plugin check` operation
+  downloads the plugin file here and the `plugin update` operation looks for the plugin to update here.
+
+/var/log/plugins/
+  This directory contains a symlink named after the plugin name (not the plugin file name) which points to
+  the actual plugin file used to install the plugin.  The existence of this file indicates successful
+  install of the plugin.
+
+EOF;
+
+// Download a file from a URL.
+// Returns TRUE if success else FALSE and fills in error.
+//
+function download($URL, $name, &$error) {
+  if ($file = popen("wget --progress=dot -O $name $URL 2>&1", 'r')) {
+    echo "plugin: downloading: $URL ...\r";
+    $level = -1;
+    while (!feof($file)) {
+      if (preg_match("/\d+%/", fgets($file), $matches)) {
+        $percentage = substr($matches[0],0,-1);
+        if ($percentage > $level) {
+          echo "plugin: downloading: $URL ... $percentage%\r";
+          $level = $percentage;
+        }
+      }
+    }
+    if (pclose($file) != -1) {
+      echo "plugin: downloading: $URL ... done\n";
+      return true;
+    } else {
+      echo "plugin: downloading: $URL ... failed\n";
+      $error = "wget: $URL download failure";
+      return false;
+    }
+  } else {
+    $error = "wget: $URL failed to open";
+    return false;
+  }
+}
+
+// Deal with logging message.
+//
+function logger($message) {
+//  echo "$message\n";
+  shell_exec( "logger $message");
+}
+
+// Interpret a plugin file
+// Returns TRUE if success, else FALSE and fills in error string.
+//
+// If a FILE element does not have a Method attribute, we treat as though Method is "install".
+// A FILE Method attribute can list multiple methods separated by spaces in which case that file
+// is processed for any of those methods.
+//
+function plugin($method, $plugin_file, &$error) {
+  $methods = array("install", "remove");
+
+  // parse plugin definition XML file
+  $xml = simplexml_load_file($plugin_file, NULL, LIBXML_NOCDATA);
+  if ($xml === false) {
+    $error = "xml parse error";
+    return false;
+  }
+
+  // dump
+  if ($method == "dump") {
+    // echo $xml->asXML();
+    echo print_r($xml);
+    return true;
+  }
+
+  // release notes
+  if ($method == 'changes') {
+    if (!$xml->CHANGES) return false;
+    return trim($xml->CHANGES);
+  }
+
+  // check if $method is an attribute
+  if (!in_array($method, $methods)) {
+    foreach ($xml->attributes() as $key => $value) {
+      if ($method == $key) return $value;
+    }
+    $error = "$method attribute not present";
+    return false;
+  }
+
+  // Process FILE elements in order
+  //
+  foreach ($xml->FILE as $file) {
+    // skip if not our $method
+    if (isset($file->attributes()->Method)) {
+      if (!in_array($method, explode(" ", $file->attributes()->Method))) continue;
+    } else if ($method != "install") continue;
+
+    // Name can be missing but only makes sense if Run attribute is present
+    $name = $file->attributes()->Name;
+    if ($name) {
+      // Ensure parent directory exists
+      //
+      if (!file_exists(dirname($name))) {
+        if (!mkdir(dirname($name), 0770, true)) {
+          $error = "plugin: error: unable to create parent directory for $name";
+          return false;
+        }
+      }
+      // If file already exists, do not overwrite
+      //
+      if (file_exists($name)) {
+        logger("plugin: skipping: $name already exists");
+      } elseif ($file->LOCAL) {
+        // Create the file
+        //
+        // for local file, just copy it
+        logger("plugin: creating: $name - copying LOCAL file $file->LOCAL");
+        if (!copy($file->LOCAL, $name)) {
+          $error = "unable to copy LOCAL file: $name";
+          @unlink($name);
+          return false;
+        }
+      } elseif ($file->INLINE) {
+        // for inline file, create with inline contents
+        logger("plugin: creating: $name - from INLINE content");
+        $contents = trim($file->INLINE).PHP_EOL;
+        if ($file->attributes()->Type == 'base64') {
+          logger("plugin: decoding: $name as base64");
+          $contents = base64_decode($contents);
+          if ($contents === false) {
+            $error = "unable to decode inline base64: $name";
+            return false;
+          }
+        }
+        if (!file_put_contents($name, $contents)) {
+          $error = "unable to create file: $name";
+          @unlink($name);
+          return false;
+        }
+      } elseif ($file->URL) {
+        // for download file, download and maybe verify the file MD5
+        logger("plugin: creating: $name - downloading from URL $file->URL");
+        if (download($file->URL, $name, $error) === false) {
+          @unlink($name);
+          return false;
+        }
+        if ($file->MD5) {
+          logger("plugin: checking: $name - MD5");
+          if (md5_file($name) != $file->MD5) {
+            $error = "bad file MD5: $name";
+            unlink($name);
+            return false;
+          }
+        }
+      }
+      // Maybe change the file mode
+      //
+      if ($file->attributes()->Mode) {
+        // if file has 'Mode' attribute, apply it
+        $mode = $file->attributes()->Mode;
+        logger("plugin: setting: $name - mode to $mode");
+        if (!chmod($name, octdec($mode))) {
+          $error = "chmod failure: $name";
+          return false;
+        }
+      }
+    }
+    // Maybe "run" the file now
+    //
+    if ($file->attributes()->Run) {
+      $command = $file->attributes()->Run;
+      if ($name) {
+        logger("plugin: running: $name");
+        system("$command $name", $retval);
+      } elseif ($file->LOCAL) {
+        logger("plugin: running: $file->LOCAL");
+        system("$command $file->LOCAL", $retval);
+      } elseif ($file->INLINE) {
+        logger("plugin: running: 'anonymous'");
+        $inline = escapeshellarg($file->INLINE);
+        passthru("echo $inline | $command", $retval);
+      }
+      if ($retval) {
+	      $error = "run failed: $command retval: $retval";
+	      return false;
+      }
+    }
+  }
+  return true;
+}
+
+function move($src_file, $tar_dir) {
+  @mkdir($tar_dir);
+  return rename($src_file, $tar_dir."/".basename($src_file));
+}
+
+// In following code,
+//  $plugin - is a basename of a plugin, eg, "myplugin.plg"
+//  $plugin_file - is an absolute path, eg, "/boot/config/plugins/myplugin.plg"
+//
+if ($argc < 2) {
+  echo $usage;
+  exit(1);
+}
+$method = $argv[1];
+
+// plugin checkall
+// check all installed plugins
+//
+if ($method == "checkall") {
+  foreach (glob("/var/log/plugins/*", GLOB_NOSORT) as $link) {
+    // only consider symlinks
+    $installed_plugin_file = @readlink($link);
+    if ($installed_plugin_file === false) continue;
+    if (plugin("pluginURL", $installed_plugin_file, $error) === false) continue;
+    $plugin = basename($installed_plugin_file);
+    echo "plugin: checking $plugin ...\n";
+    exec(realpath($argv[0]) . " check $plugin", $output, $retval);
+  }
+  exit(0);
+}
+
+if ($argc < 3) {
+  echo $usage;
+  exit(1);
+}
+
+// plugin install [plugin_file]
+// cases:
+// a) dirname of [plugin_file] is /boot/config/plugins (system startup)
+// b) [plugin_file] is a URL
+// c) dirname of [plugin_file] is not /boot/config/plugins
+//
+if ($method == "install") {
+  echo "plugin: installing: $argv[2]\n";
+  // check for URL
+  if ((strpos($argv[2], "http://") === 0) || (strpos($argv[2], "https://") === 0)) {
+    $pluginURL = $argv[2];
+    echo "plugin: downloading $pluginURL\n";
+    $plugin_file = "/tmp/plugins/".basename($pluginURL);
+    if (!download($pluginURL, $plugin_file, $error)) {
+      echo "plugin: $error\n";
+      @unlink($plugin_file);
+      exit(1);
+    }
+  } else
+    $plugin_file = realpath($argv[2]);
+
+  $plugin = basename($plugin_file);
+
+  // check for re-install
+  $installed_plugin_file = @readlink("/var/log/plugins/$plugin");
+  if ($installed_plugin_file !== false) {
+    if ($plugin_file == $installed_plugin_file) {
+      echo "plugin: not re-installing same plugin\n";
+      exit(1);
+    }
+    // must have version attributes for re-install
+    $version = plugin("version", $plugin_file, $error);
+    if ($version === false) {
+      echo "plugin: $error\n";
+      exit(1);
+    }
+    $installed_version = plugin("version", $installed_plugin_file, $error);
+    if ($installed_version === false) {
+      echo "plugin: $error\n";
+      exit(1);
+    }
+    // do not re-install if same plugin already installed or has higher version
+    if (strcmp($version, $installed_version) <= 0) {
+      if (strcmp($version, $installed_version) < 0) {
+        echo "plugin: not installing older version\n";
+      }
+      if (strcmp($plugin_version, $installed_version) == 0) {
+        echo "plugin: not reinstalling same version\n";
+      }
+      exit(1);
+    }
+    if (plugin("install", $plugin_file, $error) === false) {
+      echo "plugin: $error\n";
+      if (dirname($plugin_file) == "/boot/config/plugins") {
+        move($plugin_file, "/boot/config/plugins-error");
+      }
+      exit(1);
+    }
+    unlink("/var/log/plugins/$plugin");
+  } else {
+    // fresh install
+    if (plugin("install", $plugin_file, $error) === false) {
+      echo "plugin: $error\n";
+      if (dirname($plugin_file) == "/boot/config/plugins") {
+        move($plugin_file, "/boot/config/plugins-error");
+      }
+      exit(1);
+    }
+  }
+
+  // register successful install
+  // Bergware change: add user or system plugin selection
+  $plugintype = plugin("plugintype", $plugin_file, $error);
+  $target = $plugintype != "system" ? "/boot/config/plugins/$plugin" : "/boot/plugins/$plugin";
+  if ($target != $plugin_file) copy($plugin_file, $target);
+  symlink($target, "/var/log/plugins/$plugin");
+  echo "plugin: installed\n";
+  exit(0);
+}
+
+// plugin remove [plugin]
+// only .plg files should have a remove method
+//
+if ($method == "remove") {
+  echo "plugin: removing: {$argv[2]}\n";
+  $plugin = $argv[2];
+  $installed_plugin_file = @readlink("/var/log/plugins/$plugin");
+  if ($installed_plugin_file !== false) {
+    // remove the symlink
+    unlink("/var/log/plugins/$plugin");
+    if (plugin("remove", $installed_plugin_file, $error) === false) {
+      // but if can't remove, restore the symlink
+      symlink($installed_plugin_file, "/var/log/plugins/$plugin");
+      echo "plugin: $error\n";
+      exit(1);
+    }
+  }
+  // remove the plugin file
+  move($installed_plugin_file, "/boot/config/plugins-removed");
+  echo "plugin: removed\n";
+  exit(0);
+}
+
+// plugin check [plugin]
+// We use the pluginURL attribute to download the latest plg file into the "/tmp/plugins/"
+// directory.
+//
+if ($method == "check") {
+  echo "plugin: checking: {$argv[2]}\n";
+  $plugin = $argv[2];
+  $installed_plugin_file = @readlink("/var/log/plugins/$plugin");
+  if ($installed_plugin_file === false) {
+    echo "plugin: not installed\n";
+    exit(1);
+  }
+  $installed_pluginURL = plugin("pluginURL", $installed_plugin_file, $error);
+  if ($installed_pluginURL === false) {
+    echo "plugin: $error\n";
+    exit(1);
+  }
+  $plugin_file = "/tmp/plugins/$plugin";
+  if (!download($installed_pluginURL, $plugin_file, $error)) {
+    echo "plugin: $error\n";
+    @unlink($plugin_file);
+    exit(1);
+  }
+  $version = plugin("version", $plugin_file, $error);
+  if ($version === false) {
+    echo "plugin: $error\n";
+    exit(1);
+  }
+  echo "$version\n";
+  exit(0);
+}
+
+// plugin update [plugin]
+// [plugin] is the plg file we are going to be replacing, eg, "old.plg".
+// We assume a "check" has already been done, ie, "/tmp/plugins/new.plg" already exists.
+// We execute the "install" method of new.plg.  If this fails, then we mark old.plg "not installed";
+// the plugin manager will recognize this as an install error.
+// If install new.plg succeeds, then we remove old.plg and copy new.plg in place.
+// Finally we mark the new.plg "installed".
+//
+if ($method == "update") {
+  echo "plugin: updating: {$argv[2]}\n";
+  $plugin = $argv[2];
+  $installed_plugin_file = @readlink("/var/log/plugins/$plugin");
+  if ($installed_plugin_file === false) {
+    echo "plugin: not installed\n";
+    exit(1);
+  }
+  // verify previous check has been done
+  $plugin_file = "/tmp/plugins/$plugin";
+  if (!file_exists($plugin_file)) {
+    echo "plugin: $plugin_file does not exist, check first\n";
+    exit (1);
+  }
+  // install the updated plugin
+  if (plugin("install", $plugin_file, $error) === false) {
+    echo "plugin: $error\n";
+    exit(1);
+  }
+  // install was successful, save the updated plugin so it installs again next boot
+  unlink("/var/log/plugins/$plugin");
+  copy($plugin_file, "/boot/config/plugins/$plugin");
+  symlink("/boot/config/plugins/$plugin", "/var/log/plugins/$plugin");
+  echo "plugin: updated\n";
+  exit(0);
+}
+
+// <attribute>
+//
+$plugin_file = $argv[2];
+$value = plugin($method, $plugin_file, $error);
+if ($value === false) {
+  echo "plugin: $error\n";
+  exit(1);
+}
+echo "$value\n";
+exit(0);
+?>

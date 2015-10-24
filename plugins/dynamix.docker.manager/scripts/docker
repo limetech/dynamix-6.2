@@ -1,0 +1,3 @@
+#!/bin/bash
+# Just a wrapper.
+exec /usr/bin/docker "$@"

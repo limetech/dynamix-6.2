@@ -1,0 +1,643 @@
+Menu="VMs"
+Title="Virtual Machines"
+Cond="(pgrep('libvirtd')!==false)"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Derek Macias, Eric Schultz, Jon Panozzo.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$action = array_key_exists('action', $_GET) ? $_GET['action'] : '';
+$subaction = array_key_exists('subaction', $_GET) ? $_GET['subaction'] : '';
+$uuid = $_GET['uuid'];
+if ($_GET['refresh']) {
+	$name = $_GET['name'];
+	if($lv->domain_is_active($name)){
+		echo "<meta http-equiv='refresh' content='5; url=/VMs?name=$name&amp;refresh=true'>";
+		$msg = "Waiting for $name to shutdown...";
+	}else{
+		echo "<script>clearHistory();</script>";
+		$msg = "$name has been shutdown";
+	}
+}
+if ($action) {
+
+}else{
+   if ($subaction) {
+     	$domName = $lv->domain_get_name_by_uuid($uuid);
+      if ($subaction == 'domain-diskdev') {
+			$msg = $lv->domain_set_disk_dev($domName, $_GET['olddev'], $_POST['diskdev']) ?
+				$domName.' disk dev has been changed from '.$_GET['olddev'].' to '.$_POST['diskdev']:
+				'Error: '.$lv->get_last_error();
+		}
+		elseif ($subaction == 'disk-resize') {
+      $capacity = str_replace(array("KB","MB","GB","TB","PB", " ", ","), array("K","M","G","T","P", "", ""), strtoupper($_POST['cap']));
+      $oldcap = str_replace(array("KB","MB","GB","TB","PB", " ", ","), array("K","M","G","T","P", "", ""), strtoupper($_GET['oldcap']));
+			if (substr($oldcap,0,-1) < substr($capacity,0,-1)){
+				shell_exec("qemu-img resize -q " . escapeshellarg($_GET['disk']) . " $capacity");
+				$msg = $domName." disk capacity has been changed to $capacity";
+			}else {
+				$msg = "Error: disk capacity has to be greater than {$_GET['oldcap']}";
+			}
+		}
+		elseif ($subaction == 'cdrom-change') {
+         $msg = $lv->domain_change_cdrom($domName, $_POST['cdrom'], $_GET['dev'], $_GET['bus']) ?
+         	"$domName cdrom has been changed" :
+         	"Error: ".$lv->get_last_error();
+      }
+		elseif ($subaction == 'memory-change') {
+			$msg = $lv->domain_set_memory($domName, $_GET['memory']*1024) ?
+				"$domName memory has been changed to ".$_GET['memory']." MiB" :
+				"Error: ".$lv->get_last_error();
+		}
+		elseif ($subaction == 'vcpu-change') {
+			$vcpu = $_GET['vcpu'];
+			$msg = $lv->domain_set_vcpu($domName, $vcpu) ?
+				"$domName vcpu number has been changed to $vcpu" :
+				"Error: ".$lv->get_last_error();
+		}
+		elseif ($subaction == 'bootdev-change') {
+			$bootdev = $_GET['bootdev'];
+			$msg = $lv->domain_set_boot_device($domName, $bootdev) ?
+				"$domName boot device has been changed to $bootdev" :
+				"Error: ".$lv->get_last_error();
+		}
+		elseif ($subaction == 'disk-remove') {
+			$msg = $lv->domain_disk_remove($domName, $_GET['dev']) ?
+				"$domName disk has been removed" :
+				'Error: '.$lv->get_last_error();
+		}
+		elseif ($subaction == 'snap-create') {
+			$msg = $lv->domain_snapshot_create($domName) ?
+				"Snapshot for $domName has been created" :
+				'Error: '.$lv->get_last_error();
+		}
+		elseif ($subaction == 'snap-delete') {
+			$msg = $lv->domain_snapshot_delete($domName, $_GET['snap']) ?
+				"Snapshot for $domName has been deleted" :
+				'Error: '.$lv->get_last_error();
+		}
+		elseif ($subaction == 'snap-revert') {
+			$msg = $lv->domain_snapshot_revert($domName, $_GET['snap']) ?
+				"$domName has been reverted" :
+				'Error: '.$lv->get_last_error();
+		}
+		elseif ($subaction == 'snap-desc') {
+			$msg = $lv->snapshot_set_metadata($domName, $_GET['snap'], $_POST['snapdesc']) ?
+				"Snapshot description for $domName has been saved":
+				'Error: '.$lv->get_last_error();
+		}
+	echo "<script>clearHistory();</script>";
+	}
+	echo "<table class='tablesorter kvm' id='kvm_table'>
+            <thead>
+               <tr>
+                  <th class='header'><i class='fa fa-th-list'></i></th>
+                  <th class='header'>Name</th>
+                  <th class='header'>CPUs</th>
+                  <th class='header'>Memory</th>
+                  <th class='header'>Hard Drives</th>
+                  <th class='header'>VNC Port</th>
+                  <th class='header'>Autostart</th>
+                  <th class='header'>Log</th>
+               </tr>
+            </thead>
+            <tbody>";
+   //Get domain variables for each domain
+   if ($libvirt_running == "yes")
+		$doms = $lv->get_domains();
+	if(!is_array($doms)){
+		if ($libvirt_running == "yes") {
+      echo "<tr><td></td><td colspan=\"7\">No Virtual Machines Installed</td></tr>";
+			$msg = "No VMs defined. Create from template or add XML.";
+		} else {
+			$msg = "Libvirt is not running. Goto Settings tab then click Start.";
+    }
+	} else {
+	sort($doms);
+   $contextMenus = array();
+
+   for ($i = 0; $i < sizeof($doms); $i++) {
+   	$name = $doms[$i];
+      $res = $lv->get_domain_by_name($name);
+      $uuid = $lv->domain_get_uuid($res);
+      $dom = $lv->domain_get_info($res);
+      $id = $lv->domain_get_id($res);
+      $is_autostart = $lv->domain_get_autostart($res);
+      $state = $lv->domain_state_translate($dom['state']);
+      switch ($state) {
+        case 'running':
+          $shape = 'play';
+          $status = 'started';
+          break;
+        case 'paused': //no break on purpose
+        case 'pmsuspended':
+          $shape = 'pause';
+          $status = 'paused';
+          break;
+        default:
+          $shape = 'square';
+          $status = 'stopped';
+          break;
+      }
+   	if ($state == 'running') {
+      $mem = $dom['memory'] / 1024;
+		}else{
+			$mem = $lv->domain_get_memory($res)/1024;
+    }
+    $mem = number_format($mem, 0);
+   	$vcpu = $dom['nrVirtCpu'];
+		$auto = $is_autostart ? 'checked="checked"':"";
+    $template = $lv->_get_single_xpath_result($res, '//domain/metadata/vmtemplate/@name');
+    if (empty($template)) {
+      $template = 'Custom';
+    }
+    $log = (is_file('/var/log/libvirt/qemu/' . $name . '.log') ? 'libvirt/qemu/' . $name . '.log' : '');
+      if (($diskcnt = $lv->get_disk_count($res)) > 0) {
+        	$disks = $diskcnt.' / '.$lv->get_disk_capacity($res);
+         $diskdesc = 'Current physical size: '.$lv->get_disk_capacity($res, true);
+      }else{
+        	$disks = '-';
+         $diskdesc = '';
+      }
+
+      $vncport = $lv->domain_get_vnc_port($res);
+
+      $vnc = '';
+      if ($vncport > 0) {
+         $wsport = $lv->domain_get_ws_port($res);
+         $vnc = '/plugins/dynamix.vm.manager/vnc.html?autoconnect=true&host=' . $var['IPADDR'] . '&port=' . $wsport;
+      } else {
+        	$vncport = ($vncport < 0) ? "auto" : "";
+      }
+
+		$bootdev = $lv->domain_get_boot_devices($res)[0];
+
+      unset($tmp);
+      if (!$id)
+        	$id = '-';
+      unset($dom);
+
+      $contextMenus[] = sprintf("addVMContext('%s', '%s', '%s', '%s', '%s', '%s');", addslashes($name), addslashes($uuid), addslashes($template), $state, addslashes($vnc), addslashes($log));
+
+      // fallback icon for users that created VMs before metadata support was added
+      $vmicon = '/plugins/dynamix.vm.manager/templates/images/' . ($lv->domain_get_clock_offset($res) == 'localtime' ? 'windows.png' : 'linux.png');
+
+      $vmtemplateicon = $lv->_get_single_xpath_result($res, '//domain/metadata/vmtemplate/@icon');
+      if (!empty($vmtemplateicon)) {
+         if (file_exists($vmtemplateicon)) {
+            $vmicon = $vmtemplateicon;
+         } else if (file_exists('/usr/local/emhttp/plugins/dynamix.vm.manager/templates/images/' . $vmtemplateicon)) {
+            $vmicon = '/plugins/dynamix.vm.manager/templates/images/' . $vmtemplateicon;
+         }
+      }
+
+		//Domain information
+      echo "<tr style='background-color:".bcolor($i,$theme)."'>
+               <td style=\"width: 48px; padding: 4px\">
+                  <div id=\"vm-" . htmlspecialchars($uuid) . "\" style=\"display:block; cursor:pointer\">
+                     <div style=\"position: relative; width: 48px; height: 48px; margin: 0px auto;\">
+                        <img src=\"" . $vmicon . "\" class=\"$status\" style=\"position: absolute; z-index: 1; top: 0; bottom: 0; left: 0; right: 0; width: 48px; height: 48px;\"/>
+                        <i class=\"fa iconstatus fa-$shape $status\" title='$status'></i>
+                     </div>
+                  </div>
+               </td>
+        	      <td><a href='#' onclick=\"return toggle_id('name$i');\" title='click for more VM info'>$name</a></td>
+               <td>$vcpu</td>
+               <td>$mem</td>
+               <td title='$diskdesc'>$disks</td>
+               <td>$vncport</td>
+               <td><input class='autostart' type='checkbox' name='auto_$name' title='Toggle VM auostart' $auto uuid='$uuid'></td>";
+
+      // Log file
+      if (!empty($log)) {
+         echo "<td><a class='log' href='#' onclick=\"openWindow('/webGui/scripts/tail_log&arg1=$log', '$name QEMU Log', 600, 900); return false;\"><img class='basic' src='/webGui/icons/log.png'/></a></td>";
+      } else {
+         echo "<td><img class='basic' src='/webGui/icons/log.png' style='opacity: 0.3' title='Log not available'/></a></td>";
+      }
+
+      echo "</tr>
+			   <tr id='name$i' style='display: none'>";
+		/* Disk device information */
+         echo "<td colspan='8' style='overflow: hidden'>
+                  <table class='tablesorter domdisk' id='domdisk_table'>
+                     <thead>
+                        <tr>
+                           <th class='header'><i class='fa fa-hdd-o'></i><b> Disk devices &nbsp;</b>
+                              <select name='boot_dev' class='narrow' onchange='location = this.options[this.selectedIndex].value;' title='change boot device'>
+                              <option ";
+                              //boot device select
+                              if($bootdev == 'hd')
+                                 echo "selected ";
+                              echo "value='?subaction=bootdev-change&amp;uuid=$uuid&amp;bootdev=hd'>hd</option>
+                                 <option ";
+                              if($bootdev == 'cdrom')
+                                 echo "selected ";
+                              echo "value='?subaction=bootdev-change&amp;uuid=$uuid&amp;bootdev=cdrom'>cd</option>
+                              </select><font size='-6'>(boot)</font>
+                           </th>
+                           <th class='header'>Driver type</th>
+                           <th class='header'>Dev Name</th>
+                           <th class='header'>Capacity</th>
+                           <th class='header'>Allocation</th>
+                           <th class='header'>Actions</th><th class='header'></th>
+                        </tr>
+                     </thead>
+                     <tbody>";
+		/* Display domain disks */
+			$tmp = $lv->get_disk_stats($res);
+         if (!empty($tmp)) {
+				for ($ii = 0; $ii < sizeof($tmp); $ii++) {
+            	$capacity = $lv->format_size($tmp[$ii]['capacity'], 0);
+               $allocation = $lv->format_size($tmp[$ii]['allocation'], 2);
+               $disk = (array_key_exists('file', $tmp[$ii])) ? $tmp[$ii]['file'] : $tmp[$ii]['partition'];
+					$type = $tmp[$ii]['type'];
+					$dev = $tmp[$ii]['device'];
+					echo "<tr>
+						   <td>".basename($disk)."</td>
+							<td>$type</td>
+           				<td title='Click to change Dev Name'><form method='post' action='?subaction=domain-diskdev&amp;uuid=$uuid&amp;olddev=$dev' /><span class='diskdev' style='width:30px'>
+								<span class='text' ><a href='#'> $dev </a></span>
+  									<input class='input' type='text' style='width:36px' name='diskdev' value='$dev' val='diskdev' hidden />
+								</span></form>
+							</td>
+                     <td title='Click to increase Disk Size'>
+                     	<form method='post' action='?subaction=disk-resize&amp;uuid=$uuid&amp;disk=$disk&amp;oldcap=$capacity' /><span class='diskresize' style='width:30px'>
+								<span class='text' ><a href='#'> $capacity </a></span>
+  									<input class='input' type='text' style='width:46px' name='cap' value='$capacity' val='diskresize' hidden />
+								</span></form>
+							</td>
+                     <td>$allocation</td>
+                     <td>";
+            /* add detach button if shutoff */
+                     if ($state == 'shutoff')
+                        echo "detach <a href='#' onclick=\"swal({title:'Are you sure?',text:'Detach ".basename($disk)." from VM: ".$name."',type:'warning',showCancelButton:true},function(){ajaxVMDispatch('attached',{action:'disk-remove',uuid:'".$uuid."',dev:'".$dev."'});});return false;\" title='detach disk from VM'>
+                          <i class='fa fa-eject blue'></i></a>";
+                     else
+                      echo "N/A";
+          echo '</td>
+						</tr>';
+				}
+         }
+		/*end display disk display*/
+
+		/* Display domain cdroms */
+         $tmp = $lv->get_cdrom_stats($res);
+         if (!empty($tmp)) {
+				for ($ii = 0; $ii < sizeof($tmp); $ii++) {
+            	$capacity = $lv->format_size($tmp[$ii]['capacity'], 2);
+               $allocation = $lv->format_size($tmp[$ii]['allocation'], 2);
+               $disk = (array_key_exists('file', $tmp[$ii])) ? $tmp[$ii]['file'] : $tmp[$ii]['partition'];
+					$type = $tmp[$ii]['type'];
+					$dev = $tmp[$ii]['device'];
+					$bus = $tmp[$ii]['bus'];
+					echo "<tr>
+							<td>
+						<form method='post' id='cdrom_form$i$ii' name='cdromform' action='?subaction=cdrom-change&amp;uuid=$uuid&amp;dev=$dev&amp;bus=$bus' />
+							<span>
+								<span class='text'><a href='#'>".basename($disk)."</a></span>
+								<input class='input cdrom_file' id='cdrom_file$i$ii'
+								onclick='CDRomTree(cdrom_tree$i$ii, cdrom_file$i$ii, cdrom_form$i$ii);' hidden type='text' name='cdrom' value='$disk' title=change cdrom image'>
+								<div class='cdrom_tree' id='cdrom_tree$i$ii' hidden></div>
+							</span>
+						</form>
+              			</td>
+                     <td>$type</td>
+           				<td title='Click to change Dev Name'><form method='post' action='?subaction=domain-diskdev&amp;uuid=$uuid&amp;dev=$dev' /><span class='diskdev' style='width:30px'>
+								<span class='text' ><a href='#'> $dev </a></span>
+  									<input class='input' type='text' style='width:36px' name='diskdev' value='$dev' val='diskdev' hidden />
+								</span></form>
+							</td>
+                     <td>$capacity</td>
+                     <td>$allocation</td>
+                     <td>";
+						/* add detach button if shutoff */
+                     if ($state == 'shutoff')
+                 	      echo "detach <a href='#' onclick=\"swal({title:'Are you sure?',text:'Detach ".basename($disk)." from VM: ".$name."',type:'warning',showCancelButton:true},function(){ajaxVMDispatch('attached',{action:'disk-remove',uuid:'".$uuid."',dev:'".$dev."'});});return false;\" title='detach disk from VM'>
+                  	      <i class='fa fa-eject blue'></i></a>";
+                 	   else
+                 	   	echo "N/A";
+					echo '</td>
+					</tr>';
+				}
+         }
+			/*end display cdrom display*/
+         echo "</tbody></table>";
+			unset($capacity, $dev, $disk, $type, $vcpu);
+			/* Backup  information */
+         /*	echo "<table class='tablesorter domsnap' id='backup_table'>
+		        	      <tr>
+		        	      <thead>
+      	      	   	<th class='header'><i class='fa fa-floppy-o'></i><b> Backups &nbsp;&nbsp;&nbsp;</b>";
+      	          if ($state == 'shutoff')
+      	          	echo "<a href='?subaction=backup-create&amp;uuid=$uuid' title='create a backup of current domain'><i class='fa fa-plus green'></i></a>";
+      	          echo	"</th>
+         	       		<th class='header'>Name</th>
+         	       		<th class='header'>Date</th>
+         	       		<th class='header'>Time</th>
+         	       		<th class='header'>Description</th>
+                  		<th class='header'>Actions ";
+  	         if ($state == 'running')
+  	         	echo " <small>(stop to enable)</small>";
+                  echo "</th><th class='header'></th><th class='header'></th>
+                  		</thead>
+	                  </tr>";
+         if (false) {
+         	sort($tmp);
+				for ($ii = 0; $ii < sizeof($tmp); $ii++) {
+					$backup = $tmp[$ii];
+					$date = date("D d M  Y",$name);
+					$time = date("H:i:s",$backup);
+					$info = $lv->domain_backup_get_info($name, $backup);
+					if(empty($info)){
+						$info = "Click to change description";
+						$val = "";}
+					else
+						$val = $info;
+            	echo "<tr style='background-color:".bcolor($ii,$theme)."'>
+            		   	<td>".($ii+1)."</td>
+                  	   <td>$backup</td>
+                  	   <td>$date</td>
+                  	   <td>$time</td>
+                  	   <td><form method='post' action='?subaction=backup-desc&amp;uuid=$uuid&amp;backup=$backup' /><span class='backdesc'>
+    									<span class='text'><a href='#'> $info </a></span>
+    									<input class='input' type='text' name='backdesc' value='$val' val='backdesc' hidden placeholder='Click to change description' title='Click to change description'/>
+									 </span></form>
+								</td>
+   	                  <td>
+   	                  	revert &nbsp;<a href='?subaction=backup-revert&amp;uuid=$uuid&amp;backup=$backup'><i class='fa fa-refresh lightblue'></i></a>
+            	         </td>
+   	                  <td>
+									delete&nbsp;<a href='?subaction=backup-delete&amp;uuid=$uuid&amp;backup=$backup'><i class='fa fa-remove red'></i></a>
+            	          </td>
+               	   </tr>";
+				}
+         }
+         else
+         	echo "<tr><td>no backups</td>
+   	                <td>none</td>
+   	                <td>N/A</td>
+   	                <td>N/A</td>
+   	                <td>N/A</td>
+   	                <td>N/A</td>
+   	            </tr>";
+     	echo '</table>';*/
+
+/* End Backup information*/
+
+			/* Snapshot  information */
+      /*
+         	echo "<table class='tablesorter domsnap' id='domsnap_table'>
+                     <thead>
+		        	      <tr>
+      	      	   	<th class='header'><i class='fa fa-camera-retro'></i><b> Snapshots </b>";
+  	         if ($state == 'shutoff')
+						echo "<a href='?subaction=snap-create&amp;uuid=$uuid' title='create a snapshot of current domain state'><i class='fa fa-plus green'></i></a>";
+						echo "</th>
+         	       		<th class='header'>Name</th>
+         	       		<th class='header'>Date</th>
+         	       		<th class='header'>Time</th>
+         	       		<th class='header'>Description</th>
+                  		<th class='header'>Actions ";
+  	         if ($state == 'running')
+  	         	echo " <small>(stop to enable)</small>";
+                  echo "</th><th class='header'></th><th class='header'></th>
+	                  </tr>
+                     </thead>
+                     <tbody>";
+         $tmp = $lv->domain_snapshots_list($res);
+         if (!empty($tmp)) {
+         	sort($tmp);
+				for ($ii = 0; $ii < sizeof($tmp); $ii++) {
+					$snap = $tmp[$ii];
+					$date = date("D d M  Y",$snap);
+					$time = date("H:i:s",$snap);
+					$info = $lv->domain_snapshot_get_info($res, $snap);
+					if(empty($info)){
+						$info = "Click to change description";
+						$val = "";}
+					else
+						$val = $info;
+            	echo "<tr style='background-color:".bcolor($ii,$theme)."'>
+            		   	<td>".($ii+1)."</td>
+                  	   <td>$snap</td>
+                  	   <td>$date</td>
+                  	   <td>$time</td>
+                  	   <td><form method='post' action='?subaction=snap-desc&amp;uuid=$uuid&amp;snap=$snap' /><span class='snapdesc'>
+    									<span class='text'><a href='#'> $info </a></span>
+    									<input class='input' type='text' name='snapdesc' value='$val' val='snapdesc' hidden placeholder='Click to change description' title='Click to change description'/>
+									 </span></form>
+								</td>
+   	                  <td>
+   	                  	revert &nbsp;<a href='?subaction=snap-revert&amp;uuid=$uuid&amp;snap=$snap'><i class='fa fa-refresh lightblue'></i></a>
+            	         </td>
+   	                  <td>
+									delete&nbsp;<a href='?subaction=snap-delete&amp;uuid=$uuid&amp;snap=$snap'><i class='fa fa-trash red'></i></a>
+            	          </td>
+               	   </tr>";
+				}
+         }
+         else
+         	echo "<tr><td>no snapshots</td>
+   	                <td>none</td>
+   	                <td>N/A</td>
+   	                <td>N/A</td>
+   	                <td>N/A</td>
+   	                <td>N/A</td>
+   	            </tr>";
+     	echo '</tbody></table>';
+      */
+      echo '</td></tr>';
+		}
+	}
+	echo '</tbody></table>';
+}
+/* End Snapshot information */
+unset($name, $val);
+if($msg){
+	if(strpos($msg, "rror:"))
+		$color = 'red';
+	else
+		$color = 'green';
+	echo "<script type='text/javascript'>$(function() { $('#countdown').html('<font class=\"".$color."\">".$msg."</font>');}); </script>";
+	}
+?>
+
+<input type="button" id="btnAddVM" value="Add VM"/>
+
+<script>
+function vncOpen() {
+  $.post('/plugins/dynamix.vm.manager/classes/vnc.php',{cmd:'open',root:'<?=$docroot?>',file:'/usr/local/emhttp/plugins/dynamix.vm.manager/vncconnect.vnc'},function(data) {
+    window.location.href = data;
+  });
+}
+
+function toggle_id(itemID){
+   if ((document.getElementById(itemID).style.display == 'none')) {
+      slideDownRows($('#'+itemID));
+   } else {
+      slideUpRows($('#'+itemID));
+   }
+
+   return false;
+}
+
+function showInput(){
+    $(this).off('click');
+    $(this).siblings('input').each(function(){$(this).show();});
+    $(this).siblings('input').focus();
+    $(this).hide();
+}
+
+function hideInput(){
+    $(this).hide();
+    $(this).siblings('span').show();
+    $(this).siblings('span').click(showInput);
+}
+
+function ajaxVMDispatch(currentstate, params){
+  $.post("/plugins/dynamix.vm.manager/VMajax.php", params, function( data ) {
+    if (data.error) {
+      swal({title:"Execution error",text:data.error,type:"error"});
+    } else {
+      if (!data.state || currentstate != data.state) {
+        location = window.location.href;
+      }
+    }
+  }, "json");
+}
+
+function addVMContext(name, uuid, template, state, vncurl, log){
+  var opts = [{header: name, image: "/plugins/dynamix.vm.manager/images/dynamix.vm.manager.png"}];
+
+  var path = location.pathname;
+  var x = path.indexOf("?");
+  if (x!=-1) path = path.substring(0,x);
+
+  if (vncurl !== "") {
+    opts.push({text: "VNC Remote", icon: "fa-desktop", action: function(e){ e.preventDefault(); window.open(vncurl, '_blank', 'scrollbars=yes,resizable=yes'); } });
+    opts.push({divider: true});
+  }
+
+  if (state == "running") {
+
+    opts.push({text: "Stop", icon: "fa-stop", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-stop", uuid: uuid });
+    }});
+
+    opts.push({text: "Pause", icon: "fa-pause", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-pause", uuid: uuid });
+    }});
+
+    opts.push({text: "Restart", icon: "fa-refresh", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-restart", uuid: uuid });
+    }});
+
+    opts.push({text: "Force Stop", icon: "fa-bomb", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-destroy", uuid: uuid });
+    }});
+
+  } else if (state == "pmsuspended") {
+
+    opts.push({text: "Resume", icon: "fa-play", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-pmwakeup", uuid: uuid });
+    }});
+
+    opts.push({text: "Force Stop", icon: "fa-bomb", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-destroy", uuid: uuid });
+    }});
+
+  } else if (state == "paused" || state == "unknown") {
+
+    opts.push({text: "Resume", icon: "fa-play", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-resume", uuid: uuid });
+    }});
+
+    opts.push({text: "Force Stop", icon: "fa-bomb", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-destroy", uuid: uuid });
+    }});
+
+  } else {
+
+    opts.push({text: "Start", icon: "fa-play", action: function(e) {
+      e.preventDefault();
+      ajaxVMDispatch(state, { action: "domain-start", uuid: uuid });
+    }});
+
+  }
+
+  opts.push({divider: true});
+
+  if (log !== "") {
+    if (location.pathname.indexOf("/Dashboard") === 0) {
+      opts.push({text: "Logs", icon: "fa-navicon", action: function(e){ e.preventDefault(); openWindow('/webGui/scripts/tail_log&arg1=' + log + ')', 'Log for: ' + name, 600, 900); } });
+    }
+  }
+
+  if (state == "shutoff") {
+
+    opts.push({text: "Edit", icon: "fa-pencil", href: path+'/UpdateVM?uuid='+uuid });
+    opts.push({text: "Edit XML", icon: "fa-code", href: path+'/UpdateVM?template=XML_Expert&amp;uuid='+uuid });
+
+    opts.push({divider: true});
+
+    opts.push({text: "Remove VM", icon: "fa-minus", action: function(e) {
+      e.preventDefault();
+      swal({title:"Are you sure?",text:"Remove definition: "+name,type:"warning",showCancelButton:true},function(){ajaxVMDispatch(state,{action:"domain-undefine",uuid:uuid});});
+    }});
+
+    if (template != 'OpenELEC') {
+      opts.push({text: "Remove VM + Disks", icon: "fa-trash", action: function(e) {
+        e.preventDefault();
+        swal({title:"Are you sure?",text:"Completely REMOVE "+name+" disk image and definition",type:"warning",showCancelButton:true},function(){ajaxVMDispatch(state,{action:"domain-delete",uuid:uuid});});
+      }});
+    }
+
+  } else {
+
+    opts.push({text: "View XML", icon: "fa-code", href: path+'/UpdateVM?template=XML_Expert&amp;uuid='+uuid });
+
+  }
+
+  context.attach('#vm-'+uuid, opts);
+}
+
+
+$(function() {
+   $('.text').click(showInput);
+   $('.input').blur(hideInput);
+   $('#btnAddVM').click(function AddVMEvent() {
+      window.location = '/VMs/AddVM';
+   });
+
+   $('.autostart').switchButton({
+      labels_placement: "right"
+   });
+   $('.autostart').change(function () {
+      $.post( "/plugins/dynamix.vm.manager/VMajax.php", { action: "domain-autostart", uuid: $(this).attr('uuid'), autostart: $(this).prop('checked'), response: "json" }, function( data ) {
+         $(this).prop('checked', data.autostart );
+      }, "json");
+   });
+
+   context.init({ preventDoubleContext: false });
+   <?=implode("\n\t", $contextMenus);?>
+});
+</script>
+

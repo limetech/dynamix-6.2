@@ -1,0 +1,92 @@
+#!/usr/bin/php
+<?PHP
+/* Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+if ($argv[1]) {
+// script is called from GUI
+  $zip = $argv[1];
+  $diag = basename($zip, '.zip');
+  $split = explode('-', $diag);
+  $date = "{$split[2]}-{$split[3]}";
+} else {
+// script is called from CLI
+  echo "Starting diagnostics collection... ";
+  exec("mkdir -p /boot/logs");
+  $var = @parse_ini_file("/var/local/emhttp/var.ini");
+  $server = isset($var['NAME']) ? str_replace(' ','_',strtolower($var['NAME'])) : 'tower';
+  $date = date('Ymd-Hi');
+  $diag = "$server-diagnostics-$date";
+  $zip = "/boot/logs/$diag.zip";
+}
+// create folder structure
+exec("mkdir -p /$diag/system /$diag/config /$diag/logs /$diag/shares /$diag/smart /$diag/qemu");
+// copy ini variables
+foreach (glob("/var/local/emhttp/*.ini") as $file) {
+  $ini = basename($file,".ini");
+  // skip users file
+  if ($ini != "users") file_put_contents("/$diag/system/vars.txt",preg_replace(array("/\n/","/^Array/"),array("\r\n",$ini),print_r(parse_ini_file($file,true),true)),FILE_APPEND);
+}
+// remove registration and flash info and anonymize user names
+exec("sed -r -i '/\[(reg|flash).*\]/d;s/(\[(read|write)List\] => )\S+/\\1xxx/' /$diag/system/vars.txt");
+// individual commands execution (suppress errors)
+exec("lsscsi -vgl 2>/dev/null|todos >/$diag/system/lsscsi.txt");
+exec("lspci -knn 2>/dev/null|todos >/$diag/system/lspci.txt");
+exec("free -mt 2>/dev/null|todos >/$diag/system/memory.txt");
+exec("ps -ef 2>/dev/null|todos >/$diag/system/ps.txt");
+exec("lsof -Pni 2>/dev/null|todos >/$diag/system/lsof.txt");
+exec("ifconfig -s 2>/dev/null|grep -Po '^(eth|bond)[0-9]+'", $ports);
+// create ethernet information information (suppress errors)
+foreach ($ports as $port) {
+  exec("ethtool $port 2>/dev/null|todos >>/$diag/system/ethtool.txt");
+  file_put_contents("/$diag/system/ethtool.txt", "\r\n", FILE_APPEND);
+  exec("ethtool -i $port 2>/dev/null|todos >>/$diag/system/ethtool.txt");
+  file_put_contents("/$diag/system/ethtool.txt", "--------------------------------\r\n", FILE_APPEND);
+}
+exec("ifconfig 2>/dev/null|todos >/$diag/system/ifconfig.txt");
+// create system information (suppress errors)
+exec("find /sys/kernel/iommu_groups/ -type l 2>/dev/null|todos >/$diag/system/iommu_groups.txt");
+exec("todos </proc/cmdline >/$diag/system/cmdline.txt");
+// copy configuration files (suppress errors)
+exec("cp /boot/config/*.{cfg,conf,dat} /boot/config/go /$diag/config 2>/dev/null");
+if (is_dir("/boot/config/shares")) exec("cp /boot/config/shares/*.cfg /$diag/shares 2>/dev/null");
+// create default user shares information
+$ini = "/var/local/emhttp/shares.ini";
+$shares = file_exists($ini) ? parse_ini_file($ini, true) : array();
+foreach ($shares as $share) {
+  $file = "/$diag/shares/${share['name']}.cfg";
+  if (!file_exists($file)) file_put_contents($file,"# This share has default settings.\r\n");
+}
+// copy syslog information
+foreach (glob("/var/log/syslog*") as $file) {
+  exec("todos <$file >/$diag/logs/".basename($file).".txt");
+}
+// copy docker information (if existing)
+$docker = "/var/log/docker.log";
+if (file_exists($docker)) exec("todos <$docker >/$diag/logs/docker.log");
+$libvirtd = "/var/log/libvirt/libvirtd.log";
+if (file_exists($libvirtd)) exec("todos <$libvirtd >/$diag/logs/libvirtd.log");
+$qemu = glob("/var/log/libvirt/qemu/*.log*");
+if ($qemu)
+  foreach ($qemu as $file) exec("todos <".escapeshellarg($file)." >/$diag/qemu/".escapeshellarg(basename($file)));
+else
+  file_put_contents("/$diag/qemu/no qemu log files","");
+// create SMART reports (suppress errors)
+exec("ls -l /dev/disk/by-id/[au]* 2>/dev/null|awk '$0!~/-part/{split($11,a,\"/\");print a[3],substr($9,21)}'", $devices);
+foreach ($devices as $device) {
+  $disk = explode(' ',$device);
+  exec("smartctl -a /dev/${disk[0]} 2>/dev/null|todos >/$diag/smart/${disk[1]}-$date.txt");
+}
+// create resulting zip file and remove temp folder
+exec("zip -qmr $zip /$diag");
+if (!$argv[1]) echo "done.\nZIP file '$zip' created.\n";
+?>

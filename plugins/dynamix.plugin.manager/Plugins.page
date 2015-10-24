@@ -1,0 +1,49 @@
+Menu="Tasks:50"
+Type="xmenu"
+Title="Installed Plugins"
+Tabs="true"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+// Remove stale /tmp/plugin/*.plg entries
+$tmp_stale = ($path != $prev);
+if ($tmp_stale) foreach (glob("/tmp/plugins/*.{plg,txt}", GLOB_NOSORT+GLOB_BRACE) as $entry) if (!file_exists("/var/log/plugins/".basename($entry))) @unlink($entry);
+?>
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<style>
+#plugin_tree{width:33%;height:200px;overflow:scroll;}
+</style>
+<script src="/webGui/javascript/jquery.filetree.js"></script>
+
+<script>
+$(function() {
+  $.get('/plugins/dynamix.plugin.manager/include/ShowPlugins.php',{stale:'<?=$tmp_stale?>'},function(data) {
+    if (data) $('#plugin_list').html(data);
+    $('#plugin_table').tablesorter({headers:{0:{sorter:false},5:{sorter:false}}});
+    $('.desc_readmore').readmore({maxHeight:58});
+  });
+  $('#plugin_tree').fileTree({root:'/boot/',filter:'plg'}, function(file) {$('#plugin_file').val(file);});
+  $('.tabs').append("<span class='status vhshift'><input type='button' value='Check for Updates' onclick='openBox(\"/plugins/dynamix.plugin.manager/scripts/plugin&arg1=checkall\",\"Plugin Update Check\",490,430,true)'></span>");
+});
+</script>
+
+<blockquote class="inline_help ontop">
+Click <strong><big>check for updates</big></strong> to check all plugins. This page might take some time to load depending on your internet connection and how many plugins need to be checked.
+</blockquote>
+
+<table class='tablesorter shift plugins' id='plugin_table'>
+<thead><tr><th></th><th>Plugin</th><th>Author</th><th>Version</th><th>Status</th><th></th></tr></thead>
+<tbody id='plugin_list'><tr><td colspan='6'><br><i class="fa fa-spinner fa-spin icon"></i><em>Please wait, retrieving plugin information ...</em></td><tr></tbody>
+</table>

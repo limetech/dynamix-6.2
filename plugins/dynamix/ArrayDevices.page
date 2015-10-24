@@ -1,0 +1,115 @@
+Menu="Main:1"
+Title="Array Devices"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<script>
+var timer = null;
+
+function array_status() {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'array',width:window.innerWidth,timer:timer},function(data) {
+    if (data) $('#array_devices').html(data);
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
+<?if ($display['tabs']==0):?>
+    if ($('#tab1').is(':checked')) timer = setTimeout(array_status,<?=abs($display['refresh'])?>);
+<?else:?>
+    setTimeout(array_status,<?=abs($display['refresh'])?>);
+<?endif;?>
+<?endif;?>
+  });
+}
+<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started' && $display['tabs']==0):?>
+$('#tab1').bind({click:function() {clearTimeout(timer); array_status();}});
+<?endif;?>
+
+array_status();
+</script>
+
+<table class="disk_status <?=($var['fsState']=='Stopped'?'small':$display['view']).' '.$display['align']?>">
+<thead><tr><td>Device</td><td>Identification</td><td>Temp.</td><td>Reads</td><td>Writes</td><td>Errors</td><td>FS</td><td>Size</td><td>Used</td><td>Free</td><td>View</td></tr></thead>
+<tbody id="array_devices">
+<?
+foreach ($disks as $disk):
+  if ($disk['type']=='Parity' or $disk['type']=='data')
+    echo "<tr><td colspan='11'>&nbsp;</td></tr>";
+endforeach;
+if ($display['total']) echo "<tr class='tr_last'><td colspan='11'>&nbsp;</td></tr>";
+?>
+</tbody>
+</table>
+
+> **Colored Status Indicator** the significance of the color indicator at the beginning of each line in *Array Devices* is as follows:
+>
+> <img src='/webGui/images/green-on.png' class='icon'>Normal operation, device is active.
+>
+> <img src='/webGui/images/green-blink.png' class='icon'>Device is in standby mode (spun-down).
+>
+> <img src='/webGui/images/yellow-on.png' class='icon'>Device contents emulated.
+>
+> <img src='/webGui/images/red-on.png' class='icon'>Device is disabled, contents emulated.
+>
+> <img src='/webGui/images/blue-on.png' class='icon'>New device.
+>
+> <img src='/webGui/images/grey-off.png' class='icon'>No device present, position is empty.
+>
+> **Identification** is the *signature* that uniquely identifies a storage device. The signature
+> includes the device model number, serial number, linux device id, and the device size.
+>
+> **Temp.** (temperature) is read directly from the device. You configure which units to use on
+> the [Display Preferences](Settings/Display) page.  We do not read the temperature of spun-down hard
+> drives since this typically causes them to spin up; instead we display the `*` symbol.  We also
+> display the `*` symbol for SSD and Flash devices, though sometimes these devices do report a valid
+> temperature, and sometimes they return the value `0`.
+>
+> **Size, Used, Free** reports the total device size, used space, and remaining space for files.  These
+> units are also configured on the [Display Preferences](Settings/Display) page.  The
+> amount of space used will be non-zero even for an empty disk due to file system overhead.
+>
+> *Note: for a multi-device cache pool, this data is for the entire pool as returned by btrfs.*
+>
+> **Reads, Writes** are a count of I/O requests sent to the device I/O drivers.  These statistics may
+> be cleared at any time, refer to the Array Status section below.
+>
+> **Errors** counts the number of *unrecoverable* errors reported by the device
+> I/O drivers. Missing data due to unrecoverable array read errors is filled in on-the-fly using parity
+> reconstruct (and we attempt to write this data back to the sector(s) which failed). Any unrecoverable
+> write error results in *disabling* the disk.
+>
+> **FS** indicates the file system detected in partition 1 of the device.
+>
+> **View** column contains a folder icon indicating the device is *mounted*. Click the icon to
+> browse the file system.
+>
+> If "Display array totals" is enable on the [Display Preferences](Settings/Display) page, a
+> **Total** line is included which provides a tally of the device statistics, including the average temperature
+> of your devices.
+>
+> The Array must be Stopped in order to change Array device assignments.
+>
+> An unRAID array consists of a single Parity disk and a number of Data disks. The Data
+> disks are exclusively used to store user data, and the Parity disk provides the redundancy necessary
+> to recover from any singe disk failure.
+>
+> Since data is not striped across the array, the Parity disk must be as large, or larger than the largest Data
+> disk.  Parity should also be your highest performance drive.
+>
+> Each Data disk has its own file system and can be exported as a
+> separate share.
+>
+> Click on the Device name to configure individual device settings and launch certain utilities.
+
+<?if ($var['fsState'] == "Stopped"):?>
+<div></div>
+> **Slots** select the number of device slots in your server designated for Array devices.
+> The minimum number of Array slots is 2, and you must have at least one device assigned to the array.
+<?endif;?>

@@ -1,0 +1,39 @@
+Menu="UNRAID-OS"
+Title="System Log"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+
+<?
+$zip = str_replace(' ','_',strtolower($var['NAME']))."-syslog-".date('Ymd-Hi').".zip";
+echo "<pre class='up'>".shell_exec('cat /var/log/syslog')."</pre>";
+?>
+<script>
+function cleanUp() {
+  if (document.hasFocus()) {
+    $('input[value="Downloading..."]').val('Download').prop('disabled',false);
+    $.post('/webGui/include/Download.php',{cmd:'delete',file:'<?=$zip?>'});
+  } else {
+    setTimeout(cleanUp,4000);
+  }
+}  
+function syslog() {
+  $('input[value="Download"]').val('Downloading...').prop('disabled',true);
+  $.post('/webGui/include/Download.php',{cmd:'save',source:'/var/log/syslog',file:'<?=$zip?>'},function(zip) {
+    location = zip;
+    setTimeout(cleanUp,4000);
+  });
+}
+$('.tabs').append("<span class='status vhshift'><input type='button' value='Download' onclick='syslog()'></span>");
+</script>
+<input type="button" value="Download" onclick="syslog()"><input type="button" value="Done" onclick="done()">
