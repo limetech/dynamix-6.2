@@ -323,8 +323,7 @@ function status_indicator() {
         <td><?=status_indicator()?><strong>Stopped</strong>. Configuration valid.</td>
         <td><input type="submit" name="cmdStart" value="Start"></td>
         <td><strong>Start</strong> will record all disk information, bring the array on-line, and start Parity-Sync.
-          <br>The array will be immediately available, but <strong>unprotected</strong> until Parity-Sync completes.
-          <br><input type="checkbox" name="md_invalidslot" value="99">Parity is already valid.</td>
+          <br>The array will be immediately available, but <strong>unprotected</strong> until Parity-Sync completes.</td>
         </tr>
 <?    endif;
       maintenance_mode();
@@ -379,24 +378,6 @@ function status_indicator() {
       <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
       </tr>
 <?    maintenance_mode();
-      break;
-    case "UPGRADE_DISK":
-      if ($var['mdMissingDisk']==0):?>
-        <tr>
-        <td><?=status_indicator()?><strong>Stopped</strong>. Upgrading <em>parity</em>.</td>
-        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
-        <td><strong>Start</strong> will bring the array on-line and start <strong>Parity-Sync</strong>.
-        <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
-        </tr>
-<?    else:?>
-        <tr>
-        <td><?=status_indicator()?><strong>Stopped</strong>. Upgrading disk.</td>
-        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
-        <td><strong>Start</strong> will bring the array on-line, start <strong>Data-Rebuild</strong>, and then expand the file system.
-        <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
-        </tr>
-<?    endif;
-      maintenance_mode();
       break;
     case "SWAP_DSBL":
       if ($var['fsCopyPrcnt']=="100"):?>

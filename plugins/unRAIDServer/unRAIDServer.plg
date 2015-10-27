@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta7">
+<!ENTITY version   "6.2-beta8">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -23,6 +23,11 @@
 <![CDATA[
 unRAID Server OS Change Log
 ===========================
+
+Version 6.2-beta8
+-----------------
+- fix bug upgrading from pre-6.2 super.dat (Q was messed up)
+- using Erics kool kid git repot for build machine
 
 Version 6.2-beta7
 -----------------
