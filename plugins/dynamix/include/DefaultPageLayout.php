@@ -305,7 +305,7 @@ $(function() {
   $.post('/webGui/include/Notify.php',{cmd:'init'},function(x){timers.notifier = setTimeout(notifier,0);});
 <?endif;?>
   $('input[value="Apply"],input[name="cmdEditShare"],input[name="cmdUserEdit"]').attr('disabled','disabled');
-  $('form').find('select,input[type=text],input[type=number],input[type=password],input[type=checkbox],input[type=file],textarea').each(function(){$(this).change(function() {
+  $('form').find('select,input[type=text],input[type=number],input[type=password],input[type=checkbox],input[type=file],textarea').each(function(){$(this).on('input',function() {
     var form = $(this).parentsUntil('form').parent();
     form.find('input[value="Apply"],input[name="cmdEditShare"],input[name="cmdUserEdit"]').removeAttr('disabled');
     form.find('input[value="Done"]').val('Reset').prop('onclick',null).click(function(){refresh(form.offset().top)});
