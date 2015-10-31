@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta9">
+<!ENTITY version   "6.2-beta10">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -24,11 +24,20 @@
 unRAID Server OS Change Log
 ===========================
 
+Version 6.2-beta10
+------------------
+- emhttp: do not auto-start parity operation when Starting array in Maintenance mode
+- linux: correct relative speed measurement of raid6 xor_syndrome() function
+- linux: add kernel options (per user request):
+  - CONFIG_BE2NET: ServerEngines 10Gbps NIC - BladeEngine
+- unraid: fix bug in "turbo-write" to array with Q disabled
+- unraid: experimental 'pulse method' of sync stripe generation
+- unraid: optimize PQ parity check case
+
 Version 6.2-beta9
 -----------------
 - emhttp: array PQ support enabled only for Pro
 - unraid: fix bug in case of writing when and single Data disk plus Q is invalid
-- unraid: experimental 'pulse method' of sync stripe generation
 - webGui: enable Apply button upon 'input' instead of 'change' per Eric
 
 Version 6.2-beta8
