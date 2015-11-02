@@ -27,11 +27,12 @@ unRAID Server OS Change Log
 Version 6.2-beta10
 ------------------
 - emhttp: do not auto-start parity operation when Starting array in Maintenance mode
-- linux: correct relative speed measurement of raid6 xor_syndrome() function
+- linux: 4.1.11
 - linux: add kernel options (per user request):
   - CONFIG_BE2NET: ServerEngines 10Gbps NIC - BladeEngine
-- unraid: fix bug in "turbo-write" to array with Q disabled
+- slack: numerous slack-current package updates
 - unraid: experimental 'pulse method' of sync stripe generation
+- unraid: fix bug in "turbo-write" to array with Q disabled
 - unraid: optimize PQ parity check case
 
 Version 6.2-beta9
