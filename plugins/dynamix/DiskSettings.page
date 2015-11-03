@@ -85,22 +85,31 @@ Default file system:
 >
 > The default file system type for a single or multi-device cache is always Btrfs.
 
-Force NCQ disabled:
-: <select name="queueDepth" size="1">
-  <?=mk_option($var['queueDepth'], "0", "No")?>
-  <?=mk_option($var['queueDepth'], "1", "Yes")?>
-  </select>
-
-> This is a system "tunable" parameter.
->
-> If set to 'Yes' then "Native Command Queuing" to array drives is disabled.<br>
-> If set to 'No' then it is enabled.  Most users find that overall system performance is better with
-> NCQ turned off.
-
 Tunable (poll_attributes):
 : <input type="text" name="poll_attributes" maxlength="10" value="<?=$var['poll_attributes']?>" class="narrow"><?=$var['poll_attributes_status']?>
 
-> This "tunable" defines the disk SMART polling interval, in seconds.  A value of 0 disables SMART polling (not recommended).
+> This defines the disk SMART polling interval, in seconds.  A value of 0 disables SMART polling (not recommended).
+
+Tunable (enable NCQ):
+: <select name="queueDepth" size="1">
+  <?=mk_option($var['queueDepth'], "auto", "Auto")?>
+  <?=mk_option($var['queueDepth'], "0", "Yes")?>
+  <?=mk_option($var['queueDepth'], "1", "No")?>
+  </select>
+
+> If set to **Yes** then *Native Command Queuing* is enabled for all array devices that support NCQ.
+>
+> Note: After changing from **No** to **Yes** you must reboot the server for the change to take effect.  Changing
+> from **Yes* to **No** however, takes effect immediately.
+>
+> Most users find that overall system performance is better with NCQ disabled.
+>
+> *Auto* selects `No`.
+
+Tunable (nr_requests):
+: <input type="text" name="nr_requests" maxlength="10" value="<?=$var['nr_requests']?>" class="narrow"><?=$var['nr_requests_status']?>
+
+> This defines the `nr_requests` device driver setting for all array devices.
 
 Tunable (md_num_stripes):
 : <input type="text" name="md_num_stripes" maxlength="10" value="<?=$var['md_num_stripes']?>" class="narrow"><?=$var['md_num_stripes_status']?>
@@ -108,9 +117,23 @@ Tunable (md_num_stripes):
 Tunable (md_sync_window):
 : <input type="text" name="md_sync_window" maxlength="10" value="<?=$var['md_sync_window']?>" class="narrow"><?=$var['md_sync_window_status']?>
 
-> These tunables let you control [certain properties](/Help) of the unRAID driver.
+Tunable (md_sync_thresh):
+: <input type="text" name="md_sync_thresh" maxlength="10" value="<?=$var['md_sync_thresh']?>" class="narrow"><?=$var['md_sync_thresh_status']?>
+
+> These tunables let you control certain properties of the unRAID driver.
 >
-> Note: For each of these settings, if you delete the value and click Apply, the value is restored to its default.
+> Note: For each of these settings, if you set to blank and click Apply, the setting is restored to its default.
+
+Tunable (md_write_method):
+: <select name="md_write_method" size="1">
+  <?=mk_option($var['md_write_method'], "auto", "Auto")?>
+  <?=mk_option($var['md_write_method'], "0", "read/modify/write")?>
+  <?=mk_option($var['md_write_method'], "1", "reconstruct write")?>
+  </select>
+
+> Selects the method to employ when writing to enabled disk in parity protected array.
+>
+> *Auto* selects `read/modify/write`.
 
 &nbsp;
 : <input type="submit" name="changeDisk" value="Apply"><input type="button" value="Done" onclick="done()">

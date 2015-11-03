@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta10">
+<!ENTITY version   "6.2-beta11">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -23,6 +23,12 @@
 <![CDATA[
 unRAID Server OS Change Log
 ===========================
+
+Version 6.2-beta11
+------------------
+- emhttp: added tunables: md_write_method, md_sync_thresh
+- unraid: removed deprecated md_write_limit tunable
+- webGui: additions to the Disk Settings page tunable settings
 
 Version 6.2-beta10
 ------------------
