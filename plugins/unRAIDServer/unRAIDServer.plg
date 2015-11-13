@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta12">
+<!ENTITY version   "6.2-beta14">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -24,10 +24,22 @@
 unRAID Server OS Change Log
 ===========================
 
+Version 6.2-beta14
+------------------
+- linux: 4.1.13
+- linux: [PATCH] ethernet: atheros driver support e2400
+- shfs: for cache-only share, if cannot create on cache, go ahead and create on array
+- emhttp: Trial has no device limit, just time limit
+
+Version 6.2-beta13
+------------------
+- unraid: terminate sync/rebuild only if/when all target disks fail
+
 Version 6.2-beta12
 ------------------
 - emhttp: fix disk/share "color" status
 - linux: [PATCH] scsi: mvsas support for Asus P9A-I SAS on-board controller
+- unraid: allow two failures before terminating in-process parity sync/check
 - webGui: enable Apply button upon 'input change' per Eric
 
 Version 6.2-beta11
@@ -39,7 +51,7 @@ Version 6.2-beta11
 Version 6.2-beta10
 ------------------
 - emhttp: do not auto-start parity operation when Starting array in Maintenance mode
-- linux: 4.1.11
+- linux: 4.1.12
 - linux: add kernel options (per user request):
   - CONFIG_BE2NET: ServerEngines 10Gbps NIC - BladeEngine
 - slack: numerous slack-current package updates
