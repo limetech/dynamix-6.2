@@ -27,7 +27,7 @@ function sort_by($field, $opt, $show_disk) {
   $i = 0;
   exec("shopt -s dotglob ; stat -L -c'%F|%n|%s|%Y' $path 2>/dev/null", $file);
   if ($show_disk)
-    exec("getfattr --absolute-names -n user.LOCATIONS $path 2>/dev/null|grep -Po '^user.LOCATIONS=\"\K[^\\\"]+'", $disk);
+    exec("shopt -s dotglob ; getfattr --absolute-names -n user.LOCATIONS $path 2>/dev/null|grep -Po '^user.LOCATIONS=\"\K[^\\\"]+'", $disk);
   else
     $disk = array_fill(0, max(count($file),1), '');
   foreach ($file as $entry) {

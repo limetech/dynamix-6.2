@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta14">
+<!ENTITY version   "6.2-beta15-wip">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -23,6 +23,11 @@
 <![CDATA[
 unRAID Server OS Change Log
 ===========================
+
+Version 6.2-beta15
+------------------
+- ssmtp: fixed issue where '#' characters could not be used in email account passwords
+- webGui: fix bug in Browse.page where presence of dotfiles messed up Location column
 
 Version 6.2-beta14
 ------------------
