@@ -56,17 +56,19 @@
 		// Backup xml for existing domain in ram
 		$strOldXML = '';
 		$boolOldAutoStart = false;
-		$res = $lv->domain_get_name_by_uuid($_POST['domain']['uuid']);
-		if ($res) {
-			$strOldXML = $lv->domain_get_xml($res);
-			$boolOldAutoStart = $lv->domain_get_autostart($res);
+		$dom = $lv->domain_get_domain_by_uuid($_POST['domain']['uuid']);
+		if ($dom) {
+			$strOldXML = $lv->domain_get_xml($dom);
+			$boolOldAutoStart = $lv->domain_get_autostart($dom);
 
 			//DEBUG
 			file_put_contents('/tmp/debug_libvirt_oldxml.xml', $strOldXML);
 		}
 
 		// Remove existing domain
-		$lv->domain_undefine($res);
+		$lv->nvram_backup($_POST['domain']['uuid']);
+		$lv->domain_undefine($dom);
+		$lv->nvram_restore($_POST['domain']['uuid']);
 
 		// Save new domain
 		$tmp = $lv->domain_define($_POST['xmldesc']);
@@ -92,14 +94,13 @@
 <link rel="stylesheet" href="/plugins/dynamix.vm.manager/scripts/codemirror/lib/codemirror.css">
 <link rel="stylesheet" href="/plugins/dynamix.vm.manager/scripts/codemirror/addon/hint/show-hint.css">
 <style type="text/css">
-	.CodeMirror { border: 1px solid #eee; cursor: text; }
+	.CodeMirror { border: 1px solid #eee; cursor: text; margin-top: 15px; margin-bottom: 10px; }
 	.CodeMirror pre.CodeMirror-placeholder { color: #999; }
 </style>
 
 <input type="hidden" name="domain[uuid]" value="<?=$strUUID?>">
 
 <textarea id="addcode" name="xmldesc" placeholder="Copy &amp; Paste Domain XML Configuration Here." autofocus><?= htmlspecialchars($strXML); ?></textarea>
-
 
 <? if (!$boolRunning) { ?>
 	<? if (!empty($strXML)) { ?>
@@ -111,11 +112,11 @@
 		<input type="hidden" name="createvm" value="1" />
 		<input type="button" value="Create" busyvalue="Creating..." readyvalue="Create" id="btnSubmit" />
 	<? } ?>
-		<input type="button" value="Cancel" id="btnCancel" />
+	<input type="button" value="Cancel" id="btnCancel" />
+	<span><i class="fa fa-warning icon warning"></i> Manual XML edits may be lost if you later edit with the GUI editor.</span>
 <? } else { ?>
 	<input type="button" value="Done" id="btnCancel" />
 <? } ?>
-
 
 <script src="/plugins/dynamix.vm.manager/scripts/codemirror/lib/codemirror.js"></script>
 <script src="/plugins/dynamix.vm.manager/scripts/codemirror/addon/display/placeholder.js"></script>
@@ -170,12 +171,14 @@ $(function() {
     	editor.refresh();
 	}, 1);
 
-	$("#form_content #btnSubmit").click(function frmSubmit() {
+	$("#vmform #btnSubmit").click(function frmSubmit() {
 		var $button = $(this);
+		var $form = $button.closest('form');
 
 		editor.save();
 
-		var $form = $('#domain_template').closest('form');
+		$form.find('input').prop('disabled', false); // enable all inputs otherwise they wont post
+
 		var postdata = $form.serialize().replace(/'/g,"%27");
 
 		$form.find('input').prop('disabled', true);
@@ -186,13 +189,13 @@ $(function() {
 				done();
 			}
 			if (data.error) {
-        swal({title:"VM creation error",text:data.error,type:"error"});
+				swal({title:"VM creation error",text:data.error,type:"error"});
 				$form.find('input').prop('disabled', false);
 				$button.val($button.attr('readyvalue'));
 			}
 		}, "json");
 	});
 
-	$("#form_content #btnCancel").click(done);
+	$("#vmform #btnCancel").click(done);
 });
 </script>

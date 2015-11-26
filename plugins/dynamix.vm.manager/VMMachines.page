@@ -1,4 +1,4 @@
-Menu="VMs"
+Menu="VMs:1"
 Title="Virtual Machines"
 Cond="(pgrep('libvirtd')!==false)"
 ---
@@ -157,7 +157,7 @@ if ($action) {
     $mem = number_format($mem, 0);
    	$vcpu = $dom['nrVirtCpu'];
 		$auto = $is_autostart ? 'checked="checked"':"";
-    $template = $lv->_get_single_xpath_result($res, '//domain/metadata/vmtemplate/@name');
+    $template = $lv->_get_single_xpath_result($res, '//domain/metadata/*[local-name()=\'vmtemplate\']/@name');
     if (empty($template)) {
       $template = 'Custom';
     }
@@ -192,7 +192,7 @@ if ($action) {
       // fallback icon for users that created VMs before metadata support was added
       $vmicon = '/plugins/dynamix.vm.manager/templates/images/' . ($lv->domain_get_clock_offset($res) == 'localtime' ? 'windows.png' : 'linux.png');
 
-      $vmtemplateicon = $lv->_get_single_xpath_result($res, '//domain/metadata/vmtemplate/@icon');
+      $vmtemplateicon = $lv->_get_single_xpath_result($res, '//domain/metadata/*[local-name()=\'vmtemplate\']/@icon');
       if (!empty($vmtemplateicon)) {
          if (file_exists($vmtemplateicon)) {
             $vmicon = $vmtemplateicon;
@@ -202,7 +202,7 @@ if ($action) {
       }
 
 		//Domain information
-      echo "<tr style='background-color:".bcolor($i,$theme)."'>
+      echo "<tr style='background-color:".bcolor($i)."'>
                <td style=\"width: 48px; padding: 4px\">
                   <div id=\"vm-" . htmlspecialchars($uuid) . "\" style=\"display:block; cursor:pointer\">
                      <div style=\"position: relative; width: 48px; height: 48px; margin: 0px auto;\">
@@ -363,7 +363,7 @@ if ($action) {
 						$val = "";}
 					else
 						$val = $info;
-            	echo "<tr style='background-color:".bcolor($ii,$theme)."'>
+            	echo "<tr style='background-color:".bcolor($ii)."'>
             		   	<td>".($ii+1)."</td>
                   	   <td>$backup</td>
                   	   <td>$date</td>
@@ -427,7 +427,7 @@ if ($action) {
 						$val = "";}
 					else
 						$val = $info;
-            	echo "<tr style='background-color:".bcolor($ii,$theme)."'>
+            	echo "<tr style='background-color:".bcolor($ii)."'>
             		   	<td>".($ii+1)."</td>
                   	   <td>$snap</td>
                   	   <td>$date</td>
@@ -472,7 +472,9 @@ if($msg){
 	}
 ?>
 
+<? if ($display['tabs']==0): ?>
 <input type="button" id="btnAddVM" value="Add VM"/>
+<? endif ?>
 
 <script>
 function vncOpen() {
@@ -594,7 +596,7 @@ function addVMContext(name, uuid, template, state, vncurl, log){
   if (state == "shutoff") {
 
     opts.push({text: "Edit", icon: "fa-pencil", href: path+'/UpdateVM?uuid='+uuid });
-    opts.push({text: "Edit XML", icon: "fa-code", href: path+'/UpdateVM?template=XML_Expert&amp;uuid='+uuid });
+    opts.push({text: "Edit XML", icon: "fa-code", href: path+'/UpdateVM?template=Custom&amp;uuid='+uuid });
 
     opts.push({divider: true});
 
@@ -612,7 +614,7 @@ function addVMContext(name, uuid, template, state, vncurl, log){
 
   } else {
 
-    opts.push({text: "View XML", icon: "fa-code", href: path+'/UpdateVM?template=XML_Expert&amp;uuid='+uuid });
+    opts.push({text: "View XML", icon: "fa-code", href: path+'/UpdateVM?template=Custom&amp;uuid='+uuid });
 
   }
 
@@ -624,7 +626,7 @@ $(function() {
    $('.text').click(showInput);
    $('.input').blur(hideInput);
    $('#btnAddVM').click(function AddVMEvent() {
-      window.location = '/VMs/AddVM';
+      $('.tab>input#tab2').click();
    });
 
    $('.autostart').switchButton({

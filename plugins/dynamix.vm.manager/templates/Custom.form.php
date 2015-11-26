@@ -21,66 +21,55 @@
 	$arrValidOtherDevices = getValidOtherDevices();
 	$arrValidUSBDevices = getValidUSBDevices();
 	$arrValidDiskDrivers = getValidDiskDrivers();
+	$arrValidBusTypes = getValidBusTypes();
+	$arrValidVNCModels = getValidVNCModels();
 	$arrValidKeyMaps = getValidKeyMaps();
 	$arrValidBridges = getNetworkBridges();
 	$strCPUModel = getHostCPUModel();
 
-	$arrOperatingSystems = [
-		'windows' => 'Windows 8.1 / 2012',
-		'windows7' => 'Windows 7 / 2008',
-		'windowsxp' => 'Windows XP / 2003',
-		'linux' => 'Linux',
-		'arch' => 'Arch',
-		'centos' => 'CentOS',
-		'chromeos' => 'ChromeOS',
-		'coreos' => 'CoreOS',
-		'debian' => 'Debian',
-		'fedora' => 'Fedora',
-		'freebsd' => 'FreeBSD',
-		'openelec' => 'OpenELEC',
-		'opensuse' => 'OpenSUSE',
-		'redhat' => 'RedHat',
-		'scientific' => 'Scientific',
-		'slackware' => 'Slackware',
-		'steamos' => 'SteamOS',
-		'ubuntu' => 'Ubuntu'
-	];
-
 	$arrConfigDefaults = [
 		'template' => [
-			'name' => 'Custom',
-			'icon' => 'windows.png'
+			'name' => $strSelectedTemplate,
+			'icon' => $arrAllTemplates[$strSelectedTemplate]['icon'],
+			'os' => $arrAllTemplates[$strSelectedTemplate]['os']
 		],
 		'domain' => [
+			'name' => $strSelectedTemplate,
 			'persistent' => 1,
 			'uuid' => $lv->domain_generate_uuid(),
 			'clock' => 'localtime',
 			'arch' => 'x86_64',
 			'machine' => 'pc',
-			'mem' => 512 * 1024,
-			'maxmem' => 512 * 1024,
+			'mem' => 1024 * 1024,
+			'maxmem' => 1024 * 1024,
 			'password' => '',
 			'cpumode' => 'host-passthrough',
 			'vcpus' => 1,
 			'vcpu' => [0],
 			'hyperv' => 1,
-			'ovmf' => 0
+			'ovmf' => 1,
+			'usbmode' => 'usb3'
 		],
 		'media' => [
 			'cdrom' => '',
-			'drivers' => $domain_cfg['VIRTIOISO']
+			'cdrombus' => 'ide',
+			'drivers' => is_file($domain_cfg['VIRTIOISO']) ? $domain_cfg['VIRTIOISO'] : '',
+			'driversbus' => 'ide'
 		],
 		'disk' => [
 			[
 				'new' => '',
 				'size' => '',
 				'driver' => 'raw',
-				'dev' => 'hda'
+				'dev' => 'hda',
+				'select' => $domain_cfg['VMSTORAGEMODE'],
+				'bus' => 'sata'
 			]
 		],
 		'gpu' => [
 			[
 				'id' => 'vnc',
+				'model' => 'qxl',
 				'keymap' => 'en-us'
 			]
 		],
@@ -105,6 +94,11 @@
 		]
 	];
 
+	// Merge in any default values from the VM template
+	if (!empty($arrAllTemplates[$strSelectedTemplate]) && !empty($arrAllTemplates[$strSelectedTemplate]['overrides'])) {
+		$arrConfigDefaults = array_replace_recursive($arrConfigDefaults, $arrAllTemplates[$strSelectedTemplate]['overrides']);
+	}
+
 	// If we are editing a existing VM load it's existing configuration details
 	$arrExistingConfig = (!empty($_GET['uuid']) ? domain_to_config($_GET['uuid']) : []);
 
@@ -116,6 +110,7 @@
 		$arrConfig['template']['os'] = ($arrConfig['domain']['clock'] == 'localtime' ? 'windows' : 'linux');
 	}
 
+	$boolNew = empty($arrExistingConfig);
 	$boolRunning = (!empty($arrConfig['domain']['state']) && $arrConfig['domain']['state'] == 'running');
 
 
@@ -131,9 +126,9 @@
 			$arrResponse = ['success' => true];
 
 			// Fire off the vnc popup if available
-			$res = $lv->get_domain_by_name($_POST['domain']['name']);
-			$vncport = $lv->domain_get_vnc_port($res);
-			$wsport = $lv->domain_get_ws_port($res);
+			$dom = $lv->get_domain_by_name($_POST['domain']['name']);
+			$vncport = $lv->domain_get_vnc_port($dom);
+			$wsport = $lv->domain_get_ws_port($dom);
 
 			if ($vncport > 0) {
 				$vnc = '/plugins/dynamix.vm.manager/vnc.html?autoconnect=true&host='.$var['IPADDR'].'&port='.$wsport;
@@ -153,17 +148,40 @@
 		// Backup xml for existing domain in ram
 		$strOldXML = '';
 		$boolOldAutoStart = false;
-		$res = $lv->domain_get_name_by_uuid($_POST['domain']['uuid']);
-		if ($res) {
-			$strOldXML = $lv->domain_get_xml($res);
-			$boolOldAutoStart = $lv->domain_get_autostart($res);
+		$dom = $lv->domain_get_domain_by_uuid($_POST['domain']['uuid']);
+		if ($dom) {
+			$strOldXML = $lv->domain_get_xml($dom);
+			$boolOldAutoStart = $lv->domain_get_autostart($dom);
+			$strOldName = $lv->domain_get_name($dom);
+			$strNewName = $_POST['domain']['name'];
+
+			if (!empty($strOldName) &&
+				 !empty($strNewName) &&
+				 is_dir($domain_cfg['DOMAINDIR'].$strOldName.'/') &&
+				 !is_dir($domain_cfg['DOMAINDIR'].$strNewName.'/')) {
+
+				// mv domain/vmname folder
+				if (rename($domain_cfg['DOMAINDIR'].$strOldName, $domain_cfg['DOMAINDIR'].$strNewName)) {
+					// replace all disk paths in xml
+					foreach ($_POST['disk'] as &$arrDisk) {
+						if (!empty($arrDisk['new'])) {
+							$arrDisk['new'] = str_replace($domain_cfg['DOMAINDIR'].$strOldName.'/', $domain_cfg['DOMAINDIR'].$strNewName.'/', $arrDisk['new']);
+						}
+						if (!empty($arrDisk['image'])) {
+							$arrDisk['image'] = str_replace($domain_cfg['DOMAINDIR'].$strOldName.'/', $domain_cfg['DOMAINDIR'].$strNewName.'/', $arrDisk['image']);
+						}
+					}
+				}
+			}
 
 			//DEBUG
 			file_put_contents('/tmp/debug_libvirt_oldxml.xml', $strOldXML);
 		}
 
 		// Remove existing domain
-		$lv->domain_undefine($res);
+		$lv->nvram_backup($_POST['domain']['uuid']);
+		$lv->domain_undefine($dom);
+		$lv->nvram_restore($_POST['domain']['uuid']);
 
 		// Save new domain
 		$tmp = $lv->domain_new($_POST);
@@ -186,42 +204,34 @@
 	}
 ?>
 
-<style type="text/css">
-	.four label {
-		float: left;
-		display: table-cell;
-		width: 25%;
-	}
-	.four label:nth-child(4n+4) {
-		float: none;
-		clear: both;
-	}
-	.mac_generate {
-		cursor: pointer;
-		margin-left: -8px;
-		color: #08C;
-		font-size: 1.1em;
-	}
-</style>
-
+<input type="hidden" name="template[os]" id="template_os" value="<?=$arrConfig['template']['os']?>">
 <input type="hidden" name="domain[persistent]" value="<?=$arrConfig['domain']['persistent']?>">
 <input type="hidden" name="domain[uuid]" value="<?=$arrConfig['domain']['uuid']?>">
 <input type="hidden" name="domain[clock]" id="domain_clock" value="<?=$arrConfig['domain']['clock']?>">
 <input type="hidden" name="domain[arch]" value="<?=$arrConfig['domain']['arch']?>">
+<input type="hidden" name="domain[oldname]" id="domain_oldname" value="<?=htmlentities($arrConfig['domain']['name'])?>">
 
 <table>
 	<tr>
-		<td>Operating System:</td>
-		<td>
-			<select name="template[os]" id="domain_os" class="narrow" title="define the base OS">
-			<?php mk_dropdown_options($arrOperatingSystems, $arrConfig['template']['os']); ?>
-			</select>
-		</td>
+		<td>Name:</td>
+		<td><input type="text" name="domain[name]" id="domain_name" class="textTemplate" title="Name of virtual machine" placeholder="e.g. My Workstation" value="<?=htmlentities($arrConfig['domain']['name'])?>" required /></td>
 	</tr>
 </table>
 <blockquote class="inline_help">
-	<p>Select Windows for any Microsoft operating systems</p>
+	<p>Give the VM a name (e.g. Work, Gaming, Media Player, Firewall, Bitcoin Miner)</p>
 </blockquote>
+
+<table>
+	<tr class="advanced">
+		<td>Description:</td>
+		<td><input type="text" name="domain[desc]" title="description of virtual machine" placeholder="description of virtual machine (optional)" value="<?=htmlentities($arrConfig['domain']['desc'])?>" /></td>
+	</tr>
+</table>
+<div class="advanced">
+	<blockquote class="inline_help">
+		<p>Give the VM a brief description (optional field).</p>
+	</blockquote>
+</div>
 
 <table>
 	<tr class="advanced">
@@ -268,15 +278,13 @@
 		</td>
 	</tr>
 </table>
-<div class="advanced">
-	<blockquote class="inline_help">
-		<p>By default, VMs created will be pinned to physical CPU cores to improve performance.  From this view, you can adjust which actual CPU cores a VM will be pinned (minimum 1).</p>
-	</blockquote>
-</div>
+<blockquote class="inline_help">
+	<p>By default, VMs created will be pinned to physical CPU cores to improve performance.  From this view, you can adjust which actual CPU cores a VM will be pinned (minimum 1).</p>
+</blockquote>
 
 <table>
 	<tr>
-		<td>Initial Memory:</td>
+		<td><span class="advanced">Initial </span>Memory:</td>
 		<td>
 			<select name="domain[mem]" id="domain_mem" class="narrow" title="define the amount memory">
 			<?php
@@ -346,7 +354,7 @@
 			<?php
 				echo mk_option($arrConfig['domain']['ovmf'], '0', 'SeaBIOS');
 
-				if (file_exists('/usr/share/qemu/ovmf-x64/OVMF-pure-efi.fd')) {
+				if (file_exists('/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi.fd')) {
 					echo mk_option($arrConfig['domain']['ovmf'], '1', 'OVMF');
 				} else {
 					echo mk_option('', '0', 'OVMF (Not Available)', 'disabled="disabled"');
@@ -388,7 +396,7 @@
 <div class="domain_os windows">
 	<div class="advanced">
 		<blockquote class="inline_help">
-			<p>Exposes the guest to hyper-v extensions for Microsoft operating systems.  Set to "Yes" by default, but set to "No" automatically if an NVIDIA-based GPU is assigned to the guest (but can be user-toggled back to "Yes").</p>
+			<p>Exposes the guest to hyper-v extensions for Microsoft operating systems.</p>
 		</blockquote>
 	</div>
 </div>
@@ -400,16 +408,36 @@
 			<input type="text" data-pickcloseonfile="true" data-pickfilter="iso" data-pickroot="<?=$domain_cfg['MEDIADIR']?>" name="media[cdrom]" value="<?=$arrConfig['media']['cdrom']?>" placeholder="Click and Select cdrom image to install operating system">
 		</td>
 	</tr>
+	<tr class="advanced">
+		<td>OS Install CDRom Bus:</td>
+		<td>
+			<select name="media[cdrombus]" class="cdrom_bus narrow">
+			<?php mk_dropdown_options($arrValidBusTypes, $arrConfig['media']['cdrombus']); ?>
+			</select>
+		</td>
+	</tr>
 </table>
 <blockquote class="inline_help">
 	<p>Select the virtual CD-ROM (ISO) that contains the installation media for your operating system.  Clicking this field displays a list of ISOs found in the directory specified on the Settings page.</p>
+	<p class="advanced">
+		<b>CDRom Bus</b><br>
+		Specify what interface this virtual cdrom uses to connect inside the VM.
+	</p>
 </blockquote>
 
 <table class="domain_os windows">
 	<tr class="advanced">
-		<td><a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">VirtIO Drivers ISO:</a></td>
+		<td>VirtIO Drivers ISO:</td>
 		<td>
 			<input type="text" data-pickcloseonfile="true" data-pickfilter="iso" data-pickroot="<?=$domain_cfg['MEDIADIR']?>" name="media[drivers]" value="<?=$arrConfig['media']['drivers']?>" placeholder="Download, Click and Select virtio drivers image">
+		</td>
+	</tr>
+	<tr class="advanced">
+		<td>VirtIO Drivers CDRom Bus:</td>
+		<td>
+			<select name="media[driversbus]" class="cdrom_bus narrow">
+			<?php mk_dropdown_options($arrValidBusTypes, $arrConfig['media']['driversbus']); ?>
+			</select>
 		</td>
 	</tr>
 </table>
@@ -418,10 +446,13 @@
 		<blockquote class="inline_help">
 			<p>Specify the virtual CD-ROM (ISO) that contains the VirtIO Windows drivers as provided by the Fedora Project.  Download the latest ISO from here: <a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download</a></p>
 			<p>When installing Windows, you will reach a step where no disk devices will be found.  There is an option to browse for drivers on that screen.  Click browse and locate the additional CD-ROM in the menu.  Inside there will be various folders for the different versions of Windows.  Open the folder for the version of Windows you are installing and then select the AMD64 subfolder inside (even if you are on an Intel system, select AMD64).  Three drivers will be found.  Select them all, click next, and the vDisks you have assigned will appear.</p>
+			<p>
+				<b>CDRom Bus</b><br>
+				Specify what interface this virtual cdrom uses to connect inside the VM.
+			</p>
 		</blockquote>
 	</div>
 </div>
-
 
 <? foreach ($arrConfig['disk'] as $i => $arrDisk) {
 	$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : 'Primary';
@@ -431,14 +462,87 @@
 		<tr>
 			<td>vDisk Location:</td>
 			<td>
-				<input type="text" data-pickcloseonfile="true" data-pickfolders="true" data-pickfilter="img,qcow,qcow2" data-pickroot="/mnt/" name="disk[<?=$i?>][new]" class="disk" id="disk_<?=$i?>" value="<?=$arrDisk['new']?>" placeholder="Separate sub-folder and image will be created based on Name">
+				<select name="disk[<?=$i?>][select]" class="disk_select narrow">
+				<?
+					if ($i == 0) {
+						echo '<option value="">None</option>';
+					}
+
+					$default_option = $arrDisk['select'];
+
+					if (!empty($domain_cfg['DOMAINDIR']) && file_exists($domain_cfg['DOMAINDIR'])) {
+
+						$boolShowAllDisks = (strpos($domain_cfg['DOMAINDIR'], '/mnt/user/') === 0);
+
+						if (!empty($arrDisk['new'])) {
+							if (strpos($domain_cfg['DOMAINDIR'], dirname(dirname($arrDisk['new']))) === false || basename($arrDisk['new']) != 'vdisk'.($i+1).'.img') {
+								$default_option = 'manual';
+							}
+							if (file_exists(dirname(dirname($arrDisk['new'])).'/'.$arrConfig['domain']['name'].'/vdisk'.($i+1).'.img')) {
+								// hide all the disks because the auto disk already has been created
+								$boolShowAllDisks = false;
+							}
+						}
+
+						echo mk_option($default_option, 'auto', 'Auto');
+
+						if ($boolShowAllDisks) {
+							$strShareUserLocalInclude = '';
+							$strShareUserLocalExclude = '';
+							$strShareUserLocalUseCache = 'no';
+
+							// Get the share name and its configuration
+							$arrDomainDirParts = explode('/', $domain_cfg['DOMAINDIR']);
+							$strShareName = $arrDomainDirParts[3];
+							if (!empty($strShareName) && is_file('/boot/config/shares/'.$strShareName.'.cfg')) {
+								$arrShareCfg = parse_ini_file('/boot/config/shares/'.$strShareName.'.cfg');
+								if (!empty($arrShareCfg['shareInclude'])) {
+									$strShareUserLocalInclude = $arrShareCfg['shareInclude'];
+								}
+								if (!empty($arrShareCfg['shareExclude'])) {
+									$strShareUserLocalExclude = $arrShareCfg['shareExclude'];
+								}
+								if (!empty($arrShareCfg['shareUseCache'])) {
+									$strShareUserLocalUseCache = $arrShareCfg['shareUseCache'];
+								}
+							}
+
+							// Determine if cache drive is available:
+							if (!empty($disks['cache']) && (!empty($disks['cache']['device']))) {
+								if ($strShareUserLocalUseCache != 'no' && $var['shareCacheEnabled'] == 'yes') {
+									$strLabel = my_disk('cache').' - '.my_scale($disks['cache']['fsFree']*1024, $strUnit).' '.$strUnit.' free';
+									echo mk_option($default_option, 'cache', $strLabel);
+								}
+							}
+
+							// Determine which disks from the array are available for this share:
+							foreach ($disks as $name => $disk) {
+								if ((strpos($name, 'disk') === 0) && (!empty($disk['device']))) {
+									if ((!empty($strShareUserLocalInclude) && (strpos($strShareUserLocalInclude.',', $name.',') === false)) ||
+										(!empty($strShareUserLocalExclude) && (strpos($strShareUserLocalExclude.',', $name.',') !== false)) ||
+										(!empty($var['shareUserInclude']) && (strpos($var['shareUserInclude'].',', $name.',') === false)) ||
+										(!empty($var['shareUserExclude']) && (strpos($var['shareUserExclude'].',', $name.',') !== false))) {
+										// skip this disk based on local and global share settings
+										continue;
+									}
+									$strLabel = my_disk($name).' - '.my_scale($disk['fsFree']*1024, $strUnit).' '.$strUnit.' free';
+									echo mk_option($default_option, $name, $strLabel);
+								}
+							}
+						}
+
+					}
+
+					echo mk_option($default_option, 'manual', 'Manual');
+				?>
+				</select><input type="text" data-pickcloseonfile="true" data-pickfolders="true" data-pickfilter="img,qcow,qcow2" data-pickroot="/mnt/" name="disk[<?=$i?>][new]" class="disk" id="disk_<?=$i?>" value="<?=$arrDisk['new']?>" placeholder="Separate sub-folder and image will be created based on Name"><div class="disk_preview"></div>
 			</td>
 		</tr>
 
 		<tr class="disk_file_options">
 			<td>vDisk Size:</td>
 			<td>
-				<input type="text" name="disk[<?=$i?>][size]" value="<?=$arrDisk['size']?>" placeholder="e.g. 10M, 1G, 10G...">
+				<input type="text" name="disk[<?=$i?>][size]" value="<?=$arrDisk['size']?>" class="narrow" placeholder="e.g. 10M, 1G, 10G...">
 			</td>
 		</tr>
 
@@ -451,7 +555,14 @@
 			</td>
 		</tr>
 
-		<input type="hidden" name="disk[<?=$i?>][dev]" value="<?=$arrDisk['dev']?>">
+		<tr class="advanced disk_bus_options">
+			<td>vDisk Bus:</td>
+			<td>
+				<select name="disk[<?=$i?>][bus]" class="disk_bus narrow">
+				<?php mk_dropdown_options($arrValidBusTypes, $arrDisk['bus']); ?>
+				</select>
+			</td>
+		</tr>
 	</table>
 	<?php if ($i == 0) { ?>
 	<blockquote class="inline_help">
@@ -470,6 +581,11 @@
 			Select RAW for best performance.  QCOW2 implementation is still in development.
 		</p>
 
+		<p class="advanced">
+			<b>vDisk Bus</b><br>
+			Select virtio for best performance.
+		</p>
+
 		<p>Additional devices can be added/removed by clicking the symbols to the left.</p>
 	</blockquote>
 	<? } ?>
@@ -479,14 +595,71 @@
 		<tr>
 			<td>vDisk Location:</td>
 			<td>
-				<input type="text" data-pickcloseonfile="true" data-pickfolders="true" data-pickfilter="img,qcow,qcow2" data-pickroot="/mnt/" name="disk[{{INDEX}}][new]" class="disk" id="disk_{{INDEX}}" value="" placeholder="Separate sub-folder and image will be created based on Name">
+				<select name="disk[{{INDEX}}][select]" class="disk_select narrow">
+				<?
+					if (!empty($domain_cfg['DOMAINDIR']) && file_exists($domain_cfg['DOMAINDIR'])) {
+
+						$default_option = $domain_cfg['VMSTORAGEMODE'];
+
+						echo mk_option($default_option, 'auto', 'Auto');
+
+						if (strpos($domain_cfg['DOMAINDIR'], '/mnt/user/') === 0) {
+							$strShareUserLocalInclude = '';
+							$strShareUserLocalExclude = '';
+							$strShareUserLocalUseCache = 'no';
+
+							// Get the share name and its configuration
+							$arrDomainDirParts = explode('/', $domain_cfg['DOMAINDIR']);
+							$strShareName = $arrDomainDirParts[3];
+							if (!empty($strShareName) && is_file('/boot/config/shares/'.$strShareName.'.cfg')) {
+								$arrShareCfg = parse_ini_file('/boot/config/shares/'.$strShareName.'.cfg');
+								if (!empty($arrShareCfg['shareInclude'])) {
+									$strShareUserLocalInclude = $arrShareCfg['shareInclude'];
+								}
+								if (!empty($arrShareCfg['shareExclude'])) {
+									$strShareUserLocalExclude = $arrShareCfg['shareExclude'];
+								}
+								if (!empty($arrShareCfg['shareUseCache'])) {
+									$strShareUserLocalUseCache = $arrShareCfg['shareUseCache'];
+								}
+							}
+
+							// Determine if cache drive is available:
+							if (!empty($disks['cache']) && (!empty($disks['cache']['device']))) {
+								if ($strShareUserLocalUseCache != 'no' && $var['shareCacheEnabled'] == 'yes') {
+									$strLabel = my_disk('cache').' - '.my_scale($disks['cache']['fsFree']*1024, $strUnit).' '.$strUnit.' free';
+									echo mk_option($default_option, 'cache', $strLabel);
+								}
+							}
+
+							// Determine which disks from the array are available for this share:
+							foreach ($disks as $name => $disk) {
+								if ((strpos($name, 'disk') === 0) && (!empty($disk['device']))) {
+									if ((!empty($strShareUserLocalInclude) && (strpos($strShareUserLocalInclude.',', $name.',') === false)) ||
+										(!empty($strShareUserLocalExclude) && (strpos($strShareUserLocalExclude.',', $name.',') !== false)) ||
+										(!empty($var['shareUserInclude']) && (strpos($var['shareUserInclude'].',', $name.',') === false)) ||
+										(!empty($var['shareUserExclude']) && (strpos($var['shareUserExclude'].',', $name.',') !== false))) {
+										// skip this disk based on local and global share settings
+										continue;
+									}
+									$strLabel = my_disk($name).' - '.my_scale($disk['fsFree']*1024, $strUnit).' '.$strUnit.' free';
+									echo mk_option($default_option, $name, $strLabel);
+								}
+							}
+						}
+
+					}
+
+					echo mk_option('', 'manual', 'Manual');
+				?>
+				</select><input type="text" data-pickcloseonfile="true" data-pickfolders="true" data-pickfilter="img,qcow,qcow2" data-pickroot="/mnt/" name="disk[{{INDEX}}][new]" class="disk" id="disk_{{INDEX}}" value="" placeholder="Separate sub-folder and image will be created based on Name"><div class="disk_preview"></div>
 			</td>
 		</tr>
 
 		<tr class="disk_file_options">
 			<td>vDisk Size:</td>
 			<td>
-				<input type="text" name="disk[{{INDEX}}][size]" value="" placeholder="e.g. 10M, 1G, 10G...">
+				<input type="text" name="disk[{{INDEX}}][size]" value="" class="narrow" placeholder="e.g. 10M, 1G, 10G...">
 			</td>
 		</tr>
 
@@ -499,10 +672,16 @@
 			</td>
 		</tr>
 
-		<input type="hidden" name="disk[{{INDEX}}][dev]" value="">
+		<tr class="advanced disk_bus_options">
+			<td>vDisk Bus:</td>
+			<td>
+				<select name="disk[{{INDEX}}][bus]" class="disk_bus narrow">
+				<?php mk_dropdown_options($arrValidBusTypes, ''); ?>
+				</select>
+			</td>
+		</tr>
 	</table>
 </script>
-
 
 <? foreach ($arrConfig['shares'] as $i => $arrShare) {
 	$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : '';
@@ -561,7 +740,6 @@
 	</table>
 </script>
 
-
 <? foreach ($arrConfig['gpu'] as $i => $arrGPU) {
 	$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : '';
 
@@ -588,9 +766,17 @@
 		</tr>
 
 		<? if ($i == 0) { ?>
+		<tr class="advanced vncmodel">
+			<td>VNC Video Driver:</td>
+			<td>
+				<select id="vncmodel" name="gpu[<?=$i?>][model]" class="narrow" title="video for VNC">
+				<?php mk_dropdown_options($arrValidVNCModels, $arrGPU['model']); ?>
+				</select>
+			</td>
+		</tr>
 		<tr class="vncpassword">
 			<td>VNC Password:</td>
-			<td><input type="password" name="domain[password]" title="password for VNC" placeholder="Password for VNC (optional)" /></td>
+			<td><input type="password" name="domain[password]" title="password for VNC" class="narrow" placeholder="Password for VNC (optional)" /></td>
 		</tr>
 		<tr class="advanced vnckeymap">
 			<td>VNC Keyboard:</td>
@@ -607,6 +793,11 @@
 		<p>
 			<b>Graphics Card</b><br>
 			If you wish to assign a graphics card to the VM, select it from this list, otherwise leave it set to VNC.
+		</p>
+
+		<p class="advanced vncmodel">
+			<b>VNC Video Driver</b><br>
+			If you wish to assign a different video driver to use for a VNC connection, specify one here.
 		</p>
 
 		<p class="vncpassword">
@@ -641,7 +832,6 @@
 		</tr>
 	</table>
 </script>
-
 
 <? foreach ($arrConfig['audio'] as $i => $arrAudio) {
 	$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : '';
@@ -686,7 +876,6 @@
 		</tr>
 	</table>
 </script>
-
 
 <? foreach ($arrConfig['nic'] as $i => $arrNic) {
 	$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : '';
@@ -755,7 +944,6 @@
 	</table>
 </script>
 
-
 <table>
 	<tr>
 		<td>USB Devices:</td>
@@ -782,11 +970,69 @@
 </blockquote>
 
 <table>
+	<tr class="advanced">
+		<td>USB Mode:</td>
+		<td>
+			<select name="domain[usbmode]" id="usbmode" class="narrow" title="Select the USB Mode to emulate.  Some OSes won't support USB3 (e.g. Windows 7/XP)">
+			<?php
+				echo mk_option($arrConfig['domain']['usbmode'], 'usb2', '2.0 (EHCI)');
+				echo mk_option($arrConfig['domain']['usbmode'], 'usb3', '3.0 (XHCI)');
+			?>
+			</select>
+		</td>
+	</tr>
+</table>
+<div class="advanced">
+	<blockquote class="inline_help">
+		<p>
+			<b>USB Mode</b><br>
+			Select the USB Mode to emulate.  Some OSes won't support USB3 (e.g. Windows 7).
+		</p>
+	</blockquote>
+</div>
+
+<table>
+	<tr>
+		<td>Other PCI Devices:</td>
+		<td>
+			<div class="textarea" style="width: 540px">
+			<?
+				$intAvailableOtherPCIDevices = 0;
+
+				if (!empty($arrValidOtherDevices)) {
+					foreach($arrValidOtherDevices as $i => $arrDev) {
+						$extra = '';
+						if (count(array_filter($arrConfig['pci'], function($arr) use ($arrDev) { return ($arr['id'] == $arrDev['id']); }))) {
+							$extra .= ' checked="checked"';
+						} else if (!in_array($arrDev['driver'], ['pci-stub', 'vfio-pci'])) {
+							//$extra .= ' disabled="disabled"';
+							continue;
+						}
+						$intAvailableOtherPCIDevices++;
+				?>
+					<label for="pci<?=$i?>"><input type="checkbox" name="pci[]" id="pci<?=$i?>" value="<?=$arrDev['id']?>" <?=$extra?>/> <?=$arrDev['name']?> | <?=$arrDev['type']?><span class="advanced"> | <?=$arrDev['id']?></span></label><br/>
+				<?
+					}
+				}
+
+				if (empty($intAvailableOtherPCIDevices)) {
+					echo "<i>None available</i>";
+				}
+			?>
+			</div>
+		</td>
+	</tr>
+</table>
+<blockquote class="inline_help">
+	<p>If you wish to assign any other PCI devices to your guest, you can select them from this list.</p>
+</blockquote>
+
+<table>
 	<tr>
 		<td></td>
 		<td>
 		<? if (!$boolRunning) { ?>
-			<? if (!empty($arrConfig['domain']['name'])) { ?>
+			<? if (!$boolNew) { ?>
 				<input type="hidden" name="updatevm" value="1" />
 				<input type="button" value="Update" busyvalue="Updating..." readyvalue="Update" id="btnSubmit" />
 			<? } else { ?>
@@ -806,70 +1052,162 @@
 	<p>Click Create to generate the vDisks and return to the Virtual Machines page where your new VM will be created.</p>
 </blockquote>
 
-
 <script type="text/javascript">
-var OS2ImageMap = {<?php
-	$arrItems = array();
-	foreach ($arrOperatingSystems as $key => $value) {
-		$arrItems[] = "'$key':'{$key}.png'";
-	}
-	echo implode(',', $arrItems);
-?>};
-
 $(function() {
-	var initComplete = false;
+	var regenerateDiskPreview = function (disk_index) {
+		var domaindir = '<?=$domain_cfg['DOMAINDIR']?>' + $('#domain_oldname').val();
+		var tl_args = arguments.length;
 
-	$("#form_content #domain_mem").change(function changeMemEvent() {
-		$("#domain_maxmem").val($(this).val());
+		$("#vmform .disk").closest('table').each(function (index) {
+			var $table = $(this);
+
+			if (tl_args && disk_index != $table.data('index')) {
+				return;
+			}
+
+			var disk_select = $table.find(".disk_select option:selected").val();
+			var $disk_file_sections = $table.find('.disk_file_options');
+			var $disk_bus_sections = $table.find('.disk_bus_options');
+			var $disk_input = $table.find('.disk');
+			var $disk_preview = $table.find('.disk_preview');
+
+			if (disk_select == 'manual') {
+
+				// Manual disk
+				$disk_preview.fadeOut('fast', function() {
+					$disk_input.fadeIn('fast');
+				});
+
+				$disk_bus_sections.filter('.wasadvanced').removeClass('wasadvanced').addClass('advanced');
+				slideDownRows($disk_bus_sections.not(isVMAdvancedMode() ? '.basic' : '.advanced'));
+
+				$.getJSON("/plugins/dynamix.vm.manager/VMajax.php?action=file-info&file=" + encodeURIComponent($disk_input.val()), function( info ) {
+					if (info.isfile || info.isblock) {
+						slideUpRows($disk_file_sections);
+						$disk_file_sections.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
+
+						$disk_input.attr('name', $disk_input.attr('name').replace('new', 'image'));
+					} else {
+						$disk_file_sections.filter('.wasadvanced').removeClass('wasadvanced').addClass('advanced');
+						slideDownRows($disk_file_sections.not(isVMAdvancedMode() ? '.basic' : '.advanced'));
+
+						$disk_input.attr('name', $disk_input.attr('name').replace('image', 'new'));
+					}
+				});
+
+			} else if (disk_select !== '') {
+
+				// Auto disk
+				var auto_disk_path = domaindir + '/vdisk' + (index+1) + '.img';
+				$disk_preview.html(auto_disk_path);
+				$disk_input.fadeOut('fast', function() {
+					$disk_preview.fadeIn('fast');
+				});
+
+				$disk_bus_sections.filter('.wasadvanced').removeClass('wasadvanced').addClass('advanced');
+				slideDownRows($disk_bus_sections.not(isVMAdvancedMode() ? '.basic' : '.advanced'));
+
+				$.getJSON("/plugins/dynamix.vm.manager/VMajax.php?action=file-info&file=" + encodeURIComponent(auto_disk_path), function( info ) {
+					if (info.isfile || info.isblock) {
+						slideUpRows($disk_file_sections);
+						$disk_file_sections.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
+
+						$disk_input.attr('name', $disk_input.attr('name').replace('new', 'image'));
+					} else {
+						$disk_file_sections.filter('.wasadvanced').removeClass('wasadvanced').addClass('advanced');
+						slideDownRows($disk_file_sections.not(isVMAdvancedMode() ? '.basic' : '.advanced'));
+
+						$disk_input.attr('name', $disk_input.attr('name').replace('image', 'new'));
+					}
+				});
+
+			} else {
+
+				// No disk
+				var $hide_el = $table.find('.disk_bus_options,.disk_file_options,.disk_preview,.disk');
+				$disk_preview.html('');
+				slideUpRows($hide_el);
+				$hide_el.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
+
+			}
+		});
+	};
+
+	<?if ($boolNew):?>
+	$("#vmform #domain_name").on("input change", function changeNameEvent() {
+		$('#vmform #domain_oldname').val($(this).val());
+		regenerateDiskPreview();
 	});
+	<?endif?>
 
-	$("#form_content .domain_vcpu").change(function changeVCPUEvent() {
-		var $cores = $(".domain_vcpu:checked");
+	$("#vmform .domain_vcpu").change(function changeVCPUEvent() {
+		var $cores = $("#vmform .domain_vcpu:checked");
 
 		if ($cores.length == 1) {
 			$cores.prop("disabled", true);
 		} else {
-			$(".domain_vcpu").prop("disabled", false);
+			$("#vmform .domain_vcpu").prop("disabled", false);
 		}
 	});
 
-	$("#form_content #domain_maxmem").change(function changeMaxMemEvent() {
-		if (parseFloat($(this).val()) < parseFloat($("#domain_mem").val())) {
-			$("#domain_mem").val($(this).val());
+	$("#vmform #domain_mem").change(function changeMemEvent() {
+		$("#vmform #domain_maxmem").val($(this).val());
+	});
+
+	$("#vmform #domain_maxmem").change(function changeMaxMemEvent() {
+		if (parseFloat($(this).val()) < parseFloat($("#vmform #domain_mem").val())) {
+			$("#vmform #domain_mem").val($(this).val());
 		}
 	});
 
-	$("#form_content").on("change keyup", ".disk", function changeDiskEvent() {
+	$("#vmform #domain_machine").change(function changeMachineEvent() {
+		// Cdrom Bus: select IDE for i440 and SATA for q35
+		if ($(this).val().indexOf('i440fx') != -1) {
+			$('#vmform .cdrom_bus').val('ide');
+		} else {
+			$('#vmform .cdrom_bus').val('sata');
+		}
+	});
+
+	$("#vmform #domain_ovmf").change(function changeBIOSEvent() {
+		// using OVMF - disable vmvga vnc option
+		if ($(this).val() == '1' && $("#vmform #vncmodel").val() == 'vmvga') {
+			$("#vmform #vncmodel").val('qxl');
+		}
+		$("#vmform #vncmodel option[value='vmvga']").prop('disabled', ($(this).val() == '1'));
+	}).change(); // fire event now
+
+	$("#vmform").on("spawn_section", function spawnSectionEvent(evt, section, sectiondata) {
+		if (sectiondata.category == 'vDisk') {
+			regenerateDiskPreview(sectiondata.index);
+		}
+	});
+
+	$("#vmform").on("destroy_section", function destroySectionEvent(evt, section, sectiondata) {
+		if (sectiondata.category == 'vDisk') {
+			regenerateDiskPreview();
+		}
+	});
+
+	$("#vmform").on("change", ".disk_select", function changeDiskSelectEvent() {
+		regenerateDiskPreview($(this).closest('table').data('index'));
+	});
+
+	$("#vmform").on("input change", ".disk", function changeDiskEvent() {
 		var $input = $(this);
 		var config = $input.data();
 
 		if (config.hasOwnProperty('pickfilter')) {
-			var $other_sections = $input.closest('table').find('.disk_file_options');
-
-			$.get("/plugins/dynamix.vm.manager/VMajax.php?action=file-info&file=" + encodeURIComponent($input.val()), function( info ) {
-				if (info.isfile || info.isblock) {
-					slideUpRows($other_sections);
-
-					$other_sections.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
-
-					$input.attr('name', $input.attr('name').replace('new', 'image'));
-				} else {
-					$other_sections.filter('.wasadvanced').removeClass('wasadvanced').addClass('advanced');
-
-					slideDownRows($other_sections.not(isVMAdvancedMode() ? '.basic' : '.advanced'));
-
-					$input.attr('name', $input.attr('name').replace('image', 'new'));
-				}
-			}, "json");
+			regenerateDiskPreview($input.closest('table').data('index'));
 		}
 	});
 
-	$("#form_content").on("change", ".gpu", function changeGPUEvent() {
+	$("#vmform").on("change", ".gpu", function changeGPUEvent() {
 		var myvalue = $(this).val();
 		var mylabel = $(this).children('option:selected').text();
 
-		$vnc_sections = $('.vncpassword,.vnckeymap');
-		if ($(".gpu option[value='vnc']:selected").length) {
+		$vnc_sections = $('.vncmodel,.vncpassword,.vnckeymap');
+		if ($("#vmform .gpu option[value='vnc']:selected").length) {
 			$vnc_sections.filter('.wasadvanced').removeClass('wasadvanced').addClass('advanced');
 			slideDownRows($vnc_sections.not(isVMAdvancedMode() ? '.basic' : '.advanced'));
 		} else {
@@ -877,34 +1215,33 @@ $(function() {
 			$vnc_sections.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
 		}
 
-		if (mylabel.indexOf('NVIDIA ') > -1) {
-			$("#hyperv").val(0).change();
-		}
-
-		$(".gpu").not(this).each(function () {
+		$("#vmform .gpu").not(this).each(function () {
 			if (myvalue == $(this).val()) {
 				$(this).prop("selectedIndex", 0).change();
 			}
 		});
 	});
 
-	$("#form_content input[data-pickroot]").fileTreeAttach();
-
-	$("#form_content").on("click", ".mac_generate", function generateMac() {
+	$("#vmform").on("click", ".mac_generate", function generateMac() {
 		var $input = $(this).prev('input');
 
-		$.get("/plugins/dynamix.vm.manager/VMajax.php?action=generate-mac", function( data ) {
+		$.getJSON("/plugins/dynamix.vm.manager/VMajax.php?action=generate-mac", function( data ) {
 			if (data.mac) {
 				$input.val(data.mac);
 			}
-		}, "json");
+		});
 	});
 
-	$("#form_content #btnSubmit").click(function frmSubmit() {
+	$("#vmform #btnSubmit").click(function frmSubmit() {
 		var $button = $(this);
-		var $form = $('#domain_template').closest('form');
+		var $form = $button.closest('form');
 
 		//TODO: form validation
+
+		$("#vmform .disk_select option:selected").not("[value='manual']").closest('table').each(function () {
+			var v = $(this).find('.disk_preview').html();
+			$(this).find('.disk').val(v);
+		});
 
 		$form.find('input').prop('disabled', false); // enable all inputs otherwise they wont post
 
@@ -921,70 +1258,58 @@ $(function() {
 				done();
 			}
 			if (data.error) {
-        swal({title:"VM creation error",text:data.error,type:"error"});
+				swal({title:"VM creation error",text:data.error,type:"error"});
 				$form.find('input').prop('disabled', false);
-				$("#form_content .domain_vcpu").change(); // restore the cpu checkbox disabled states
-				<? if (!empty($arrConfig['domain']['state'])) echo '$(\'#domain_ovmf\').prop(\'disabled\', true); // restore bios disabled state' . "\n"; ?>
+				$("#vmform .domain_vcpu").change(); // restore the cpu checkbox disabled states
+				<? if (!empty($arrConfig['domain']['state'])) echo '$(\'#vmform #domain_ovmf\').prop(\'disabled\', true); // restore bios disabled state' . "\n"; ?>
 				$button.val($button.attr('readyvalue'));
 			}
 		}, "json");
 	});
 
-	$("#form_content #btnCancel").click(done);
+	$("#vmform #btnCancel").click(done);
 
 
 	// Fire events below once upon showing page
-	$("#form_content table[data-category]").each(function () {
-		var category = $(this).data('category');
+	var os = $("#vmform #template_os").val() || 'linux';
+	var os_casted = (os.indexOf('windows') == -1 ? 'other' : 'windows');
 
-		updatePrefixLabels(category);
-		bindSectionEvents(category);
-	});
+	$('#vmform .domain_os').not($('.' + os_casted)).hide();
+	$('#vmform .domain_os.' + os_casted).not(isVMAdvancedMode() ? '.basic' : '.advanced').show();
 
-	$("#form_content #domain_os").change(function changeOSEvent() {
-		var os_casted = ($(this).val().indexOf('windows') == -1 ? 'other' : 'windows');
-
-		if (initComplete && !$('#template_img').attr('touched')) {
-			var vmicon = OS2ImageMap[$(this).val()] || OS2ImageMap[os_casted];
-			$('#template_icon').val(vmicon);
-			$('#template_img').prop('src', '/plugins/dynamix.vm.manager/templates/images/' + vmicon);
-		}
-
-		slideUpRows($('.domain_os').not($('.' + os_casted)));
-		slideDownRows($('.domain_os.' + os_casted).not(isVMAdvancedMode() ? '.basic' : '.advanced'));
-
-		if (initComplete) {
-			if (os_casted == 'windows') {
-				$('#domain_clock').val('localtime');
-				$("#domain_machine option").each(function(){
-					if ($(this).val().indexOf('i440fx') != -1) {
-						$('#domain_machine').val($(this).val());
-						return false;
-					}
-				});
-			} else {
-				$('#domain_clock').val('utc');
-				$("#domain_machine option").each(function(){
-					if ($(this).val().indexOf('q35') != -1) {
-						$('#domain_machine').val($(this).val());
-						return false;
-					}
-				});
+	<?if ($boolNew):?>
+	if (os_casted == 'windows') {
+		$('#vmform #domain_clock').val('localtime');
+		$("#vmform #domain_machine option").each(function(){
+			if ($(this).val().indexOf('i440fx') != -1) {
+				$('#vmform #domain_machine').val($(this).val());
+				return false;
 			}
-		}
-	}).change(); // Fire now too!
-
-	if ($(".gpu option[value='vnc']:selected").length) {
-		$('.vncpassword,.vnckeymap').not(isVMAdvancedMode() ? '.basic' : '.advanced').show();
+		});
 	} else {
-		$('.vncpassword,.vnckeymap').hide();
+		$('#vmform #domain_clock').val('utc');
+		$("#vmform #domain_machine option").each(function(){
+			if ($(this).val().indexOf('q35') != -1) {
+				$('#vmform #domain_machine').val($(this).val());
+				return false;
+			}
+		});
+	}
+	<?endif?>
+
+	// disable usb3 option for windows7 / xp / server 2003 / server 2008
+	var noUSB3 = (os == 'windows7' || os == 'windows2008' || os == 'windowsxp' || os == 'windows2003');
+	if (noUSB3 && $("#vmform #usbmode").val() == 'usb3') {
+		$("#vmform #usbmode").val('usb2');
+	}
+	$("#vmform #usbmode option[value='usb3']").prop('disabled', noUSB3);
+
+	if ($("#vmform .gpu option[value='vnc']:selected").length) {
+		$('.vncmodel,.vncpassword,.vnckeymap').not(isVMAdvancedMode() ? '.basic' : '.advanced').show();
+	} else {
+		$('.vncmodel,.vncpassword,.vnckeymap').hide();
 	}
 
-	$("#form_content .disk").not("[value='']")
-		.attr('name', function(){ return $(this).attr('name').replace('new', 'image'); })
-		.closest('table').find('.disk_file_options').hide()
-		.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
-
-	initComplete = true;
+	regenerateDiskPreview();
 });
 </script>

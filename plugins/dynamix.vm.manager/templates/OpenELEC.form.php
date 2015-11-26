@@ -25,8 +25,16 @@
 	$strCPUModel = getHostCPUModel();
 
 	$arrOpenELECVersions = [
+		'6.0.0_1' => [
+			'name' => '6.0.0',
+			'url' => 'https://s3.amazonaws.com/dnld.lime-technology.com/images/OpenELEC/OpenELEC-unRAID.x86_64-6.0.0_1.tar.xz',
+			'size' => 165658636,
+			'md5' => '66fb6c3f1b6db49c291753fb3ec7c15c',
+			'localpath' => '',
+			'valid' => '0'
+		],
 		'5.95.3_1' => [
-			'name' => '6.0.0 Beta3',
+			'name' => '5.95.3 (6.0.0 Beta3)',
 			'url' => 'https://s3.amazonaws.com/dnld.lime-technology.com/images/OpenELEC/OpenELEC-unRAID.x86_64-5.95.3_1.tar.xz',
 			'size' => 153990180,
 			'md5' => '8936cda74c28ddcaa165cc49ff2a477a',
@@ -34,7 +42,7 @@
 			'valid' => '0'
 		],
 		'5.95.2_1' => [
-			'name' => '6.0.0 Beta2',
+			'name' => '5.95.2 (6.0.0 Beta2)',
 			'url' => 'https://s3.amazonaws.com/dnld.lime-technology.com/images/OpenELEC/OpenELEC-unRAID.x86_64-5.95.2_1.tar.xz',
 			'size' => 156250392,
 			'md5' => 'ac70048eecbda4772e386c6f271cb5e9',
@@ -66,9 +74,6 @@
 
 	if (array_key_exists('delete_version', $_POST)) {
 
-		//DEBUG
-		file_put_contents('/tmp/debug_libvirt_postparams.txt', print_r($_POST, true));
-
 		$arrDeleteOpenELEC = [];
 		if (array_key_exists($_POST['delete_version'], $arrOpenELECVersions)) {
 			$arrDeleteOpenELEC = $arrOpenELECVersions[$_POST['delete_version']];
@@ -97,9 +102,6 @@
 
 	if (array_key_exists('download_path', $_POST)) {
 
-		//DEBUG
-		file_put_contents('/tmp/debug_libvirt_postparams.txt', print_r($_POST, true));
-
 		$arrDownloadOpenELEC = [];
 		if (array_key_exists($_POST['download_version'], $arrOpenELECVersions)) {
 			$arrDownloadOpenELEC = $arrOpenELECVersions[$_POST['download_version']];
@@ -111,10 +113,12 @@
 			@mkdir($_POST['download_path'], 0777, true);
 			$_POST['download_path'] = realpath($_POST['download_path']) . '/';
 
+			$boolCheckOnly = !empty($_POST['checkonly']);
 
 			$strInstallScript = '/tmp/OpenELEC_' . $_POST['download_version'] . '_install.sh';
-			$strLogFile = $_POST['download_path'] . basename($arrDownloadOpenELEC['url']) . '.log';
+			$strInstallScriptPgrep = '-f "OpenELEC_' . $_POST['download_version'] . '_install.sh"';
 			$strTempFile = $_POST['download_path'] . basename($arrDownloadOpenELEC['url']);
+			$strLogFile = $strTempFile . '.log';
 			$strMD5File = $strTempFile . '.md5';
 			$strMD5StatusFile = $strTempFile . '.md5status';
 			$strExtractedFile = $_POST['download_path'] . basename($arrDownloadOpenELEC['url'], 'tar.xz') . 'img';
@@ -127,7 +131,7 @@
 			file_put_contents($strOpenELECConfig, $text);
 
 
-			$strDownloadCmd = 'wget -nv -O ' . escapeshellarg($strTempFile) . ' ' . escapeshellarg($arrDownloadOpenELEC['url']);
+			$strDownloadCmd = 'wget -nv -c -O ' . escapeshellarg($strTempFile) . ' ' . escapeshellarg($arrDownloadOpenELEC['url']);
 			$strDownloadPgrep = '-f "wget.*' . $strTempFile . '.*' . $arrDownloadOpenELEC['url'] . '"';
 
 			$strVerifyCmd = 'md5sum -c ' . escapeshellarg($strMD5File);
@@ -136,8 +140,8 @@
 			$strExtractCmd = 'tar Jxf ' . escapeshellarg($strTempFile) . ' -C ' . escapeshellarg(dirname($strTempFile));
 			$strExtractPgrep = '-f "tar.*' . $strTempFile . '.*' . dirname($strTempFile) . '"';
 
-			$strCleanCmd = '(chmod 777 ' . escapeshellarg($_POST['download_path']) . ' ' . escapeshellarg($strExtractedFile) . '; chown nobody:users ' . escapeshellarg($_POST['download_path']) . ' ' . escapeshellarg($strExtractedFile) . '; rm ' . escapeshellarg($strTempFile) . ' ' . escapeshellarg($strTempFile.'.md5') . ' ' . escapeshellarg($strTempFile.'.md5status') . ' ' . escapeshellarg($strTempFile.'.log') . ')';
-			$strCleanPgrep = '-f "chmod.*chown.*rm.*' . $strTempFile . '"';
+			$strCleanCmd = '(chmod 777 ' . escapeshellarg($_POST['download_path']) . ' ' . escapeshellarg($strExtractedFile) . '; chown nobody:users ' . escapeshellarg($_POST['download_path']) . ' ' . escapeshellarg($strExtractedFile) . '; rm ' . escapeshellarg($strTempFile) . ' ' . escapeshellarg($strMD5File) . ' ' . escapeshellarg($strMD5StatusFile) . ')';
+			$strCleanPgrep = '-f "chmod.*chown.*rm.*' . $strMD5StatusFile . '"';
 
 			$strAllCmd = "#!/bin/bash\n\n";
 			$strAllCmd .= $strDownloadCmd . ' >>' . escapeshellarg($strLogFile) . ' 2>&1 && ';
@@ -145,6 +149,7 @@
 			$strAllCmd .= $strVerifyCmd . ' >' . escapeshellarg($strMD5StatusFile) . ' 2>/dev/null && ';
 			$strAllCmd .= $strExtractCmd . ' >>' . escapeshellarg($strLogFile) . ' 2>&1 && ';
 			$strAllCmd .= $strCleanCmd . ' >>' . escapeshellarg($strLogFile) . ' 2>&1 && ';
+			$strAllCmd .= 'rm ' . escapeshellarg($strLogFile) . ' && ';
 			$strAllCmd .= 'rm ' . escapeshellarg($strInstallScript);
 
 			$arrResponse = [];
@@ -213,11 +218,20 @@
 					// Status = running md5 check
 					$arrResponse['status'] = 'Downloading ... 100%';
 
+					if (!pgrep($strInstallScriptPgrep) && !$boolCheckOnly) {
+
+						// Run all commands
+						file_put_contents($strInstallScript, $strAllCmd);
+						chmod($strInstallScript, 0777);
+						exec($strInstallScript . ' >/dev/null 2>&1 &');
+
+					}
+
 				}
 
-			} else {
+			} else if (!$boolCheckOnly) {
 
-				if (!pgrep($strDownloadPgrep)) {
+				if (!pgrep($strInstallScriptPgrep)) {
 
 					// Run all commands
 					file_put_contents($strInstallScript, $strAllCmd);
@@ -230,6 +244,8 @@
 
 			}
 
+			$arrResponse['pid'] = pgrep($strInstallScriptPgrep);
+
 		}
 
 		echo json_encode($arrResponse);
@@ -241,12 +257,12 @@
 
 	$arrConfigDefaults = [
 		'template' => [
-			'os' => 'openelec',
-			'name' => 'OpenELEC',
-			'icon' => 'openelec.png',
+			'name' => $strSelectedTemplate,
+			'icon' => $arrAllTemplates[$strSelectedTemplate]['icon'],
 			'openelec' => $strOpenELECVersionID
 		],
 		'domain' => [
+			'name' => $strSelectedTemplate,
 			'persistent' => 1,
 			'uuid' => $lv->domain_generate_uuid(),
 			'clock' => 'utc',
@@ -259,11 +275,14 @@
 			'vcpus' => 1,
 			'vcpu' => [0],
 			'hyperv' => 0,
-			'ovmf' => 0
+			'ovmf' => 1,
+			'usbmode' => 'usb3'
 		],
 		'media' => [
 			'cdrom' => '',
-			'drivers' => ''
+			'cdrombus' => '',
+			'drivers' => '',
+			'driversbus' => ''
 		],
 		'disk' => [
 			[
@@ -277,6 +296,7 @@
 		'gpu' => [
 			[
 				'id' => '',
+				'mode' => 'qxl',
 				'keymap' => 'en-us'
 			]
 		],
@@ -301,6 +321,11 @@
 		]
 	];
 
+	// Merge in any default values from the VM template
+	if (!empty($arrAllTemplates[$strSelectedTemplate]) && !empty($arrAllTemplates[$strSelectedTemplate]['overrides'])) {
+		$arrConfigDefaults = array_replace_recursive($arrConfigDefaults, $arrAllTemplates[$strSelectedTemplate]['overrides']);
+	}
+
 	// If we are editing a existing VM load it's existing configuration details
 	$arrExistingConfig = (!empty($_GET['uuid']) ? domain_to_config($_GET['uuid']) : []);
 
@@ -311,6 +336,7 @@
 		$arrConfigDefaults['disk'][0]['image'] = $arrOpenELECVersions[$arrConfig['template']['openelec']]['localpath'];
 	}
 
+	$boolNew = empty($arrExistingConfig);
 	$boolRunning = (!empty($arrConfig['domain']['state']) && $arrConfig['domain']['state'] == 'running');
 
 
@@ -346,17 +372,40 @@
 		// Backup xml for existing domain in ram
 		$strOldXML = '';
 		$boolOldAutoStart = false;
-		$res = $lv->domain_get_name_by_uuid($_POST['domain']['uuid']);
-		if ($res) {
-			$strOldXML = $lv->domain_get_xml($res);
-			$boolOldAutoStart = $lv->domain_get_autostart($res);
+		$dom = $lv->domain_get_domain_by_uuid($_POST['domain']['uuid']);
+		if ($dom) {
+			$strOldXML = $lv->domain_get_xml($dom);
+			$boolOldAutoStart = $lv->domain_get_autostart($dom);
+			$strOldName = $lv->domain_get_name($dom);
+			$strNewName = $_POST['domain']['name'];
+
+			if (!empty($strOldName) &&
+				 !empty($strNewName) &&
+				 is_dir($domain_cfg['DOMAINDIR'].$strOldName.'/') &&
+				 !is_dir($domain_cfg['DOMAINDIR'].$strNewName.'/')) {
+
+				// mv domain/vmname folder
+				if (rename($domain_cfg['DOMAINDIR'].$strOldName, $domain_cfg['DOMAINDIR'].$strNewName)) {
+					// replace all disk paths in xml
+					foreach ($_POST['disk'] as &$arrDisk) {
+						if (!empty($arrDisk['new'])) {
+							$arrDisk['new'] = str_replace($domain_cfg['DOMAINDIR'].$strOldName.'/', $domain_cfg['DOMAINDIR'].$strNewName.'/', $arrDisk['new']);
+						}
+						if (!empty($arrDisk['image'])) {
+							$arrDisk['image'] = str_replace($domain_cfg['DOMAINDIR'].$strOldName.'/', $domain_cfg['DOMAINDIR'].$strNewName.'/', $arrDisk['image']);
+						}
+					}
+				}
+			}
 
 			//DEBUG
 			file_put_contents('/tmp/debug_libvirt_oldxml.xml', $strOldXML);
 		}
 
 		// Remove existing domain
-		$lv->domain_undefine($res);
+		$lv->nvram_backup($_POST['domain']['uuid']);
+		$lv->domain_undefine($dom);
+		$lv->nvram_restore($_POST['domain']['uuid']);
 
 		// Save new domain
 		$tmp = $lv->domain_new($_POST);
@@ -380,31 +429,18 @@
 ?>
 
 <style type="text/css">
-	.four label {
-		float: left;
-		display: table-cell;
-		width: 25%;
-	}
-	.four label:nth-child(4n+4) {
-		float: none;
-		clear: both;
-	}
-	.mac_generate {
-		cursor: pointer;
-		margin-left: -8px;
-		color: #08C;
-		font-size: 1.1em;
-	}
 	#openelec_image {
 		color: #BBB;
 		display: none;
+		transform: translate(0px, 3px);
 	}
 	.delete_openelec_image {
 		cursor: pointer;
-		margin-left: 4px;
-		margin-right: 4px;
+		margin-left: -5px;
+		margin-right: 5px;
 		color: #CC0011;
-		font-size: 1.1em;
+		font-size: 1.3em;
+		transform: translate(0px, 3px);
 	}
 </style>
 
@@ -412,12 +448,35 @@
 <input type="hidden" name="domain[uuid]" value="<?=$arrConfig['domain']['uuid']?>">
 <input type="hidden" name="domain[clock]" id="domain_clock" value="<?=$arrConfig['domain']['clock']?>">
 <input type="hidden" name="domain[arch]" value="<?=$arrConfig['domain']['arch']?>">
-<input type="hidden" name="template[os]" value="<?=$arrConfig['template']['os']?>">
+<input type="hidden" name="domain[oldname]" value="<?=htmlentities($arrConfig['domain']['name'])?>">
 
 <input type="hidden" name="disk[0][image]" id="disk_0" value="<?=$arrConfig['disk'][0]['image']?>">
 <input type="hidden" name="disk[0][dev]" value="<?=$arrConfig['disk'][0]['dev']?>">
 <input type="hidden" name="disk[0][readonly]" value="1">
 
+<div class="installed">
+	<table>
+		<tr>
+			<td>Name:</td>
+			<td><input type="text" name="domain[name]" id="domain_name" class="textTemplate" title="Name of virtual machine" placeholder="e.g. OpenELEC" value="<?=htmlentities($arrConfig['domain']['name'])?>" required /></td>
+		</tr>
+	</table>
+	<blockquote class="inline_help">
+		<p>Give the VM a name (e.g. OpenELEC Family Room, OpenELEC Theatre, OpenELEC)</p>
+	</blockquote>
+
+	<table>
+		<tr class="advanced">
+			<td>Description:</td>
+			<td><input type="text" name="domain[desc]" title="description of virtual machine" placeholder="description of virtual machine (optional)" value="<?=htmlentities($arrConfig['domain']['desc'])?>" /></td>
+		</tr>
+	</table>
+	<div class="advanced">
+		<blockquote class="inline_help">
+			<p>Give the VM a brief description (optional field).</p>
+		</blockquote>
+	</div>
+</div>
 
 <table>
 	<tr>
@@ -437,7 +496,6 @@
 <blockquote class="inline_help">
 	<p>Select which OpenELEC version to download or use for this VM</p>
 </blockquote>
-
 
 <div class="available">
 	<table>
@@ -464,13 +522,12 @@
 	</table>
 </div>
 
-
 <div class="installed">
 	<table>
 		<tr>
 			<td>Config Folder:</td>
 			<td>
-				<input type="text" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="/mnt/" value="<?=$arrConfig['shares'][0]['source']?>" name="shares[0][source]" placeholder="e.g. /mnt/user/appdata/openelec" title="path on unRAID share to save OpenELEC settings" />
+				<input type="text" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="/mnt/" value="<?=$arrConfig['shares'][0]['source']?>" name="shares[0][source]" placeholder="e.g. /mnt/user/appdata/openelec" title="path on unRAID share to save OpenELEC settings" required/>
 				<input type="hidden" value="<?=$arrConfig['shares'][0]['target']?>" name="shares[0][target]" />
 			</td>
 		</tr>
@@ -524,11 +581,9 @@
 			</td>
 		</tr>
 	</table>
-	<div class="advanced">
-		<blockquote class="inline_help">
-			<p>By default, VMs created will be pinned to physical CPU cores to improve performance.  From this view, you can adjust which actual CPU cores a VM will be pinned (minimum 1).</p>
-		</blockquote>
-	</div>
+	<blockquote class="inline_help">
+		<p>By default, VMs created will be pinned to physical CPU cores to improve performance.  From this view, you can adjust which actual CPU cores a VM will be pinned (minimum 1).</p>
+	</blockquote>
 
 	<table>
 		<tr>
@@ -598,7 +653,7 @@
 				<?php
 					echo mk_option($arrConfig['domain']['ovmf'], '0', 'SeaBIOS');
 
-					if (file_exists('/usr/share/qemu/ovmf-x64/OVMF-pure-efi.fd')) {
+					if (file_exists('/usr/share/qemu/ovmf-x64/OVMF_CODE-pure-efi.fd')) {
 						echo mk_option($arrConfig['domain']['ovmf'], '1', 'OVMF');
 					} else {
 						echo mk_option('', '0', 'OVMF (Not Available)', 'disabled="disabled"');
@@ -624,7 +679,6 @@
 		</blockquote>
 	</div>
 
-
 	<? foreach ($arrConfig['gpu'] as $i => $arrGPU) {
 		$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : '';
 
@@ -635,8 +689,10 @@
 				<td>
 					<select name="gpu[<?=$i?>][id]" class="gpu narrow">
 					<?
-						if ($i > 0) {
-							// Only additional video card can be none
+						if ($i == 0) {
+							// Only the first video card can be VNC
+							echo mk_option($arrGPU['id'], 'vnc', 'VNC');
+						} else {
 							echo mk_option($arrGPU['id'], '', 'None');
 						}
 
@@ -678,7 +734,6 @@
 			</tr>
 		</table>
 	</script>
-
 
 	<? foreach ($arrConfig['audio'] as $i => $arrAudio) {
 		$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : '';
@@ -725,7 +780,6 @@
 			</tr>
 		</table>
 	</script>
-
 
 	<? foreach ($arrConfig['nic'] as $i => $arrNic) {
 		$strLabel = ($i > 0) ? appendOrdinalSuffix($i + 1) : '';
@@ -794,7 +848,6 @@
 		</table>
 	</script>
 
-
 	<table>
 		<tr>
 			<td>USB Devices:</td>
@@ -821,11 +874,69 @@
 	</blockquote>
 
 	<table>
+		<tr class="advanced">
+			<td>USB Mode:</td>
+			<td>
+				<select name="domain[usbmode]" id="usbmode" class="narrow" title="Select the USB Mode to emulate.">
+				<?php
+					echo mk_option($arrConfig['domain']['usbmode'], 'usb2', '2.0 (EHCI)');
+					echo mk_option($arrConfig['domain']['usbmode'], 'usb3', '3.0 (XHCI)');
+				?>
+				</select>
+			</td>
+		</tr>
+	</table>
+	<div class="advanced">
+		<blockquote class="inline_help">
+			<p>
+				<b>USB Mode</b><br>
+				Select the USB Mode to emulate.
+			</p>
+		</blockquote>
+	</div>
+
+	<table>
+		<tr>
+			<td>Other PCI Devices:</td>
+			<td>
+				<div class="textarea" style="width: 540px">
+				<?
+					$intAvailableOtherPCIDevices = 0;
+
+					if (!empty($arrValidOtherDevices)) {
+						foreach($arrValidOtherDevices as $i => $arrDev) {
+							$extra = '';
+							if (count(array_filter($arrConfig['pci'], function($arr) use ($arrDev) { return ($arr['id'] == $arrDev['id']); }))) {
+								$extra .= ' checked="checked"';
+							} else if (!in_array($arrDev['driver'], ['pci-stub', 'vfio-pci'])) {
+								//$extra .= ' disabled="disabled"';
+								continue;
+							}
+							$intAvailableOtherPCIDevices++;
+					?>
+						<label for="pci<?=$i?>"><input type="checkbox" name="pci[]" id="pci<?=$i?>" value="<?=$arrDev['id']?>" <?=$extra?>/> <?=$arrDev['name']?> | <?=$arrDev['type']?><span class="advanced"> | <?=$arrDev['id']?></span></label><br/>
+					<?
+						}
+					}
+
+					if (empty($intAvailableOtherPCIDevices)) {
+						echo "<i>None available</i>";
+					}
+				?>
+				</div>
+			</td>
+		</tr>
+	</table>
+	<blockquote class="inline_help">
+		<p>If you wish to assign any other PCI devices to your guest, you can select them from this list.</p>
+	</blockquote>
+
+	<table>
 		<tr>
 			<td></td>
 			<td>
 			<? if (!$boolRunning) { ?>
-				<? if (!empty($arrConfig['domain']['name'])) { ?>
+				<? if (!$boolNew) { ?>
 					<input type="hidden" name="updatevm" value="1" />
 					<input type="button" value="Update" busyvalue="Updating..." readyvalue="Update" id="btnSubmit" />
 				<? } else { ?>
@@ -848,79 +959,49 @@
 
 <script type="text/javascript">
 $(function() {
-	var initComplete = false;
-	var vmicon = 'openelec.png';
-
-	$("#form_content #domain_mem").change(function changeMemEvent() {
-		$("#domain_maxmem").val($(this).val());
-	});
-
-	$("#form_content .domain_vcpu").change(function changeVCPUEvent() {
-		var $cores = $(".domain_vcpu:checked");
+	$("#vmform .domain_vcpu").change(function changeVCPUEvent() {
+		var $cores = $("#vmform .domain_vcpu:checked");
 
 		if ($cores.length == 1) {
 			$cores.prop("disabled", true);
 		} else {
-			$(".domain_vcpu").prop("disabled", false);
+			$("#vmform .domain_vcpu").prop("disabled", false);
 		}
 	});
 
-	$("#form_content #domain_maxmem").change(function changeMaxMemEvent() {
-		if (parseFloat($(this).val()) < parseFloat($("#domain_mem").val())) {
-			$("#domain_mem").val($(this).val());
+	$("#vmform #domain_mem").change(function changeMemEvent() {
+		$("#vmform #domain_maxmem").val($(this).val());
+	});
+
+	$("#vmform #domain_maxmem").change(function changeMaxMemEvent() {
+		if (parseFloat($(this).val()) < parseFloat($("#vmform #domain_mem").val())) {
+			$("#vmform #domain_mem").val($(this).val());
 		}
 	});
 
-	$("#form_content").on("change keyup", ".disk", function changeDiskEvent() {
-		var $input = $(this);
-		var config = $input.data();
-
-		if (config.hasOwnProperty('pickfilter')) {
-			var $other_sections = $input.closest('table').find('.disk_file_options');
-
-			$.get("/plugins/dynamix.vm.manager/VMajax.php?action=file-info&file=" + encodeURIComponent($input.val()), function( info ) {
-				if (info.isfile || info.isblock) {
-					slideUpRows($other_sections);
-
-					$other_sections.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
-
-					$input.attr('name', $input.attr('name').replace('new', 'image'));
-				} else {
-					$other_sections.filter('.wasadvanced').removeClass('wasadvanced').addClass('advanced');
-
-					slideDownRows($other_sections.not(isVMAdvancedMode() ? '.basic' : '.advanced'));
-
-					$input.attr('name', $input.attr('name').replace('image', 'new'));
-				}
-			}, "json");
-		}
-	});
-
-	$("#form_content").on("change", ".gpu", function changeGPUEvent() {
+	$("#vmform").on("change", ".gpu", function changeGPUEvent() {
 		var myvalue = $(this).val();
 
-		$(".gpu").not(this).each(function () {
+		$("#vmform .gpu").not(this).each(function () {
 			if (myvalue == $(this).val()) {
 				$(this).prop("selectedIndex", 0).change();
 			}
 		});
 	});
 
-	$("#form_content input[data-pickroot]").fileTreeAttach();
-
-	$("#form_content").on("click", ".mac_generate", function generateMac() {
+	$("#vmform").on("click", ".mac_generate", function generateMac() {
 		var $input = $(this).prev('input');
 
-		$.get("/plugins/dynamix.vm.manager/VMajax.php?action=generate-mac", function( data ) {
+		$.getJSON("/plugins/dynamix.vm.manager/VMajax.php?action=generate-mac", function (data) {
 			if (data.mac) {
 				$input.val(data.mac);
 			}
-		}, "json");
+		});
 	});
 
-	$("#form_content #btnSubmit").click(function frmSubmit() {
+	$("#vmform #btnSubmit").click(function frmSubmit() {
 		var $button = $(this);
-		var $form = $('#domain_template').closest('form');
+		var $form = $button.closest('form');
 
 		//TODO: form validation
 
@@ -936,24 +1017,27 @@ $(function() {
 				done();
 			}
 			if (data.error) {
-        swal({title:"VM creation error",text:data.error,type:"error"});
+				swal({title:"VM creation error",text:data.error,type:"error"});
 				$form.find('input').prop('disabled', false);
-				$("#form_content .domain_vcpu").change(); // restore the cpu checkbox disabled states
+				$("#vmform .domain_vcpu").change(); // restore the cpu checkbox disabled states
 				$button.val($button.attr('readyvalue'));
 			}
 		}, "json");
 	});
 
-	$("#form_content #btnCancel").click(done);
+	$("#vmform #btnCancel").click(done);
 
+	var checkDownloadTimer = null;
+	var checkOrInitDownload = function(checkonly) {
+		clearTimeout(checkDownloadTimer);
 
-	$("#form_content #btnDownload").click(function frmDownload() {
-		var $button = $("#form_content #btnDownload");
-		var $form = $('#domain_template').closest('form');
+		var $button = $("#vmform #btnDownload");
+		var $form = $button.closest('form');
 
 		var postdata = {
-			download_version: $('#template_openelec').val(),
-			download_path: $('#download_path').val()
+			download_version: $('#vmform #template_openelec').val(),
+			download_path: $('#vmform #download_path').val(),
+			checkonly: ((typeof checkonly === 'undefined') ? false : !!checkonly) ? 1 : 0
 		};
 
 		$form.find('input').prop('disabled', true);
@@ -961,95 +1045,85 @@ $(function() {
 
 		$.post("/plugins/dynamix.vm.manager/templates/<?=basename(__FILE__)?>", postdata, function( data ) {
 			if (data.error) {
-				$("#download_status").html($("#download_status").html() + '<br><span style="color: red">' + data.error + '</span>');
-			} else {
-				var old_list = $("#download_status").html().split('<br>');
+				$("#vmform #download_status").html($("#vmform #download_status").html() + '<br><span style="color: red">' + data.error + '</span>');
+			} else if (data.status) {
+				var old_list = $("#vmform #download_status").html().split('<br>');
 
 				if (old_list.pop().split(' ... ').shift() == data.status.split(' ... ').shift()) {
 					old_list.push(data.status);
-					$("#download_status").html(old_list.join('<br>'));
+					$("#vmform #download_status").html(old_list.join('<br>'));
 				} else {
-					$("#download_status").html($("#download_status").html() + '<br>' + data.status);
+					$("#vmform #download_status").html($("#vmform #download_status").html() + '<br>' + data.status);
 				}
 
-				if (data.status != 'Done') {
-					setTimeout(frmDownload, 1000);
+				if (data.pid) {
+					checkDownloadTimer = setTimeout(checkOrInitDownload, 1000);
 					return;
 				}
 
-				$("#template_openelec").find('option:selected').attr({
-					localpath: data.localpath,
-					localfolder:  data.localfolder,
-					valid: '1'
-				});
-				$("#template_openelec").change();
+				if (data.status == 'Done') {
+					$("#vmform #template_openelec").find('option:selected').attr({
+						localpath: data.localpath,
+						localfolder:  data.localfolder,
+						valid: '1'
+					});
+					$("#vmform #template_openelec").change();
+				}
 			}
 
 			$button.val($button.attr('readyvalue'));
 			$form.find('input').prop('disabled', false);
 		}, "json");
+	};
+
+	$("#vmform #btnDownload").click(function changeVirtIOVersion() {
+		checkOrInitDownload(false);
 	});
 
-
 	// Fire events below once upon showing page
-	$("#template_openelec").change(function changeOpenELECVersion() {
+	$("#vmform #template_openelec").change(function changeOpenELECVersion() {
+		clearTimeout(checkDownloadTimer);
+
 		$selected = $(this).find('option:selected');
 
 		if ($selected.attr('valid') === '0') {
-			$(".available").slideDown('fast');
-			$(".installed").slideUp('fast');
-			$("#download_status").html('');
-			$("#download_path").val($selected.attr('localfolder'));
+			$("#vmform .available").slideDown('fast');
+			$("#vmform .installed").slideUp('fast');
+			$("#vmform #download_status").html('');
+			$("#vmform #download_path").val($selected.attr('localfolder'));
 			if ($selected.attr('localpath') !== '') {
-				// auto click download button to see status of current running job
-				$("#btnDownload").click();
+				// Check status of current running job (but dont initiate a new download)
+				checkOrInitDownload(true);
 			}
 		} else {
-			$(".available").slideUp('fast');
-			$(".installed").slideDown('fast', function () {
-				$("#form_content .domain_vcpu").change(); // restore the cpu checkbox disabled states
+			$("#vmform .available").slideUp('fast');
+			$("#vmform .installed").slideDown('fast', function () {
+				$("#vmform .domain_vcpu").change(); // restore the cpu checkbox disabled states
 
 				// attach delete openelec image onclick event
-				$("#form_content .delete_openelec_image").off().click(function deleteOEVersion() {
-          swal({title:"Are you sure?",text:"Remove this OpenELEC file: ",type:"warning",showCancelButton:true},function() {
+				$("#vmform .delete_openelec_image").off().click(function deleteOEVersion() {
+					swal({title:"Are you sure?",text:"Remove this OpenELEC file:\n"+$selected.attr('localpath'),type:"warning",showCancelButton:true},function() {
 						$.post("/plugins/dynamix.vm.manager/templates/<?=basename(__FILE__)?>", {delete_version: $selected.val()}, function(data) {
 							if (data.error) {
-                swal({title:"VM image deletion error",text:data.error,type:"error"});
+								swal({title:"VM image deletion error",text:data.error,type:"error"});
 							} else if (data.status == 'ok') {
 								$selected.attr({
 									localpath: '',
 									valid: '0'
 								});
 							}
-							$("#template_openelec").change();
+							$("#vmform #template_openelec").change();
 						}, "json");
 					});
 				}).hover(function () {
-					$("#openelec_image").css('color', '#666');
+					$("#vmform #openelec_image").css('color', '#666');
 				}, function () {
-					$("#openelec_image").css('color', '#BBB');
+					$("#vmform #openelec_image").css('color', '#BBB');
 				});
 			});
-			$("#form_content #disk_0").val($selected.attr('localpath'));
-			$("#form_content #openelec_image").html($selected.attr('localpath'));
+			$("#vmform #disk_0").val($selected.attr('localpath'));
+			$("#vmform #openelec_image").html($selected.attr('localpath'));
 		}
 	}).change(); // Fire now too!
-
-	$("#form_content table[data-category]").each(function () {
-		var category = $(this).data('category');
-
-		updatePrefixLabels(category);
-		bindSectionEvents(category);
-	});
-
-	$("#form_content .disk").not("[value='']")
-		.attr('name', function(){ return $(this).attr('name').replace('new', 'image'); })
-		.closest('table').find('.disk_file_options').hide()
-		.filter('.advanced').removeClass('advanced').addClass('wasadvanced');
-
-	$('#template_icon').val(vmicon);
-	$('#template_img').prop('src', '/plugins/dynamix.vm.manager/templates/images/' + vmicon);
-
-	initComplete = true;
 });
 </script>

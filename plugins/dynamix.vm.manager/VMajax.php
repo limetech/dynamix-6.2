@@ -202,10 +202,7 @@ switch ($action) {
 			mkdir($dir);
 
 		// determine the actual disk if user share is being used
-		if (strpos($dir, '/mnt/user/') === 0) {
-			$tmp = parse_ini_string(shell_exec("getfattr -n user.LOCATION " . escapeshellarg($dir) . " | grep user.LOCATION"));
-			$dir = str_replace('/mnt/user', '/mnt/' . $tmp['user.LOCATION'], $dir);  // replace 'user' with say 'cache' or 'disk1' etc
-		}
+		$dir = transpose_user_path($dir);
 
 		@exec("chattr +C -R " . escapeshellarg($dir) . " >/dev/null");
 
@@ -248,7 +245,7 @@ switch ($action) {
 
 		// if file, get size and format info
 		if (is_file($file)) {
-			$json_info = json_decode(shell_exec("qemu-img info --output json " . escapeshellarg($file)), true);
+			$json_info = getDiskImageInfo($file);
 			if (!empty($json_info)) {
 				$intDisplaySize = (int)$json_info['virtual-size'];
 				$intShifts = 0;
@@ -293,6 +290,47 @@ switch ($action) {
 		$arrResponse = [
 			'mac' => $lv->generate_random_mac_addr()
 		];
+		break;
+
+	case 'get-vm-icons':
+		$arrImages = [];
+		foreach (glob("/usr/local/emhttp/plugins/dynamix.vm.manager/templates/images/*.png") as $png_file) {
+			$arrImages[] = [
+				'custom' => false,
+				'basename' => basename($png_file),
+				'url' => '/plugins/dynamix.vm.manager/templates/images/' . basename($png_file)
+			];
+		}
+		$arrResponse = $arrImages;
+		break;
+
+	case 'get-usb-devices':
+		$arrValidUSBDevices = getValidUSBDevices();
+		$arrResponse = $arrValidUSBDevices;
+		break;
+
+
+	case 'hot-attach-usb':
+		//TODO - If usb is a block device, then attach as a <disk type="usb"> otherwise <hostdev type="usb">
+		/*
+			<hostdev mode='subsystem' type='usb'>
+				<source startupPolicy='optional'>
+					<vendor id='0x1234'/>
+					<product id='0xbeef'/>
+				</source>
+			</hostdev>
+
+			<disk type='block' device='disk'>
+				<driver name='qemu' type='raw'/>
+				<source dev='/dev/sda'/>
+				<target dev='hdX' bus='virtio'/>
+			</disk>
+		*/
+
+		break;
+
+	case 'hot-detach-usb':
+		//TODO
 		break;
 
 	case 'acs-override-enable':
@@ -358,6 +396,216 @@ switch ($action) {
 		}
 
 		$arrResponse = ['success' => true, 'label' => $strCurrentLabel];
+		break;
+
+	case 'virtio-win-iso-info':
+		$path = $_REQUEST['path'];
+		$file = $_REQUEST['file'];
+
+		if (empty($file)) {
+			$arrResponse = ['exists' => false];
+			break;
+		}
+
+		if (is_file($file)) {
+			$arrResponse = ['exists' => true, 'path' => $file];
+			break;
+		}
+
+		if (empty($path) || !is_dir($path)) {
+			$path = '/mnt/user/isos/';
+		} else {
+			$path = str_replace('//', '/', $path.'/');
+		}
+		$file = $path.$file;
+
+		if (is_file($file)) {
+			$arrResponse = ['exists' => true, 'path' => $file];
+			break;
+		}
+
+		$arrResponse = ['exists' => false];
+		break;
+
+	case 'virtio-win-iso-download':
+		$arrDownloadVirtIO = [];
+		$strKeyName = basename($_POST['download_version'], '.iso');
+		if (array_key_exists($strKeyName, $virtio_isos)) {
+			$arrDownloadVirtIO = $virtio_isos[$strKeyName];
+		}
+
+		if (empty($arrDownloadVirtIO)) {
+			$arrResponse = ['error' => 'Unknown version: ' . $_POST['download_version']];
+		} else if (empty($_POST['download_path'])) {
+			$arrResponse = ['error' => 'Specify a ISO storage path first'];
+		//} else if (!is_dir($_POST['download_path'])) {
+		//	$arrResponse = ['error' => 'ISO storage path doesn\'t exist, please create the user share (or empty folder) first'];
+		} else {
+			@mkdir($_POST['download_path'], 0777, true);
+			$_POST['download_path'] = realpath($_POST['download_path']) . '/';
+
+			$boolCheckOnly = !empty($_POST['checkonly']);
+
+			$strInstallScript = '/tmp/VirtIOWin_' . $strKeyName . '_install.sh';
+			$strInstallScriptPgrep = '-f "VirtIOWin_' . $strKeyName . '_install.sh"';
+			$strTargetFile = $_POST['download_path'] . $arrDownloadVirtIO['name'];
+			$strLogFile = $strTargetFile . '.log';
+			$strMD5File = $strTargetFile . '.md5';
+			$strMD5StatusFile = $strTargetFile . '.md5status';
+
+			// Save to /boot/config/domain.conf
+			$domain_cfg['MEDIADIR'] = $_POST['download_path'];
+			$domain_cfg['VIRTIOISO'] = $strTargetFile;
+			$tmp = '';
+			foreach ($domain_cfg as $key => $value) $tmp .= "$key=\"$value\"\n";
+			file_put_contents($domain_cfgfile, $tmp);
+
+			$strDownloadCmd = 'wget -nv -c -O ' . escapeshellarg($strTargetFile) . ' ' . escapeshellarg($arrDownloadVirtIO['url']);
+			$strDownloadPgrep = '-f "wget.*' . $strTargetFile . '.*' . $arrDownloadVirtIO['url'] . '"';
+
+			$strVerifyCmd = 'md5sum -c ' . escapeshellarg($strMD5File);
+			$strVerifyPgrep = '-f "md5sum.*' . $strMD5File . '"';
+
+			$strCleanCmd = '(chmod 777 ' . escapeshellarg($_POST['download_path']) . ' ' . escapeshellarg($strTargetFile) . '; chown nobody:users ' . escapeshellarg($_POST['download_path']) . ' ' . escapeshellarg($strTargetFile) . '; rm ' . escapeshellarg($strMD5File) . ' ' . escapeshellarg($strMD5StatusFile) . ')';
+			$strCleanPgrep = '-f "chmod.*chown.*rm.*' . $strMD5StatusFile . '"';
+
+			$strAllCmd = "#!/bin/bash\n\n";
+			$strAllCmd .= $strDownloadCmd . ' >>' . escapeshellarg($strLogFile) . ' 2>&1 && ';
+			$strAllCmd .= 'echo "' . $arrDownloadVirtIO['md5'] . '  ' . $strTargetFile . '" > ' . escapeshellarg($strMD5File) . ' && ';
+			$strAllCmd .= $strVerifyCmd . ' >' . escapeshellarg($strMD5StatusFile) . ' 2>/dev/null && ';
+			$strAllCmd .= $strCleanCmd . ' >>' . escapeshellarg($strLogFile) . ' 2>&1 && ';
+			$strAllCmd .= 'rm ' . escapeshellarg($strLogFile) . ' && ';
+			$strAllCmd .= 'rm ' . escapeshellarg($strInstallScript);
+
+			$arrResponse = [];
+
+			if (file_exists($strTargetFile)) {
+
+				if (!file_exists($strLogFile)) {
+
+					if (!pgrep($strDownloadPgrep)) {
+
+						// Status = done
+						$arrResponse['status'] = 'Done';
+						$arrResponse['localpath'] = $strTargetFile;
+						$arrResponse['localfolder'] = dirname($strTargetFile);
+
+					} else {
+
+						// Status = cleanup
+						$arrResponse['status'] = 'Cleanup ... ';
+
+					}
+
+				} else {
+
+					if (pgrep($strDownloadPgrep)) {
+
+						// Get Download percent completed
+						$intSize = filesize($strTargetFile);
+						$strPercent = 0;
+						if ($intSize > 0) {
+							$strPercent = round(($intSize / $arrDownloadVirtIO['size']) * 100);
+						}
+
+						$arrResponse['status'] = 'Downloading ... ' . $strPercent . '%';
+
+					} else if (pgrep($strVerifyPgrep)) {
+
+						// Status = running md5 check
+						$arrResponse['status'] = 'Verifying ... ';
+
+					} else if (file_exists($strMD5StatusFile)) {
+
+						// Status = running extract
+						$arrResponse['status'] = 'Cleanup ... ';
+
+						if (!pgrep($strExtractPgrep)) {
+							// Examine md5 status
+							$strMD5StatusContents = file_get_contents($strMD5StatusFile);
+
+							if (strpos($strMD5StatusContents, ': FAILED') !== false) {
+
+								// ERROR: MD5 check failed
+								unset($arrResponse['status']);
+								$arrResponse['error'] = 'MD5 verification failed, your download is incomplete or corrupted.';
+
+							}
+						}
+
+					} else if (!file_exists($strMD5File)) {
+
+						// Status = running md5 check
+						$arrResponse['status'] = 'Downloading ... 100%';
+
+						if (!pgrep($strInstallScriptPgrep) && !$boolCheckOnly) {
+
+							// Run all commands
+							file_put_contents($strInstallScript, $strAllCmd);
+							chmod($strInstallScript, 0777);
+							exec($strInstallScript . ' >/dev/null 2>&1 &');
+
+						}
+
+					}
+
+				}
+
+			} else if (!$boolCheckOnly) {
+
+				if (!pgrep($strInstallScriptPgrep)) {
+
+					// Run all commands
+					file_put_contents($strInstallScript, $strAllCmd);
+					chmod($strInstallScript, 0777);
+					exec($strInstallScript . ' >/dev/null 2>&1 &');
+
+				}
+
+				$arrResponse['status'] = 'Downloading ... ';
+
+			}
+
+			$arrResponse['pid'] = pgrep($strInstallScriptPgrep);
+
+		}
+		break;
+
+
+	case 'virtio-win-iso-cancel':
+		$arrDownloadVirtIO = [];
+		$strKeyName = basename($_POST['download_version'], '.iso');
+		if (array_key_exists($strKeyName, $virtio_isos)) {
+			$arrDownloadVirtIO = $virtio_isos[$strKeyName];
+		}
+
+		if (empty($arrDownloadVirtIO)) {
+			$arrResponse = ['error' => 'Unknown version: ' . $_POST['download_version']];
+		} else if (empty($_POST['download_path'])) {
+			$arrResponse = ['error' => 'ISO storage path was empty'];
+		} else if (!is_dir($_POST['download_path'])) {
+			$arrResponse = ['error' => 'ISO storage path doesn\'t exist'];
+		} else {
+			$strInstallScriptPgrep = '-f "VirtIOWin_' . $strKeyName . '_install.sh"';
+			$pid = pgrep($strInstallScriptPgrep);
+			if (!$pid) {
+				$arrResponse = ['error' => 'Not running'];
+			} else {
+				if (!posix_kill($pid, SIGTERM)) {
+					$arrResponse = ['error' => 'Wasn\'t able to stop the process'];
+				} else {
+					$strTargetFile = $_POST['download_path'] . $arrDownloadVirtIO['name'];
+					$strLogFile = $strTargetFile . '.log';
+					$strMD5File = $strTargetFile . '.md5';
+					$strMD5StatusFile = $strTargetFile . '.md5status';
+					@unlink($strTargetFile);
+					@unlink($strMD5File);
+					@unlink($strMD5StatusFile);
+					@unlink($strLogFile);
+					$arrResponse['status'] = 'Done';
+				}
+			}
+		}
 		break;
 
 

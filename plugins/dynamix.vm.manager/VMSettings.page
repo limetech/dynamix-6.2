@@ -71,18 +71,39 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
 <style>
-  body { -webkit-overflow-scrolling: touch;}
-  .fileTree {
-	width: 305px;
-	max-height: 150px;
-	overflow: scroll;
-	position: absolute;
-	z-index: 100;
-	display: none;
-  }
+	body { -webkit-overflow-scrolling: touch;}
+	.fileTree {
+		width: 305px;
+		max-height: 150px;
+		overflow: scroll;
+		position: absolute;
+		z-index: 100;
+		display: none;
+	}
+	.basic{display:block;}
+	.advanced{display:none;white-space:nowrap;}
+	.switch-button-label.off{color: inherit;}
+	#winvirtio{display:none;}
+	#download_status {
+		margin-left: 5px;
+		color: #777;
+		display: none;
+	}
+	#download_button {
+		cursor: pointer;
+		margin-left: -5px;
+		color: #08C;
+		font-size: 1.4em;
+		display: none;
+		transform: translate(0px, 4px);
+	}
+	#download_button.fa-spin {
+		cursor: default;
+		color: #777;
+	}
 </style>
-
-
+<span class="status" style="margin-top: -44px;"><input type="checkbox" class="advancedview"></span>
+<span class="status advanced" style="margin-top: -4px;"><a id="openlog" title="/var/log/libvirt/libvirtd.log" href="#" onclick="openWindow('/webGui/scripts/tail_log&amp;arg1=libvirt/libvirtd.log','Log Information',600,900);">view libvirt log</a></span>
 <form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$domain_cfgfile;?>" />
 <input type="hidden" id="command" name="#command" value="" />
@@ -95,23 +116,61 @@ Enable VMs:
 
 > Stopping the VM Manager will first attempt to shutdown all running VMs.  After 40 seconds, any remaining VM instances will be terminated.
 
+<div class="advanced" markdown="1">
 <? if ($libvirt_service == 'enable') {
 	$libvirt_info = libvirt_version('libvirt');
 	$qemu_info = $lv->get_connect_information(); ?>
-Libvirt Version:
+Libvirt version:
 : <?= $libvirt_info['libvirt.major'] . '.' .  $libvirt_info['libvirt.minor'] . '.' .  $libvirt_info['libvirt.release']; ?>
 
-QEMU Version:
+QEMU version:
 : <?= $qemu_info['hypervisor_major'] . '.' .  $qemu_info['hypervisor_minor'] . '.' .  $qemu_info['hypervisor_release']; ?>
 <? } ?>
 
-ISO Library Share <span style="font-weight: normal">(optional)</span>:
-: <input type="text" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="MEDIADIR" value="<?=$domain_cfg['MEDIADIR']?>" placeholder="Click to Select">
+Default VM storage path:
+: <input type="text" id="domaindir" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="DOMAINDIR" value="<?=$domain_cfg['DOMAINDIR']?>" placeholder="Click to Select">
+
+> Specify a user share that contains all your VM subdirectories with vdisks
+
+Default ISO storage path:
+: <input type="text" id="mediadir" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="MEDIADIR" value="<?=$domain_cfg['MEDIADIR']?>" placeholder="Click to Select">
 
 > Specify a user share that contains all your installation media for operating systems
+</div>
 
-VirtIO Windows Drivers ISO <span style="font-weight: normal">(optional)</span>:
-: <input type="text" data-pickfilter="iso" data-pickcloseonfile="true" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="VIRTIOISO" value="<?=$domain_cfg['VIRTIOISO']?>" placeholder="Click to Select">
+<div markdown="1">
+Default Windows VirtIO driver ISO <span style="font-weight: normal">(optional)</span>:
+: <select id="winvirtio_select" class="narrow">
+<?
+	$iso_dir = $domain_cfg['MEDIADIR'];
+	if (empty($iso_dir) || !is_dir($iso_dir)) {
+		$iso_dir = '/mnt/user/isos/';
+	} else {
+		$iso_dir = str_replace('//', '/', $iso_dir.'/');
+	}
+
+	$strManual = '';
+	if (!empty($domain_cfg['MEDIADIR']) &&
+		!empty($domain_cfg['VIRTIOISO']) &&
+		dirname($domain_cfg['VIRTIOISO']) != '.' &&
+		strpos($iso_dir, dirname($domain_cfg['VIRTIOISO'])) !== 0) {
+		$strManual = 'manual';
+	}
+
+	$strMatch = $strManual;
+	foreach ($virtio_isos as $key => $value) {
+		if (empty($strMatch) &&
+			(basename($domain_cfg['VIRTIOISO']) == $value['name']) &&
+			is_file($iso_dir.$value['name'])
+			) {
+			$strMatch = $value['name'];
+		}
+		echo mk_option($strMatch, $value['name'], $value['name']);
+	}
+
+	echo mk_option($strManual, 'manual', 'Manual');
+?>
+</select><input type="text" id="winvirtio" name="VIRTIOISO" data-pickfilter="iso" data-pickcloseonfile="true" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" value="<?=$domain_cfg['VIRTIOISO']?>" placeholder="Click to Select"><i class="fa fa-download" id="download_button" title="Download Windows VirtIO driver ISO"></i><span id="download_status"></span>
 
 > Specify the virtual CD-ROM (ISO) that contains the VirtIO Windows drivers as provided by the Fedora Project.
 > Download the latest ISO from here: <a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download</a>
@@ -121,13 +180,10 @@ VirtIO Windows Drivers ISO <span style="font-weight: normal">(optional)</span>:
 > Inside there will be various folders for the different versions of Windows.  Open the folder for the version of Windows
 > you are installing and then select the AMD64 subfolder inside (even if you are on an Intel system, select AMD64).
 > Three drivers will be found.  Select them all, click next, and the vDisks you have assigned will appear.
+</div>
 
-<!--
-vDisk Share <span style="font-weight: normal">(optional)</span>:
-: <input type="text" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="/mnt/" name="DISKDIR" value="<?=$domain_cfg['DISKDIR']?>" placeholder="Click to Select (ie. /mnt/cache/images)" title="Click to Select (ie. /mnt/cache/images)">
--->
-
-Default Network Bridge:
+<div class="advanced" markdown="1">
+Default network bridge:
 : <select id="bridge" name="BRNAME">
 <?php
 	foreach ($arrValidBridges as $strBridge) {
@@ -142,7 +198,7 @@ Default Network Bridge:
 >
 > NOTE:  You can also specify an network bridge on a per-VM basis.
 
-PCIe ACS Override:
+Enable PCIe ACS Override:
 : <select id="pcie_acs_override" class="narrow">
 <?= mk_option(($boolACSInSyslinux ? '1' : '0'), '0', 'No'); ?>
 <?= mk_option(($boolACSInSyslinux ? '1' : '0'), '1', 'Yes'); ?>
@@ -151,6 +207,7 @@ PCIe ACS Override:
 > Warning:  Use of this setting could cause possible data corruption with certain hardware configurations.  Please visit the Lime Technology forums for more information.
 >
 > A reboot will be required for changes to this setting to take affect.
+</div>
 
 &nbsp;
 : <input type="button" id="applyBtn" value="Apply"/><input type="button" value="Done" onclick="done()">
@@ -179,5 +236,103 @@ $(function(){
 	});
 
 	$("input[data-pickroot]").fileTreeAttach();
+
+	$("#mediadir").on("input change", function() {
+		$("#winvirtio_select").change();
+	});
+
+	var checkDownloadTimer = null;
+	var checkOrInitDownload = function(checkonly) {
+		clearTimeout(checkDownloadTimer);
+
+		var $button = $("#download_button");
+		var $form = $button.closest('form');
+
+		var postdata = {
+			action: "virtio-win-iso-download",
+			download_version: $('#winvirtio_select').val(),
+			download_path: $('#mediadir').val(),
+			checkonly: ((typeof checkonly === 'undefined') ? false : !!checkonly) ? 1 : 0
+		};
+
+		$form.find('input,select').prop('disabled', true);
+		$button.removeClass('fa-download').addClass('fa-circle-o-notch fa-spin');
+
+		$.post("/plugins/dynamix.vm.manager/VMajax.php", postdata, function( data ) {
+			if (data.error) {
+				$("#download_status").html('<span style="color: red">' + data.error + '</span>');
+			} else {
+				$("#download_status").html(data.status);
+
+				if (data.pid) {
+					checkDownloadTimer = setTimeout(checkOrInitDownload, 1000);
+					return;
+				}
+
+				if (data.status == 'Done') {
+					$("#winvirtio_select").change();
+				}
+			}
+
+			$button.removeClass('fa-circle-o-notch fa-spin').addClass('fa-download');
+			$form.find('input,select').prop('disabled', false);
+		}, "json");
+	};
+
+	$("#download_button").click(function changeVirtIOVersion() {
+		if (!$(this).hasClass('fa-spin')) {
+			checkOrInitDownload(false);
+		}
+	});
+
+	// Fire events below once upon showing page
+	$("#winvirtio_select").change(function changeVirtIOVersion() {
+		clearTimeout(checkDownloadTimer);
+
+		if ($(this).val()=='manual') {
+			$("#download_button,#download_status").hide('fast');
+			$("#winvirtio").show('fast');
+			return;
+		}
+
+		$("#winvirtio").hide('fast');
+
+		var params = {
+			action: "virtio-win-iso-info",
+			path: $("#mediadir").val(),
+			file: $(this).val()
+		};
+
+		$.get("/plugins/dynamix.vm.manager/VMajax.php", params, function( data ) {
+
+			if (!data.exists) {
+				$("#download_button").show('fast');
+				$("#download_status").html('').show('fast');
+				if (data.pid) {
+					checkOrInitDownload(true);
+				}
+			} else {
+				$("#download_button,#download_status").hide('fast');
+				$("#winvirtio").val(data.path);
+			}
+
+		}, "json");
+	}).change(); // Fire now too!
+
+	if ($.cookie('vmsettings_view_mode') == 'advanced') {
+		$('.advanced').show();
+		$('.basic').hide();
+	}
+	$('.advancedview').switchButton({
+		labels_placement: "left",
+		on_label: 'Advanced View',
+		off_label: 'Basic View',
+		checked: $.cookie('vmsettings_view_mode') == 'advanced'
+	});
+	$('.advancedview').change(function () {
+		$('.advanced').toggle('slow');
+		$('.basic').toggle('slow');
+		$.cookie('vmsettings_view_mode', $('.advancedview').is(':checked') ? 'advanced' : 'basic', { expires: 3650 });
+	});
 });
 </script>

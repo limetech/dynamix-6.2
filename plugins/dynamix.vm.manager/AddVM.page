@@ -1,4 +1,5 @@
-Title="Add VM"
+Title="Add {$_GET['template']} VM"
+Png="addvm.png"
 Cond="(pgrep('libvirtd')!==false)"
 Markdown="false"
 ---

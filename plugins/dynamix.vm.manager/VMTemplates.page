@@ -1,0 +1,55 @@
+Menu="VMs:2"
+Title="Templates"
+Cond="(pgrep('libvirtd')!==false)"
+---
+<?PHP
+/* Copyright 2015, Lime Technology
+ * Copyright 2015, Derek Macias, Eric Schultz, Jon Panozzo.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<style type="text/css">
+	.vmheader {
+		padding: 10px;
+		font-size: 16px;
+		text-align: left;
+		color: #888;
+	}
+	.vmtemplate {
+		display: inline-block;
+		width: 80px;
+		height: 90px;
+		margin-bottom: 15px;
+		margin-left: 10px;
+		text-align: center;
+		vertical-align: top;
+	}
+	.vmtemplate img {
+		width: 48px;
+		height: 48px;
+	}
+	.vmtemplate p {
+		text-align: center;
+		line-height: 12px;
+	}
+</style>
+<? foreach($arrAllTemplates as $strName => $arrTemplate):
+	if (empty($arrTemplate)) {
+		// render header
+		echo '<div class="vmheader">'.$strName.'</div>';
+		continue;
+	}
+?>
+<div class="vmtemplate">
+	<a href="/VMs/AddVM?template=<?=htmlentities(urlencode($strName))?>">
+		<img src="/plugins/dynamix.vm.manager/templates/images/<?=$arrTemplate['icon']?>">
+		<p><?=$strName?></p>
+	</a>
+</div>
+<? endforeach; ?>

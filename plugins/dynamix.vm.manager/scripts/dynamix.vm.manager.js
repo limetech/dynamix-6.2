@@ -98,7 +98,7 @@ function toggleRows(what, val, what2, onComplete) {
 }
 
 function updatePrefixLabels(category) {
-	$("#form_content table:data(category)").filter(function() {
+	$("#vmform table:data(category)").filter(function() {
 		return $(this).data('category') == category;
 	}).each(function (index) {
 		var oldprefix = $(this).data('prefix');
@@ -124,7 +124,7 @@ function updatePrefixLabels(category) {
 }
 
 function bindSectionEvents(category) {
-	var $Filtered = $("#form_content table:data(category)").filter(function(index) {
+	var $Filtered = $("#vmform table:data(category)").filter(function(index) {
 		return $(this).data('category') == category;
 	});
 
@@ -209,15 +209,21 @@ function clickAddSection() {
 	$el_showable = $template.find('tr').not("." + (isVMAdvancedMode() ? 'basic' : 'advanced'));
 
 	slideDownRows($el_showable);
+
+	$table.parent().trigger('spawn_section', [ $template, $template.data() ]);
 }
 
 function clickRemoveSection() {
 	var $table = $(this).closest('table');
-	var category = $table.data('category');
+	var $parent = $table.parent();
+	var tabledata = $table.data();
 
-	slideUpRows($table.find('tr'), function() {
+	slideUpRows($table, function() {
+		$table.detach();
+		$parent.trigger('destroy_section', [ $table, tabledata ]);
 		$table.remove();
-		updatePrefixLabels(category);
-		bindSectionEvents(category);
+
+		updatePrefixLabels(tabledata.category);
+		bindSectionEvents(tabledata.category);
 	});
 }

@@ -16,35 +16,381 @@
 	if (! isset($var)){
 		if (! is_file("/usr/local/emhttp/state/var.ini")) shell_exec("wget -qO /dev/null localhost:$(lsof -nPc emhttp | grep -Po 'TCP[^\d]*\K\d+')");
 		$var = @parse_ini_file("/usr/local/emhttp/state/var.ini");
+		$disks = @parse_ini_file("/usr/local/emhttp/state/disks.ini", true);
+		extract(parse_plugin_cfg("dynamix",true));
 	}
-
 
 	// Check if program is running and
 	$libvirt_running = trim(shell_exec( "[ -f /proc/`cat /var/run/libvirt/libvirtd.pid 2> /dev/null`/exe ] && echo 'yes' || echo 'no' 2> /dev/null" ));
 
+
+	$arrAllTemplates = [
+		' Windows ' => '', /* Windows Header */
+
+		'Windows 10' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windows.png',
+			'os' => 'windows10',
+			'overrides' => [
+				'domain' => [
+					'mem' => 2048 * 1024,
+					'maxmem' => 2048 * 1024
+				],
+				'disk' => [
+					[
+						'size' => '30G'
+					]
+				]
+			]
+		],
+
+		'Windows 8.x' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windows.png',
+			'os' => 'windows',
+			'overrides' => [
+				'domain' => [
+					'name' => 'Windows 8.1',
+					'mem' => 2048 * 1024,
+					'maxmem' => 2048 * 1024
+				],
+				'disk' => [
+					[
+						'size' => '30G'
+					]
+				]
+			]
+		],
+
+		'Windows 7' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windows7.png',
+			'os' => 'windows7',
+			'overrides' => [
+				'domain' => [
+					'mem' => 2048 * 1024,
+					'maxmem' => 2048 * 1024,
+					'ovmf' => 0,
+					'usbmode' => 'usb2'
+				],
+				'disk' => [
+					[
+						'size' => '30G'
+					]
+				]
+			]
+		],
+
+		'Windows XP' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windowsxp.png',
+			'os' => 'windowsxp',
+			'overrides' => [
+				'domain' => [
+					'ovmf' => 0,
+					'usbmode' => 'usb2'
+				],
+				'disk' => [
+					[
+						'size' => '15G'
+					]
+				]
+			]
+		],
+
+		'Windows Server 2016' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windows.png',
+			'os' => 'windows2016',
+			'overrides' => [
+				'domain' => [
+					'mem' => 2048 * 1024,
+					'maxmem' => 2048 * 1024
+				],
+				'disk' => [
+					[
+						'size' => '30G'
+					]
+				]
+			]
+		],
+
+		'Windows Server 2012' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windows.png',
+			'os' => 'windows2012',
+			'overrides' => [
+				'domain' => [
+					'mem' => 2048 * 1024,
+					'maxmem' => 2048 * 1024
+				],
+				'disk' => [
+					[
+						'size' => '30G'
+					]
+				]
+			]
+		],
+
+		'Windows Server 2008' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windowsxp.png',
+			'os' => 'windows2008',
+			'overrides' => [
+				'domain' => [
+					'usbmode' => 'usb2'
+				],
+				'disk' => [
+					[
+						'size' => '30G'
+					]
+				]
+			]
+		],
+
+		'Windows Server 2003' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'windowsxp.png',
+			'os' => 'windows2003',
+			'overrides' => [
+				'domain' => [
+					'usbmode' => 'usb2'
+				],
+				'disk' => [
+					[
+						'size' => '15G'
+					]
+				]
+			]
+		],
+
+
+		' Pre-packaged ' => '', /* Pre-built Header */
+
+		'OpenELEC' => [
+			'form' => 'OpenELEC.form.php',
+			'icon' => 'openelec.png'
+		],
+
+
+		' Linux ' => '', /* Linux Header */
+
+		'Linux' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'linux.png',
+			'os' => 'linux'
+		],
+		'Arch' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'arch.png',
+			'os' => 'arch'],
+		'CentOS' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'centos.png',
+			'os' => 'centos'
+		],
+		'ChromeOS' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'chromeos.png',
+			'os' => 'chromeos'
+		],
+		'CoreOS' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'coreos.png',
+			'os' => 'coreos'
+		],
+		'Debian' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'debian.png',
+			'os' => 'debian'
+		],
+		'Fedora' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'fedora.png',
+			'os' => 'fedora'
+		],
+		'FreeBSD' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'freebsd.png',
+			'os' => 'freebsd'
+		],
+		'OpenSUSE' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'opensuse.png',
+			'os' => 'opensuse'
+		],
+		'RedHat' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'redhat.png',
+			'os' => 'redhat'
+		],
+		'Scientific' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'scientific.png',
+			'os' => 'scientific'
+		],
+		'Slackware' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'slackware.png',
+			'os' => 'slackware'
+		],
+		'SteamOS' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'steamos.png',
+			'os' => 'steamos'
+		],
+		'Ubuntu' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'ubuntu.png',
+			'os' => 'ubuntu'
+		],
+		'VyOS' => [
+			'form' => 'Custom.form.php',
+			'icon' => 'vyos.png',
+			'os' => 'vyos'
+		],
+
+
+		' ' => '', /* Custom / XML Expert Header */
+
+		'Custom' => [
+			'form' => 'XML_Expert.form.php',
+			'icon' => 'default.png'
+		]
+	];
+
+
+	$virtio_isos = [
+		'virtio-win-0.1.110-2' => [
+			'name' => 'virtio-win-0.1.110-2.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.110-2/virtio-win-0.1.110.iso',
+			'size' => 56586240,
+			'md5' => '93357a5105f1255591f1c389748288a9'
+		],
+		'virtio-win-0.1.110-1' => [
+			'name' => 'virtio-win-0.1.110-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.110-1/virtio-win-0.1.110.iso',
+			'size' => 56586240,
+			'md5' => '239e0eb442bb63c177deb4af39397731'
+		],
+		'virtio-win-0.1.109-2' => [
+			'name' => 'virtio-win-0.1.109-2.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.109-2/virtio-win-0.1.109.iso',
+			'size' => 56606720,
+			'md5' => '2a9f78f648f03fe72decdadb38837db3'
+		],
+		'virtio-win-0.1.109-1' => [
+			'name' => 'virtio-win-0.1.109-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.109-1/virtio-win-0.1.109.iso',
+			'size' => 56606720,
+			'md5' => '1b0da008d0ec79a6223d21be2fcce2ee'
+		],
+		'virtio-win-0.1.108-1' => [
+			'name' => 'virtio-win-0.1.108-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.108-1/virtio-win-0.1.108.iso',
+			'size' => 56598528,
+			'md5' => '46deb991f8c382f2d9af0fb786792990'
+		],
+		'virtio-win-0.1.106-1' => [
+			'name' => 'virtio-win-0.1.106-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.106-1/virtio-win-0.1.106.iso',
+			'size' => 56586240,
+			'md5' => '66228ea20fae1a28d7a1583b9a5a1b8b'
+		],
+		'virtio-win-0.1.105-1' => [
+			'name' => 'virtio-win-0.1.105-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.105-1/virtio-win-0.1.105.iso',
+			'size' => 56584192,
+			'md5' => 'c3194fa62a4a1ccbecfe784a52feda66'
+		],
+		'virtio-win-0.1.104-1' => [
+			'name' => 'virtio-win-0.1.104-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.104-1/virtio-win-0.1.104.iso',
+			'size' => 56584192,
+			'md5' => '9aa28b6f5b18770d796194aaaeeea31a'
+		],
+		'virtio-win-0.1.103-2' => [
+			'name' => 'virtio-win-0.1.103-2.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.103-2/virtio-win-0.1.103.iso',
+			'size' => 56340480,
+			'md5' => '07c4356880f0b385d6908392e48d6e75'
+		],
+		'virtio-win-0.1.103' => [
+			'name' => 'virtio-win-0.1.103.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.103/virtio-win-0.1.103.iso',
+			'size' => 49903616,
+			'md5' => 'd31069b620820b75730d2def7690c271'
+		],
+		'virtio-win-0.1.102' => [
+			'name' => 'virtio-win-0.1.102.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.102/virtio-win-0.1.102.iso',
+			'size' => 160755712,
+			'md5' => '712561dd78ef532c54f8fee927c1ce2e'
+		],
+		'virtio-win-0.1.101' => [
+			'name' => 'virtio-win-0.1.101.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.101/virtio-win-0.1.101.iso',
+			'size' => 160755712,
+			'md5' => 'cf73576efc03685907c1fa49180ea388'
+		],
+		'virtio-win-0.1.100' => [
+			'name' => 'virtio-win-0.1.100.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.100/virtio-win-0.1.100.iso',
+			'size' => 160704512,
+			'md5' => '8b21136f988bef7981ee580e9101b6b4'
+		],
+		'virtio-win-0.1.96' => [
+			'name' => 'virtio-win-0.1.96.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.96/virtio-win-0.1.96.iso',
+			'size' => 160659456,
+			'md5' => 'd406bf6748b9ba4c872c5b5301ba7272'
+		]
+	];
+
+	$domain_cfg_defaults = [
+		"SERVICE" => "disable",
+		"DEBUG" => "no",
+		"DOMAINDIR" => "/mnt/user/domains/",
+		"MEDIADIR" => "/mnt/user/isos/",
+		"VIRTIOISO" => "",
+		"BRNAME" => "",
+		"VMSTORAGEMODE" => "auto"
+	];
+	$domain_cfg = $domain_cfg_defaults;
+
 	// Create domain config if needed
 	$domain_cfgfile = "/boot/config/domain.cfg";
 	if (!file_exists($domain_cfgfile)) {
-		file_put_contents($domain_cfgfile, 'SERVICE="disable"'."\n".'DEBUG="no"'."\n".'MEDIADIR="/mnt/"'."\n".'VIRTIOISO=""'."\n".'DISKDIR="/mnt/"'."\n".'BRNAME=""'."\n");
+		$tmp = '';
+		foreach ($domain_cfg_defaults as $key => $value) $tmp .= "$key=\"$value\"\n";
+		file_put_contents($domain_cfgfile, $tmp);
 	} else {
 		// This will clean any ^M characters (\r) caused by windows from the config file
 		shell_exec("sed -i 's!\r!!g' '$domain_cfgfile'");
+
+		$domain_cfg_existing = parse_ini_file($domain_cfgfile);
+		if (!empty($domain_cfg_existing)) {
+			$domain_cfg = array_merge($domain_cfg_defaults, $domain_cfg_existing);
+		}
 	}
 
-	$domain_cfg = parse_ini_file($domain_cfgfile);
-
-	if (!isset($domain_cfg['VIRTIOISO'])) {
-		$domain_cfg['VIRTIOISO'] = "";
-	}
-
-	$domain_debug = isset($domain_cfg['DEBUG']) ? $domain_cfg['DEBUG'] : "no";
-	if ($domain_debug != "yes") {
+	if ($domain_cfg['DEBUG'] != "yes") {
 		error_reporting(0);
+	}
+
+	if (empty($domain_cfg['VMSTORAGEMODE'])) {
+		$domain_cfg['VMSTORAGEMODE'] = "auto";
+	}
+	if (!empty($domain_cfg['DOMAINDIR'])) {
+		$domain_cfg['DOMAINDIR'] = rtrim($domain_cfg['DOMAINDIR'], '/') . '/';
+	}
+	if (!empty($domain_cfg['MEDIADIR'])) {
+		$domain_cfg['MEDIADIR'] = rtrim($domain_cfg['MEDIADIR'], '/') . '/';
 	}
 
 	$domain_bridge = (!($domain_cfg['BRNAME'])) ? 'virbr0' : $domain_cfg['BRNAME'];
 	$msg = (empty($domain_bridge)) ? "Error: Setup Bridge in Settings/Network Settings" : false;
-	$libvirt_service = isset($domain_cfg['SERVICE']) ?	$domain_cfg['SERVICE'] : "disable";
+	$libvirt_service = isset($domain_cfg['SERVICE']) ? $domain_cfg['SERVICE'] : "disable";
 
 	if ($libvirt_running == "yes"){
 		$lv = new Libvirt('qemu:///system', null, null, false);
@@ -53,54 +399,15 @@
 		$maxmem = number_format(($arrHostInfo['memory'] / 1048576), 1, '.', ' ');
 	}
 
-	$theme = $display['theme'];
 	//set color on even rows for white or black theme
-	function bcolor($row, $color) {
-		if ($color == "white")
-			$color = ($row % 2 == 0) ? "transparent" : "#F8F8F8";
-		else
-			$color = ($row % 2 == 0) ? "transparent" : "#0C0C0C";
-		return $color;
-	}
+	function bcolor($row) {
+		global $display;
 
-	//create checkboxes for usb devices
-	function usb_checkbox($usb, $key) {
-		$deviceid = substr(strstr($usb, 'ID'),3,9);
-		echo '<input class="checkbox" type="checkbox" value="'.$deviceid.'" name="usb['.$key.']" />';
-		echo "<label>$usb</label><br />";
-	}
+		if (empty($display) || $display['theme'] == "white")
+			return ($row % 2 == 0) ? "transparent" : "#F8F8F8";
 
-	//create memory drop down option based on max memory
-	function memOption($maxmem) {
-		for ($i = 1; $i <= ($maxmem*2); $i++) {
-			$mem = ($i*512);
-			echo "<option value='$mem'>$mem</option>";
-		}
+		return ($row % 2 == 0) ? "transparent" : "#0C0C0C";
 	}
-
-	//create drop down options from arrays
-	function arrayOptions($ValueArray, $DisplayArray, $value) {
-		for ($i = 0; $i < sizeof($ValueArray); $i++) {
-			echo "<option value='$ValueArray[$i]'";
-			if ($ValueArray[$i] == $value)
-				echo " selected='selected'>$DisplayArray[$i] *</option>";
-			else
-				echo ">$DisplayArray[$i]</option>";
-		}
-	}
-
-	//create memory drop down options
-	function memOptions($maxmem, $mem) {
-		for ($i = 1; $i <= ($maxmem*2); $i++) {
-			$mem2 = ($i*512);
-			echo "<option value=".$mem2*1024;
-			if ((int)$mem == $mem2*1024)
-				echo " selected='selected'>$mem2 *</option>";
-			else
-				echo ">$mem2</option>";
-		}
-	}
-
 
 	function mk_dropdown_options($arrOptions, $strSelected) {
 		foreach ($arrOptions as $key => $label) {
@@ -118,6 +425,11 @@
 		}
 
 		return $abbreviation;
+	}
+
+	function getDiskImageInfo($strImgPath) {
+		$arrJSON = json_decode(shell_exec("qemu-img info --output json " . escapeshellarg($strImgPath) . " 2>/dev/null"), true);
+		return $arrJSON;
 	}
 
 
@@ -177,6 +489,15 @@
 					continue;
 				}
 
+				// Attempt to get the current kernel-bound driver for this pci device
+				$strDriver = '';
+				if (is_link('/sys/bus/pci/devices/0000:' . $arrMatch['id'] . '/driver')) {
+					$strLink = @readlink('/sys/bus/pci/devices/0000:' . $arrMatch['id'] . '/driver');
+					if (!empty($strLink)) {
+						$strDriver = basename($strLink);
+					}
+				}
+
 				// Specialized vendor name cleanup
 				// e.g.: Advanced Micro Devices, Inc. [AMD/ATI] --> Advanced Micro Devices, Inc.
 				if (preg_match('/(?P<gpuvendor>.+) \[.+\]/', $arrMatch['vendorname'], $arrGPUMatch)) {
@@ -197,6 +518,7 @@
 					'productid' => $arrMatch['productid'],
 					'productname' => $arrMatch['productname'],
 					'class' => $strClass,
+					'driver' => $strDriver,
 					'name' => $arrMatch['vendorname'] . ' ' . $arrMatch['productname']
 				);
 			}
@@ -238,6 +560,17 @@
 		});
 
 		return $arrValidOtherDevices;
+	}
+
+
+	function getValidOtherStubbedDevices() {
+		$arrValidPCIDevices = getValidPCIDevices();
+
+		$arrValidOtherStubbedDevices = array_filter($arrValidPCIDevices, function($arrDev) {
+			return ($arrDev['class'] == 'other' && in_array($arrDev['driver'], ['pci-stub', 'vfio-pci']));
+		});
+
+		return $arrValidOtherStubbedDevices;
 	}
 
 
@@ -346,6 +679,29 @@
 	}
 
 
+	function getValidBusTypes() {
+		$arrValidBusTypes = [
+			'virtio' => 'VirtIO',
+			'sata' => 'SATA',
+			'ide' => 'IDE',
+			'usb' => 'USB'
+		];
+
+		return $arrValidBusTypes;
+	}
+
+
+	function getValidVNCModels() {
+		$arrValidVNCModels = [
+			'cirrus' => 'Cirrus',
+			'qxl' => 'QXL (best)',
+			'vmvga' => 'vmvga'
+		];
+
+		return $arrValidVNCModels;
+	}
+
+
 	function getValidKeyMaps() {
 		$arrValidKeyMaps = [
 			'ar' => 'Arabic (ar)',
@@ -414,6 +770,7 @@
 
 	function domain_to_config($uuid) {
 		global $lv;
+		global $domain_cfg;
 
 		$arrValidGPUDevices = getValidGPUDevices();
 		$arrValidAudioDevices = getValidAudioDevices();
@@ -436,7 +793,7 @@
 		$xmldoc = new DOMDocument();
         $xmldoc->loadXML($strDOMXML);
         $xpath = new DOMXPath($xmldoc);
-        $objNodes = $xpath->query('//domain/metadata/vmtemplate/@*');
+        $objNodes = $xpath->query('//domain/metadata/*[local-name()=\'vmtemplate\']/@*');
 
         $arrTemplateValues = [];
         if ($objNodes->length > 0) {
@@ -459,6 +816,7 @@
 		if (!empty($intVNCPort)) {
 			$arrGPUDevices[] = [
 				'id' => 'vnc',
+				'model' => $lv->domain_get_vnc_model($res),
 				'keymap' => $lv->domain_get_vnc_keymap($res)
 			];
 		}
@@ -500,8 +858,15 @@
 				'size' => '',
 				'driver' => 'raw',
 				'dev' => $disk['device'],
-				'bus' => $disk['bus']
+				'bus' => $disk['bus'],
+				'select' => $domain_cfg['VMSTORAGEMODE']
 			];
+		}
+
+		// HACK: If there's only 1 cdrom and the dev=hdb then it's most likely a VirtIO Driver ISO instead of the OS Install ISO
+		if (!empty($medias) && count($medias) == 1 && array_key_exists('device', $medias[0]) && $medias[0]['device'] == 'hdb') {
+			$medias[] = null;
+			$medias = array_reverse($medias);
 		}
 
 		return [
@@ -523,11 +888,14 @@
 				'hyperv' => ($lv->domain_get_feature($res, 'hyperv') ? 1 : 0),
 				'autostart' => ($lv->domain_get_autostart($res) ? 1 : 0),
 				'state' => $lv->domain_state_translate($dom['state']),
-				'ovmf' => ($lv->domain_get_ovmf($res) ? 1 : 0)
+				'ovmf' => ($lv->domain_get_ovmf($res) ? 1 : 0),
+				'usbmode' => ($lv->_get_single_xpath_result($res, '//domain/devices/controller[@model=\'nec-xhci\']') ? 'usb3' : 'usb2')
 			],
 			'media' => [
 				'cdrom' => (!empty($medias) && !empty($medias[0]) && array_key_exists('file', $medias[0])) ? $medias[0]['file'] : '',
-				'drivers' => (!empty($medias) && !empty($medias[1]) && array_key_exists('file', $medias[1])) ? $medias[1]['file'] : ''
+				'cdrombus' => (!empty($medias) && !empty($medias[0]) && array_key_exists('bus', $medias[0])) ? $medias[0]['bus'] : 'ide',
+				'drivers' => (!empty($medias) && !empty($medias[1]) && array_key_exists('file', $medias[1])) ? $medias[1]['file'] : '',
+				'driversbus' => (!empty($medias) && !empty($medias[1]) && array_key_exists('bus', $medias[1])) ? $medias[1]['bus'] : 'ide'
 			],
 			'disk' => $arrDisks,
 			'gpu' => $arrGPUDevices,
