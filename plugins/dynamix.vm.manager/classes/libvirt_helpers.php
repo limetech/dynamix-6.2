@@ -183,7 +183,8 @@
 		'Arch' => [
 			'form' => 'Custom.form.php',
 			'icon' => 'arch.png',
-			'os' => 'arch'],
+			'os' => 'arch'
+		],
 		'CentOS' => [
 			'form' => 'Custom.form.php',
 			'icon' => 'centos.png',
@@ -791,16 +792,16 @@
 		// libvirt xpath parser sucks, use php's xpath parser instead
 		$strDOMXML = $lv->domain_get_xml($res);
 		$xmldoc = new DOMDocument();
-        $xmldoc->loadXML($strDOMXML);
-        $xpath = new DOMXPath($xmldoc);
-        $objNodes = $xpath->query('//domain/metadata/*[local-name()=\'vmtemplate\']/@*');
+		$xmldoc->loadXML($strDOMXML);
+		$xpath = new DOMXPath($xmldoc);
+		$objNodes = $xpath->query('//domain/metadata/*[local-name()=\'vmtemplate\']/@*');
 
-        $arrTemplateValues = [];
-        if ($objNodes->length > 0) {
-        	foreach ($objNodes as $objNode) {
-        		$arrTemplateValues[$objNode->nodeName] = $objNode->nodeValue;
-        	}
-        }
+		$arrTemplateValues = [];
+		if ($objNodes->length > 0) {
+			foreach ($objNodes as $objNode) {
+				$arrTemplateValues[$objNode->nodeName] = $objNode->nodeValue;
+			}
+		}
 
 		if (empty($arrTemplateValues['name'])) {
 			$arrTemplateValues['name'] = 'Custom';

@@ -168,7 +168,7 @@ $(function() {
 	});
 
 	setTimeout(function() {
-    	editor.refresh();
+		editor.refresh();
 	}, 1);
 
 	$("#vmform #btnSubmit").click(function frmSubmit() {

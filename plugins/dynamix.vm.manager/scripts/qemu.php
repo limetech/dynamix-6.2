@@ -25,7 +25,7 @@ function detect_user_share(&$arg) {
 			}
 		}
 
-	    return $match[0];
+		return $match[0];
 	}, $arg);
 };
 
