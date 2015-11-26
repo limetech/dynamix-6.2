@@ -31,8 +31,10 @@ function addLog(logLine) {
   window.scrollTo(0,document.body.scrollHeight);
 }
 
-function show_Prog(prog) {
-  $(".progress:last").text(prog);
+function loadLog(container, since) {
+  $.get(location.protocol+'//'+location.host+location.pathname,{action:'log',container:container,since:since},function(data){
+    if(data) $('.logLine:last').append(data);
+  });
 }
 </script>
 </head>

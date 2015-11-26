@@ -84,6 +84,8 @@ if(jQuery) (function($){
 						if ($(this).text() == "..") {
 							// Restart fileTree with the parent dir as root
 							options.root = data.rel;
+							if (folder) folder($(this).attr('rel'));
+							_trigger($(this), 'filetreefolderclicked', data);
 							root = $(this).closest('ul.jqueryFileTree');
 							root.html('<ul class="jqueryFileTree start"><li class="wait">' + options.loadMessage + '<li></ul>');
 							showTree( $(root), options.root, options.allowBrowsing );

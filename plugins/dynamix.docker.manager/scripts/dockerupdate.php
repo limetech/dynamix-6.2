@@ -12,38 +12,40 @@
  */
 ?>
 <?
-require_once("/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php");
+exec("pgrep docker",$pid);
+if (count($pid)==1) exit(0);
 
-$docker = new DockerTemplates();
+require_once("/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php");
+$DockerClient = new DockerClient();
+$DockerTemplates = new DockerTemplates();
 
 foreach ($argv as $arg) {
   switch ($arg) {
-  case '-v'   : $docker->verbose = true; break;
+  case '-v'   : $DockerTemplates->verbose = true; break;
   case 'check': $check = true; break;}
 }
 
 if (!isset($check)) {
   echo " Updating templates... ";
-  $docker->downloadTemplates();
+  $DockerTemplates->downloadTemplates();
   echo " Updating info... ";
-  $docker->getAllInfo(true);
+  $DockerTemplates->getAllInfo(true);
   echo " Done.";
 } else {
   require_once("/usr/local/emhttp/webGui/include/Wrappers.php");
-  $client = new DockerClient();
-  $update = new DockerUpdate();
   $notify = "/usr/local/emhttp/webGui/scripts/notify";
   $unraid = parse_plugin_cfg("dynamix",true);
   $server = strtoupper($var['NAME']);
   $output = $unraid['notify']['docker_notify'];
 
-  $list = $client->getDockerContainers();
-  $info = $docker->getAllInfo();
+  $list = $DockerClient->getDockerContainers();
+  $info = $DockerTemplates->getAllInfo(true);
   foreach ($list as $ct) {
     $name = $ct['Name'];
     $image = $ct['Image'];
     if ($info[$name]['updated'] == "false") {
-      $new = $update->getRemoteVersion($docker->getTemplateValue($image, "Registry"), $image);
+      $updateStatus = (is_file($dockerManPaths['update-status'])) ? json_decode(file_get_contents($dockerManPaths['update-status']), TRUE) : array();
+      $new = $updateStatus[$image]['remote'];
       exec("$notify -e 'Docker - $name [$new]' -s 'Notice [$server] - Docker update $new' -d 'A new version of $name is available' -i 'normal $output' -x");
     }
   }

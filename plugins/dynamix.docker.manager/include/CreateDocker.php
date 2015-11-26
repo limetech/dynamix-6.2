@@ -17,6 +17,15 @@ $DockerClient = new DockerClient();
 $DockerUpdate = new DockerUpdate();
 $DockerTemplates = new DockerTemplates();
 
+#   ███████╗██╗   ██╗███╗   ██╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗███████╗
+#   ██╔════╝██║   ██║████╗  ██║██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║██╔════╝
+#   █████╗  ██║   ██║██╔██╗ ██║██║        ██║   ██║██║   ██║██╔██╗ ██║███████╗
+#   ██╔══╝  ██║   ██║██║╚██╗██║██║        ██║   ██║██║   ██║██║╚██╗██║╚════██║
+#   ██║     ╚██████╔╝██║ ╚████║╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║███████║
+#   ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
+
+$echo = function($m){echo "<pre>".print_r($m,true)."</pre>";};
+
 function prepareDir($dir){
   if (strlen($dir)){
     if ( ! is_dir($dir) && ! is_file($dir)){
@@ -30,7 +39,6 @@ function prepareDir($dir){
 
 function ContainerExist($container){
   global $DockerClient;
-
   $all_containers = $DockerClient->getDockerContainers();
   if ( ! $all_containers) { return FALSE; }
   foreach ($all_containers as $ct) {
@@ -42,60 +50,67 @@ function ContainerExist($container){
   return False;
 }
 
+function ImageExist($image){
+  global $DockerClient;
+  $all_images = $DockerClient->getDockerImages();
+  if ( ! $all_images) { return FALSE; }
+  foreach ($all_images as $img) {
+    if ( ! is_bool(strpos($img['Tags'][0], $image)) ){
+      return True;
+      break;
+    }
+  }
+  return False;
+}
+
 function trimLine($text){
   return preg_replace("/([\n^])[\s]+/", '$1', $text);
 }
 
+$pullecho = function($line) {
+  global $alltotals;
+  $cnt =  json_decode( $line, TRUE );
+  $id = ( isset( $cnt['id'] )) ? $cnt['id'] : "";
+  $status = ( isset( $cnt['status'] )) ? $cnt['status'] : "";
+  if (strlen(trim($status)) && strlen(trim($id))) {
+    if ( isset($cnt['progressDetail']['total']) && $cnt['progressDetail']['total'] > 0 ) {
+      $alltotals[$cnt['id']] = $cnt['progressDetail']['total'];
+    }
+    echo "<script>addToID('${id}','${status}');</script>\n";
+    @flush();
+  }
+  if ($status == "Downloading") {
+    $total = $cnt['progressDetail']['total'];
+    $current = $cnt['progressDetail']['current'];
+    $alltotals[$cnt['id']] = $cnt['progressDetail']['current'];
+    if ($total > 0) {
+      $percentage = round(($current/$total) * 100);
+      echo "<script>progress('${id}',' ". $percentage ."% of " . sizeToHuman($total) . "');</script>\n";
+    } else {
+      // Docker must not know the total download size (http-chunked or something?)
+      //  just show the current download progress without the percentage
+      echo "<script>progress('${id}',' " . sizeToHuman($current) . "');</script>\n";
+    }
+    @flush();
+  }
+};
+
+
 function pullImage($image) {
+  global $DockerClient, $pullecho, $alltotals;
+  $alltotals = array();
   if (! preg_match("/:[\w]*$/i", $image)) $image .= ":latest";
   readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
-  echo '<script>function add_to_id(m){$(".id:last").append(" "+m);}</script>';
-  echo "<script>addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Pulling image: " . $image . "</legend><p class=\"logLine\" id=\"logBody\"></p></fieldset>');</script>";
+  echo "<script>
+  addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Pulling image: ${image}</legend><p class=\"logLine\" id=\"logBody\"></p></fieldset>');
+  function progress(id, prog){ $('.'+id+'_progress:last').text(prog);}
+  function addToID(id, m) {
+    if ($('#'+id).length === 0){ addLog('<span id=\"'+id+'\">IMAGE ID ['+id+']: </span>');}
+    if ($('#'+id).find('.content:last').text() != m){ $('#'+id).append('<span class=\"content\">'+m+'</span><span class=\"'+id+'_progress\"></span>. ');}
+  }</script>";
   @flush();
 
-  $fp = stream_socket_client('unix:///var/run/docker.sock', $errno, $errstr);
-  if ($fp === false) {
-    echo "Couldn't create socket: [$errno] $errstr";
-    return NULL;
-  }
-  $out="POST /images/create?fromImage=$image HTTP/1.1\r\nConnection: Close\r\n\r\n";
-  fwrite($fp, $out);
-  $cid = "";
-  $cstatus="";
-  $alltotals = [];
-  while (!feof($fp)) {
-    $cnt =  json_decode( fgets($fp, 5000), TRUE );
-    $id = ( isset( $cnt['id'] )) ? $cnt['id'] : "";
-    if ($id != $cid && strlen($id)) {
-      $cid = $id;
-      $cstatus = "";
-      echo "<script>addLog('IMAGE ID [". $id ."]: <span class=\"id\"></span>');</script>";
-      @flush();
-    }
-    $status = ( isset( $cnt['status'] )) ? $cnt['status'] : "";
-    if ($status != $cstatus && strlen($status)) {
-      if ( isset($cnt['progressDetail']['total']) && $cnt['progressDetail']['total'] > 0 ) {
-        $alltotals[$cnt['id']] = $cnt['progressDetail']['total'];
-      }
-      $cstatus = $status;
-      echo "<script>add_to_id('". $status ."<span class=\"progress\"></span>.');</script>";
-      @flush();
-    }
-    if ($status == "Downloading") {
-      $total = $cnt['progressDetail']['total'];
-      $current = $cnt['progressDetail']['current'];
-      $alltotals[$cnt['id']] = $cnt['progressDetail']['current'];
-      if ($total > 0) {
-        $percentage = round(($current/$total) * 100);
-        echo "<script>show_Prog(' ". $percentage ."% of " . sizeToHuman($total) . "');</script>\n";
-      } else {
-        // Docker must not know the total download size (http-chunked or something?)
-        //  just show the current download progress without the percentage
-        echo "<script>show_Prog(' " . sizeToHuman($current) . "');</script>\n";
-      }
-      @flush();
-    }
-  }
+  $DockerClient->pullImage($image, $pullecho);
   echo "<script>addLog('<br><b>TOTAL DATA PULLED:</b> " . sizeToHuman(array_sum($alltotals)) . "<span class=\"progress\"></span>');</script>\n";
 }
 
@@ -109,175 +124,291 @@ function sizeToHuman($size) {
   return ceil($size) . " " . $units[$unitsIndex];
 }
 
-function xmlToCommand($xmlFile){
-  global $var;
-    $doc = new DOMDocument();
-    $doc->loadXML($xmlFile);
-
-  $Name          = $doc->getElementsByTagName( "Name" )->item(0)->nodeValue;
-  $cmdName       = (strlen($Name)) ? '--name="' . $Name . '"' : "";
-  $Privileged    = $doc->getElementsByTagName( "Privileged" )->item(0)->nodeValue;
-  $cmdPrivileged = (strtolower($Privileged) == 'true') ?  '--privileged="true"' : "";
-  $Repository    = $doc->getElementsByTagName( "Repository" )->item(0)->nodeValue;
-  $Mode          = $doc->getElementsByTagName( "Mode" )->item(0)->nodeValue;
-  $cmdMode       = '--net="'.strtolower($Mode).'"';
-  $BindTime      = $doc->getElementsByTagName( "BindTime" )->item(0)->nodeValue;
-  // $cmdBindTime   = (strtolower($BindTime) == "true") ? '"/etc/localtime":"/etc/localtime":ro' : '';
-  $cmdBindTime   = (strtolower($BindTime) == "true") ? 'TZ="' . $var['timeZone'] . '"' : '';
-
-  $Ports = array('');
-  foreach($doc->getElementsByTagName('Port') as $port){
-    $ContainerPort = $port->getElementsByTagName( "ContainerPort" )->item(0)->nodeValue;
-    if (! strlen($ContainerPort)){ continue; }
-    $HostPort      = $port->getElementsByTagName( "HostPort" )->item(0)->nodeValue;
-    $Protocol      = $port->getElementsByTagName( "Protocol" )->item(0)->nodeValue;
-    $Ports[]       = sprintf("%s:%s/%s", $HostPort, $ContainerPort, $Protocol);
-  }
-
-  $Volumes = array('');
-  foreach($doc->getElementsByTagName('Volume') as $volume){
-    $ContainerDir = $volume->getElementsByTagName( "ContainerDir" )->item(0)->nodeValue;
-    if (! strlen($ContainerDir)){ continue; }
-    $HostDir      = $volume->getElementsByTagName( "HostDir" )->item(0)->nodeValue;
-    $DirMode      = $volume->getElementsByTagName( "Mode" )->item(0)->nodeValue;
-    $Volumes[]    = sprintf( '"%s":"%s":%s', $HostDir, $ContainerDir, $DirMode);
-  }
-
-  // if (strlen($cmdBindTime)) {
-  //   $Volumes[] = $cmdBindTime;
-  // }
-
-  $Variables = array('');
-  foreach($doc->getElementsByTagName('Variable') as $variable){
-    $VariableName  = $variable->getElementsByTagName( "Name" )->item(0)->nodeValue;
-    if (! strlen($VariableName)){ continue; }
-    $VariableValue = $variable->getElementsByTagName( "Value" )->item(0)->nodeValue;
-    $Variables[]   = sprintf('%s="%s"', $VariableName, $VariableValue);
-  }
-
-  if (strlen($cmdBindTime)) {
-    $Variables[] = $cmdBindTime;
-  }
-
-  $templateExtraParams = '';
-  if ( $doc->getElementsByTagName( "ExtraParams" )->length > 0 ) {
-    $templateExtraParams = $doc->getElementsByTagName( "ExtraParams" )->item(0)->nodeValue;
-  }
-
-  $cmd = sprintf('/plugins/dynamix.docker.manager/scripts/docker run -d %s %s %s %s %s %s %s %s', $cmdName, $cmdMode, $cmdPrivileged, implode(' -e ', $Variables),
-       implode(' -p ', $Ports), implode(' -v ', $Volumes), $templateExtraParams, $Repository);
-  $cmd = preg_replace('/\s+/', ' ', $cmd);
-
-  return array($cmd, $Name, $Repository);
+function xml_encode($string) {
+  return htmlspecialchars($string, ENT_XML1, 'UTF-8');
 }
-
-function addElement($doc, $el, $elName, $elVal){
-  $node = $el->appendChild($doc->createElement($elName));
-  $node->appendChild($doc->createTextNode($elVal));
-  return $node;
+function xml_decode($string) {
+  return strval(html_entity_decode($string, ENT_XML1, 'UTF-8'));
 }
 
 function postToXML($post, $setOwnership = FALSE){
-  global $DockerUpdate;
-  $doc = new DOMDocument('1.0', 'utf-8');
-  $doc->preserveWhiteSpace = false;
-  $doc->formatOutput = true;
-  $root = $doc->createElement('Container');
-  $root = $doc->appendChild($root);
+  $dom = new domDocument;
+  $dom->appendChild($dom->createElement( "Container" ));
+  $xml = simplexml_import_dom( $dom );
+  $xml["version"]          = 2;
+  $xml->Name               = xml_encode($post['contName']);
+  $xml->Repository         = xml_encode($post['contRepository']);
+  $xml->Registry           = xml_encode($post['contRegistry']);
+  $xml->Network            = xml_encode($post['contNetwork']);
+  $xml->Privileged         = (strtolower($post["contPrivileged"]) == 'on') ? 'true' : 'false';
+  $xml->Support            = xml_encode($post['contSupport']);
+  $xml->Overview           = xml_encode($post['contOverview']);
+  $xml->Category           = xml_encode($post['contCategory']);
+  $xml->WebUI              = xml_encode($post['contWebUI']);
+  $xml->Icon               = xml_encode($post['contIcon']);
+  $xml->ExtraParams        = xml_encode($post['contExtraParams']);
 
-  $docName       = $root->appendChild($doc->createElement('Name'));
-  if ( isset( $post[ 'Description' ] )) addElement($doc, $root, 'Description', $post[ 'Description' ]);
-  if ( isset( $post[ 'Registry' ] ))    addElement($doc, $root, 'Registry', $post[ 'Registry' ]);
-  $docRepository = $root->appendChild($doc->createElement('Repository'));
-  $BindTime      = $root->appendChild($doc->createElement('BindTime'));
-  $Privileged    = $root->appendChild($doc->createElement('Privileged'));
-  $Environment   = $root->appendChild($doc->createElement('Environment'));
-  $docNetworking = $root->appendChild($doc->createElement('Networking'));
-  $Data          = $root->appendChild($doc->createElement('Data'));
-  $Version       = $root->appendChild($doc->createElement('Version'));
-  $Mode          = $docNetworking->appendChild($doc->createElement('Mode'));
-  $Publish       = $docNetworking->appendChild($doc->createElement('Publish'));
-  $Name          = preg_replace('/\s+/', '', $post["containerName"]);
+  # V1 compatibility
+  $xml->Description      = xml_encode($post['contOverview']);
+  $xml->Networking->Mode = xml_encode($post['contNetwork']);
+  $xml->Networking->addChild("Publish");
+  $xml->addChild("Data");
+  $xml->addChild("Environment");
 
-  // Editor Values
-  if ( isset( $post[ 'WebUI' ] ))  addElement($doc, $root, 'WebUI', $post[ 'WebUI' ]);
-  if ( isset( $post[ 'Banner' ] )) addElement($doc, $root, 'Banner', $post[ 'Banner' ]);
-  if ( isset( $post[ 'Icon' ] ))   addElement($doc, $root, 'Icon', $post[ 'Icon' ]);
 
-  if ( isset( $post[ 'ExtraParams' ] ))   addElement($doc, $root, 'ExtraParams', $post[ 'ExtraParams' ]);
-
-  $docName->appendChild($doc->createTextNode($Name));
-  $docRepository->appendChild($doc->createTextNode($post["Repository"]));
-  $BindTime->appendChild($doc->createTextNode((strtolower($post["BindTime"])     == 'on') ? 'true' : 'false'));
-  $Privileged->appendChild($doc->createTextNode((strtolower($post["Privileged"]) == 'on') ? 'true' : 'false'));
-  $Mode->appendChild($doc->createTextNode(strtolower($post["NetworkType"])));
-
-  for ($i = 0; $i < count($post["hostPort"]); $i++){
-    if (! strlen($post["containerPort"][$i])) { continue; }
-    $protocol      = $post["portProtocol"][$i];
-    $Port          = $Publish->appendChild($doc->createElement('Port'));
-    $HostPort      = $Port->appendChild($doc->createElement('HostPort'));
-    $ContainerPort = $Port->appendChild($doc->createElement('ContainerPort'));
-    $Protocol      = $Port->appendChild($doc->createElement('Protocol'));
-    $HostPort->appendChild($doc->createTextNode(trim($post["hostPort"][$i])));
-    $ContainerPort->appendChild($doc->createTextNode($post["containerPort"][$i]));
-    $Protocol->appendChild($doc->createTextNode($protocol));
-  }
-
-  for ($i = 0; $i < count($post["VariableName"]); $i++){
-    if (! strlen($post["VariableName"][$i])) { continue; }
-    $Variable      = $Environment->appendChild($doc->createElement('Variable'));
-    $VariableName  = $Variable->appendChild($doc->createElement('Name'));
-    $VariableValue = $Variable->appendChild($doc->createElement('Value'));
-    $VariableName->appendChild($doc->createTextNode(trim($post["VariableName"][$i])));
-    $VariableValue->appendChild($doc->createTextNode(trim($post["VariableValue"][$i])));
-  }
-
-  for ($i = 0; $i < count($post["hostPath"]); $i++){
-    if (! strlen($post["hostPath"][$i])) { continue; }
-    if (! strlen($post["containerPath"][$i])) { continue; }
-    $tmpMode = $post["hostWritable"][$i];
-    if ($setOwnership){
-      prepareDir($post["hostPath"][$i]);
+  for ($i = 0; $i < count($post["confName"]); $i++) {
+    $Type                  = $post['confType'][$i];
+    $config                = $xml->addChild('Config');
+    $config->{0}           = xml_encode($post['confValue'][$i]);
+    $config['Name']        = xml_encode($post['confName'][$i]);
+    $config['Target']      = xml_encode($post['confTarget'][$i]);
+    $config['Default']     = xml_encode($post['confDefault'][$i]);
+    $config['Mode']        = xml_encode($post['confMode'][$i]);
+    $config['Description'] = xml_encode($post['confDescription'][$i]);
+    $config['Type']        = xml_encode($post['confType'][$i]);
+    $config['Display']     = xml_encode($post['confDisplay'][$i]);
+    $config['Required']    = xml_encode($post['confRequired'][$i]);
+    $config['Mask']        = xml_encode($post['confMask'][$i]);
+    # V1 compatibility
+    if ($Type == "Port"){
+      $port                = $xml->Networking->Publish->addChild("Port");
+      $port->HostPort      = $post['confValue'][$i];
+      $port->ContainerPort = $post['confTarget'][$i];
+      $port->Protocol      = $post['confMode'][$i];
+    } else if ($Type == "Path"){
+      $path               = $xml->Data->addChild("Volume");
+      $path->HostDir      = $post['confValue'][$i];
+      $path->ContainerDir = $post['confTarget'][$i];
+      $path->Mode         = $post['confMode'][$i];
+    } else if ($Type == "Variable"){
+      $variable        = $xml->Environment->addChild("Variable");
+      $variable->Value = $post['confValue'][$i];
+      $variable->Name  = $post['confTarget'][$i];
+      $variable->Mode  = $post['confMode'][$i];
     }
-    $Volume       = $Data->appendChild($doc->createElement('Volume'));
-    $HostDir      = $Volume->appendChild($doc->createElement('HostDir'));
-    $ContainerDir = $Volume->appendChild($doc->createElement('ContainerDir'));
-    $DirMode      = $Volume->appendChild($doc->createElement('Mode'));
-    $HostDir->appendChild($doc->createTextNode($post["hostPath"][$i]));
-    $ContainerDir->appendChild($doc->createTextNode($post["containerPath"][$i]));
-    $DirMode->appendChild($doc->createTextNode($tmpMode));
   }
-
-  $currentVersion = $DockerUpdate->getRemoteVersion($post["Registry"], $post["Repository"]);
-  $Version->appendChild($doc->createTextNode($currentVersion));
-
-  return $doc->saveXML();
+  $dom = new DOMDocument('1.0');
+  $dom->preserveWhiteSpace = false;
+  $dom->formatOutput = true;
+  $dom->loadXML($xml->asXML());
+  return $dom->saveXML();
 }
 
-if ($_POST){
+function xmlToVar($xml) {
+  global $var;
+  $out           = array();
+  $xml           = (is_file($xml)) ? simplexml_load_file($xml) : simplexml_load_string($xml);
+
+  $out['Name']        = xml_decode($xml->Name);
+  $out['Repository']  = xml_decode($xml->Repository);
+  $out['Registry']    = xml_decode($xml->Registry);
+  $out['Network']     = (isset($xml->Network)) ? xml_decode($xml->Network) : xml_decode($xml->Network['Default']);
+  $out['Privileged']  = xml_decode($xml->Privileged);
+  $out['Support']     = xml_decode($xml->Support);
+  $out['Overview']    = stripslashes(xml_decode($xml->Overview));
+  $out['Category']    = xml_decode($xml->Category);
+  $out['WebUI']       = xml_decode($xml->WebUI);
+  $out['Icon']        = xml_decode($xml->Icon);
+  $out['ExtraParams'] = xml_decode($xml->ExtraParams);
+
+  $out['Config'] = array();
+  if (isset($xml->Config)) {
+    foreach ($xml->Config as $config) {
+      $c = array();
+      $c['Value'] = strlen(xml_decode($config)) ? xml_decode($config) : xml_decode($config['Default']) ;
+      foreach ($config->attributes() as $key => $value) $c[$key] = xml_decode(xml_decode($value));
+      $out['Config'][] = $c;
+    }
+  }
+
+  # V1 compatibility
+  if ($xml["version"] != "2"){
+    if (isset($xml->Networking->Mode)){
+      $out['Network'] = xml_decode($xml->Networking->Mode);
+    }
+    if (isset($xml->Description)) {
+      $out['Overview'] = stripslashes(xml_decode($xml->Description));
+    }
+
+    if (isset($xml->Networking->Publish->Port)) {
+      $portNum = 0;
+      foreach ($xml->Networking->Publish->Port as $port) {
+        $portNum += 1;
+        $out['Config'][] = array('Name'       => "Port ${portNum}",
+                                 'Target'      => xml_decode($port->ContainerPort),
+                                 'Default'     => xml_decode($port->HostPort),
+                                 'Value'       => xml_decode($port->HostPort),
+                                 'Mode'        => xml_decode($port->Protocol),
+                                 'Description' => '',
+                                 'Type'        => 'Port',
+                                 'Display'     => 'always',
+                                 'Required'    => 'true',
+                                 'Mask'        => 'false',
+                                 );
+      }
+    }
+
+    if (isset($xml->Data->Volume)) {
+      $volNum = 0;
+      foreach ($xml->Data->Volume as $vol) {
+        $volNum += 1;
+        $out['Config'][] = array('Name'       => "Path ${volNum}",
+                                 'Target'      => xml_decode($vol->ContainerDir),
+                                 'Default'     => xml_decode($vol->HostDir),
+                                 'Value'       => xml_decode($vol->HostDir),
+                                 'Mode'        => xml_decode($vol->Mode),
+                                 'Description' => '',
+                                 'Type'        => 'Path',
+                                 'Display'     => 'always',
+                                 'Required'    => 'true',
+                                 'Mask'        => 'false',
+                                 );
+      }
+    }
+
+    if (isset($xml->Environment->Variable)) {
+      $varNum = 0;
+      foreach ($xml->Environment->Variable as $var) {
+        $varNum += 1;
+        $out['Config'][] = array('Name'       => "Variable ${varNum}",
+                                 'Target'      => xml_decode($var->Name),
+                                 'Default'     => xml_decode($var->Value),
+                                 'Value'       => xml_decode($var->Value),
+                                 'Mode'        => '',
+                                 'Description' => '',
+                                 'Type'        => 'Variable',
+                                 'Display'     => 'always',
+                                 'Required'    => 'false',
+                                 'Mask'        => 'false',
+                                 );
+      }
+    }
+  }
+
+  return $out;
+}
+
+function xmlToCommand($xml) {
+  global $var;
+  $xml           = xmlToVar($xml);
+  $cmdName       = (strlen($xml['Name'])) ? '--name="' . $xml['Name'] . '"' : "";
+  $cmdPrivileged = (strtolower($xml['Privileged']) == 'true') ?  '--privileged="true"' : "";
+  $cmdNetwork    = '--net="'.strtolower($xml['Network']).'"';
+  $Volumes       = array('');
+  $Ports         = array('');
+  $Variables     = array('');
+  $Devices       = array('');
+  # Bind Time
+  $Variables[]   = 'TZ="' . $var['timeZone'] . '"';
+  # Add HOST_OS variable
+  $Variables[]   = 'HOST_OS="unRAID"';
+
+  foreach ($xml['Config'] as $key => $config) {
+    $confType        = strtolower(strval($config['Type']));
+    $hostConfig      = strlen($config['Value']) ? $config['Value'] : $config['Default'];
+    $containerConfig = strval($config['Target']);
+    $Mode            = strval($config['Mode']);
+    if (! strlen($containerConfig)) continue;
+    if ($confType == "path") {
+      $Volumes[] = sprintf( '"%s":"%s":%s', $hostConfig, $containerConfig, $Mode);
+    } elseif ($confType == 'port') {
+      $Ports[] = sprintf("%s:%s/%s", $hostConfig, $containerConfig, $Mode);
+    } elseif ($confType == "variable") {
+      $Variables[] = sprintf('%s="%s"', $containerConfig, $hostConfig);
+    } elseif ($confType == "device") {
+      $Devices[] = '"'.$containerConfig.'"';
+    }
+  }
+  $cmd = sprintf('/plugins/dynamix.docker.manager/scripts/docker run -d %s %s %s %s %s %s %s %s %s',
+                 $cmdName,
+                 $cmdNetwork,
+                 $cmdPrivileged,
+                 implode(' -e ', $Variables),
+                 implode(' -p ', $Ports),
+                 implode(' -v ', $Volumes),
+                 implode(' --device=', $Devices),
+                 $xml['ExtraParams'],
+                 $xml['Repository']);
+
+  $cmd = preg_replace('/\s+/', ' ', $cmd);
+  return array($cmd, $xml['Name'], $xml['Repository']);
+}
+
+function getXmlVal($xml, $element, $attr=null, $pos=0) {
+  $xml = (is_file($xml)) ? simplexml_load_file($xml) : simplexml_load_string($xml);
+  $element = $xml->xpath("//$element")[$pos];
+  return isset($element) ? (isset($element[$attr]) ? strval($element[$attr]) : strval($element)) : "";
+}
+
+function setXmlVal(&$xml, $value, $el, $attr=null, $pos=0) {
+  global $echo;
+  $xml = (is_file($xml)) ? simplexml_load_file($xml) : simplexml_load_string($xml);
+  $element = $xml->xpath("//$el")[$pos];
+  if (! isset($element)) $element = $xml->addChild($el);
+  if ($attr) {
+    $element[$attr] = $value;
+  } else {
+    $element->{0} = $value;
+  }
+  $dom = new DOMDocument('1.0');
+  $dom->preserveWhiteSpace = false;
+  $dom->formatOutput = true;
+  $dom->loadXML($xml->asXML());
+  $xml = $dom->saveXML();
+}
+
+
+#    ██████╗ ██████╗ ██████╗ ███████╗
+#   ██╔════╝██╔═══██╗██╔══██╗██╔════╝
+#   ██║     ██║   ██║██║  ██║█████╗
+#   ██║     ██║   ██║██║  ██║██╔══╝
+#   ╚██████╗╚██████╔╝██████╔╝███████╗
+#    ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝
+
+##
+##   CREATE CONTAINER
+##
+
+if (isset($_POST['contName'])) {
 
   $postXML = postToXML($_POST, TRUE);
 
   // Get the command line
   list($cmd, $Name, $Repository) = xmlToCommand($postXML);
 
+  // Run dry
+  if ($_POST['dryRun'] == "true") {
+    echo "<h2>XML</h2>";
+    echo "<pre>".htmlentities($postXML)."</pre>";
+    echo "<h2>COMMAND:</h2>";
+    echo "<pre>".htmlentities($cmd)."</pre>";
+    echo '<center><input type="button" value="Done" onclick="done()"></center><br>';
+    goto END;
+  }
+
+  // Will only pull image if it's absent
+  if (! ImageExist($Repository)) {
+    // Pull image
+    pullImage($Repository);
+  }
+
   // Saving the generated configuration file.
   $userTmplDir = $dockerManPaths['templates-user'];
   if(is_dir($userTmplDir) === FALSE){
     mkdir($userTmplDir, 0777, true);
   }
-
   if(strlen($Name)) {
     $filename = sprintf('%s/my-%s.xml', $userTmplDir, $Name);
     file_put_contents($filename, $postXML);
   }
 
-  // Pull image
-  pullImage($Repository);
-
   // Remove existing container
   if (ContainerExist($Name)){
+    // attempt graceful stop of container first
+    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $Name";
+    include($dockerManPaths['plugin'] . "/include/Exec.php");
+
+    // force kill container if still running after 30 seconds
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $Name";
     include($dockerManPaths['plugin'] . "/include/Exec.php");
   }
@@ -285,6 +416,11 @@ if ($_POST){
   // Remove old container if renamed
   $existing = isset($_POST['existingContainer']) ? $_POST['existingContainer'] : FALSE;
   if ($existing && ContainerExist($existing)){
+    // attempt graceful stop of container first
+    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $existing";
+    include($dockerManPaths['plugin'] . "/include/Exec.php");
+
+    // force kill container if still running after 30 seconds
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $existing";
     include($dockerManPaths['plugin'] . "/include/Exec.php");
   }
@@ -293,14 +429,17 @@ if ($_POST){
   $_GET['cmd'] = $cmd;
   include($dockerManPaths['plugin'] . "/include/Exec.php");
 
-  $DockerTemplates->removeInfo($Name);
-  $DockerUpdate->syncVersions($Name);
+  // Force information reload
+  $DockerTemplates->removeInfo($Name, $Repository);
+  $DockerUpdate->reloadUpdateStatus($Repository);
 
   echo '<center><input type="button" value="Done" onclick="done()"></center><br>';
-  die();
+  goto END;
 }
 
-
+##
+##   UPDATE CONTAINER
+##
 if ($_GET['updateContainer']){
   foreach ($_GET['ct'] as $value) {
     $Name = urldecode($value);
@@ -311,257 +450,504 @@ if ($_GET['updateContainer']){
       continue;
     }
 
-    $doc = new DOMDocument('1.0', 'utf-8');
-    $doc->preserveWhiteSpace = false;
-    $doc->load( $tmpl );
-    $doc->formatOutput = TRUE;
-
-    $Repository = $doc->getElementsByTagName( "Repository" )->item(0)->nodeValue;
-    $Registry = $doc->getElementsByTagName( "Registry" )->item(0)->nodeValue;
+    $xml = file_get_contents($tmpl);
+    list($cmd, $Name, $Repository) = xmlToCommand($tmpl);
+    $Registry = getXmlVal($xml, "Registry");
 
     readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
     echo "<script>addLog('<p>Preparing to update: " . $Repository . "</p>');</script>";
     @flush();
 
-    $CurrentVersion = $DockerUpdate->getRemoteVersion($Registry, $Repository);
-
-    if ($CurrentVersion){
-      if ( $doc->getElementsByTagName( "Version" )->length == 0 ) {
-        $root    = $doc->getElementsByTagName( "Container" )->item(0);
-        $Version = $root->appendChild($doc->createElement('Version'));
-      } else {
-        $Version = $doc->getElementsByTagName( "Version" )->item(0);
-      }
-      $Version->nodeValue = $CurrentVersion;
-
-      file_put_contents($tmpl, $doc->saveXML());
-    }
-
     $oldContainerID = $DockerClient->getImageID($Repository);
-    list($cmd, $Name, $Repository) = xmlToCommand($doc->saveXML());
 
     // Pull image
     flush();
     pullImage($Repository);
 
+    // attempt graceful stop of container first
+    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $Name";
+    include($dockerManPaths['plugin'] . "/include/Exec.php");
+
+    // force kill container if still running after 10 seconds
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $Name";
     include($dockerManPaths['plugin'] . "/include/Exec.php");
 
     $_GET['cmd'] = $cmd;
     include($dockerManPaths['plugin'] . "/include/Exec.php");
 
-    $DockerTemplates->removeInfo($Name);
     $newContainerID = $DockerClient->getImageID($Repository);
     if ( $oldContainerID and $oldContainerID != $newContainerID){
       $_GET['cmd'] = sprintf("/plugins/dynamix.docker.manager/scripts/docker rmi %s", $oldContainerID);
       include($dockerManPaths['plugin'] . "/include/Exec.php");
     }
 
-    $DockerTemplates->removeInfo($Name);
-    $DockerUpdate->syncVersions($Name);
+    // Force information reload
+    $DockerTemplates->removeInfo($Name, $Repository);
+    $DockerUpdate->reloadUpdateStatus($Repository);
   }
 
   echo '<center><input type="button" value="Done" onclick="window.parent.jQuery(\'#iframe-popup\').dialog(\'close\');"></center><br>';
-  die();
+  goto END;
 }
 
+##
+##   REMOVE TEMPLATE
+##
 
 if($_GET['rmTemplate']){
   unlink($_GET['rmTemplate']);
 }
 
-if($_GET['xmlTemplate']){
+##
+##   LOAD TEMPLATE
+##
+
+if ($_GET['xmlTemplate']) {
   list($xmlType, $xmlTemplate) = split(':', urldecode($_GET['xmlTemplate']));
   if(is_file($xmlTemplate)){
-    $doc = new DOMDocument();
-    $doc->load($xmlTemplate);
-
-    $templateRepository   = $doc->getElementsByTagName( "Repository" )->item(0)->nodeValue;
-    $templateName         = $doc->getElementsByTagName( "Name" )->item(0)->nodeValue;
-    $Registry             = $doc->getElementsByTagName( "Registry" )->item(0)->nodeValue;
-    $templatePrivileged   = (strtolower($doc->getElementsByTagName( "Privileged" )->item(0)->nodeValue) == 'true') ? 'checked' : "";
-    $templateMode         = $doc->getElementsByTagName( "Mode" )->item(0)->nodeValue;;
-    $readonly             = ($xmlType == 'default') ? 'readonly="readonly"' : '';
-    $required             = ($xmlType == 'default') ? 'required' : '';
-    $disabled             = ($xmlType == 'default') ? 'disabled="disabled"' : '';
-
-    if ( $doc->getElementsByTagName( "Description" )->length > 0 ) {
-      $templateDescription = $doc->getElementsByTagName( "Description" )->item(0)->nodeValue;
-    } else {
-      $templateDescription = $DockerTemplates->getTemplateValue($templateRepository, "Description", "default");
+    $xml = xmlToVar($xmlTemplate);
+    $templateName = $xml["Name"];
+    if ($xmlType == "default") {
+      if (!empty($dockercfg["DOCKER_APP_CONFIG_PATH"]) && file_exists($dockercfg["DOCKER_APP_CONFIG_PATH"])) {
+        // override /config
+        foreach ($xml['Config'] as &$arrConfig) {
+          if ($arrConfig['Type'] == 'Path' && strtolower($arrConfig['Target']) == '/config') {
+            $arrConfig['Default'] = $arrConfig['Value'] = realpath($dockercfg["DOCKER_APP_CONFIG_PATH"]).'/'.$xml["Name"];
+            $arrConfig['Display'] = 'hidden';
+          }
+        }
+      }
+      if (!empty($dockercfg["DOCKER_APP_UNRAID_PATH"]) && file_exists($dockercfg["DOCKER_APP_UNRAID_PATH"])) {
+        // override /unraid
+        $boolFound = false;
+        foreach ($xml['Config'] as &$arrConfig) {
+          if ($arrConfig['Type'] == 'Path' && strtolower($arrConfig['Target']) == '/unraid') {
+            $arrConfig['Default'] = $arrConfig['Value'] = realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]);
+            $arrConfig['Display'] = 'hidden';
+            $boolFound = true;
+          }
+        }
+        if (!$boolFound) {
+          $xml['Config'][] = array('Name'        => 'unRAID Share Path',
+                                   'Target'      => '/unraid',
+                                   'Default'     => realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]),
+                                   'Value'       => realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]),
+                                   'Mode'        => 'rw',
+                                   'Description' => '',
+                                   'Type'        => 'Path',
+                                   'Display'     => 'hidden',
+                                   'Required'    => 'false',
+                                   'Mask'        => 'false',
+                                  );
+        }
+      }
     }
-
-    if ( $doc->getElementsByTagName( "Registry" )->length > 0 ) {
-      $templateRegistry = $doc->getElementsByTagName( "Registry" )->item(0)->nodeValue;
-    } else {
-      $templateRegistry = $DockerTemplates->getTemplateValue($templateRepository, "Registry", "default");
-    }
-
-    if ( $doc->getElementsByTagName( "WebUI" )->length > 0 ) {
-      $templateWebUI = $doc->getElementsByTagName( "WebUI" )->item(0)->nodeValue;
-    } else {
-      $templateWebUI = $DockerTemplates->getTemplateValue($templateRepository, "WebUI", "default");
-    }
-
-    if ( $doc->getElementsByTagName( "Banner" )->length > 0 ) {
-      $templateBanner = $doc->getElementsByTagName( "Banner" )->item(0)->nodeValue;
-    } else {
-      $templateBanner = $DockerTemplates->getTemplateValue($templateRepository, "Banner", "default");
-    }
-
-    if ( $doc->getElementsByTagName( "Icon" )->length > 0 ) {
-      $templateIcon = $doc->getElementsByTagName( "Icon" )->item(0)->nodeValue;
-    } else {
-      $templateIcon = $DockerTemplates->getTemplateValue($templateRepository, "Icon", "default");
-    }
-
-    if ( $doc->getElementsByTagName( "ExtraParams" )->length > 0 ) {
-      $templateExtraParams = $doc->getElementsByTagName( "ExtraParams" )->item(0)->nodeValue;
-    } else {
-      $templateExtraParams = $DockerTemplates->getTemplateValue($templateRepository, "ExtraParams", "default");
-    }
-
-    $templateDescription = stripslashes($templateDescription);
-    $templateRegistry    = stripslashes($templateRegistry);
-    $templateWebUI       = stripslashes($templateWebUI);
-    $templateBanner      = stripslashes($templateBanner);
-    $templateIcon        = stripslashes($templateIcon);
-    $templateExtraParams = stripslashes($templateExtraParams);
-
-    $templateDescBox      = preg_replace('/\[/', '<', $templateDescription);
-    $templateDescBox      = preg_replace('/\]/', '>', $templateDescBox);
-
-    $templatePorts = '';
-    $row = '
-    <tr id="portNum%s">
-      <td>
-        <input type="number" min="1" max="65535" name="containerPort[]" value="%s" class="textPort" %s title="Set the port your app uses inside the container."/>
-      </td>
-      <td>
-        <input type="number" min="1" max="65535" name="hostPort[]" value="%s" class="textPort" %s title="Set the port you use to interact with the app."/>
-      </td>
-      <td>
-        <select name="portProtocol[]" class="narrow">
-          <option value="tcp">TCP</option>
-          <option value="udp" %s>UDP</option>
-        </select>
-      </td>
-      <td>
-        <input type="button" value="Remove" onclick="removePort(%s);" %s/>
-      </td>
-    </tr>';
-
-    $i = 1;
-    foreach($doc->getElementsByTagName('Port') as $port){
-      $j = $i + 100;
-      $ContainerPort  = $port->getElementsByTagName( "ContainerPort" )->item(0)->nodeValue;
-      if (! strlen($ContainerPort)){ continue; }
-      $HostPort       = $port->getElementsByTagName( "HostPort" )->item(0)->nodeValue;
-      $Protocol       = $port->getElementsByTagName( "Protocol" )->item(0)->nodeValue;
-      $select = ($Protocol == 'udp') ? 'selected' : '';
-      $templatePorts .= sprintf($row, $j, htmlspecialchars($ContainerPort), $readonly, htmlspecialchars($HostPort), $required, $select, $j, $disabled);
-      $i++;
-    }
-
-    $templateVolumes = '';
-    $row = '
-    <tr id="pathNum%s">
-      <td>
-        <input type="text" name="containerPath[]" value="%s" class="textPath" onclick="hideBrowser(%s);" %s title="The directory your app uses inside the container. Ex: /config"/>
-      </td>
-      <td>
-        <input type="text" id="hostPath%s" name="hostPath[]" value="%s" class="textPath" onclick="toggleBrowser(%s);" %s title="The directory in your array the app have access to. Ex: /mnt/user/Movies"/>
-        <div id="fileTree%s" class="textarea fileTree"></div>
-      </td>
-      <td>
-        <select name="hostWritable[]">
-          <option value="rw">Read/Write</option>
-          <option value="ro" %s>Read Only</option>
-        </select>
-      </td>
-      <td>
-        <input type="button" value="Remove" onclick="removePath(%s);" %s/>
-      </td>
-    </tr>';
-
-    $i = 1;
-    foreach($doc->getElementsByTagName('Volume') as $volume){
-      $j = $i + 100;
-      $ContainerDir     = $volume->getElementsByTagName( "ContainerDir" )->item(0)->nodeValue;
-      if (! strlen($ContainerDir)){ continue; }
-      $HostDir          = $volume->getElementsByTagName( "HostDir" )->item(0)->nodeValue;
-      $Mode             = $volume->getElementsByTagName( "Mode" )->item(0)->nodeValue;
-      $Mode             = ($Mode == "ro") ? "selected" : '';
-      $templateVolumes .= sprintf($row, $j, htmlspecialchars($ContainerDir), $j, $readonly, $j, htmlspecialchars($HostDir), $j, $required, $j, $Mode, $j, $disabled);
-      $i++;
-    }
-
-    $templateVariables = '';
-    $row = '
-    <tr id="varNum%s">
-      <td>
-        <input type="text" name="VariableName[]" value="%s" class="textEnv" %s/>
-      </td>
-      <td>
-        <input type="text" name="VariableValue[]" value="%s" class="textEnv" %s/>
-        <input type="button" value="Remove" onclick="removeEnv(%s);" %s/>
-      </td>
-    </tr>';
-
-    $i = 1;
-    foreach($doc->getElementsByTagName('Variable') as $variable){
-      $j = $i + 100;
-      $VariableName       = $variable->getElementsByTagName( "Name" )->item(0)->nodeValue;
-      if (! strlen($VariableName)){ continue; }
-      $VariableValue      = $variable->getElementsByTagName( "Value" )->item(0)->nodeValue;
-      $templateVariables .= sprintf($row, $j, htmlspecialchars($VariableName), $readonly, htmlspecialchars($VariableValue), $required, $j, $disabled);
-      $i++;
-    }
+    $xml['Description'] = str_replace(array('[', ']'), array('<', '>'), $xml['Overview']);
+    echo "<script>var Settings=".json_encode($xml).";</script>";
   }
 }
 
-$showAdditionalInfo = true;
+$showAdditionalInfo = '';
 ?>
-
-<link type="text/css" rel="stylesheet" href="/webGui/styles/font-awesome.css">
-<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css" media="screen">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.ui.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css" >
 <style>
-body{-webkit-overflow-scrolling:touch;}
-.fileTree{width:240px;height:150px;overflow:scroll;position:absolute;z-index:100;display:none;}
-#TemplateSelect{width:255px;}
-option.list{padding:0 0 0 7px;font-size:11px;}
-optgroup.bold{font-weight:bold;font-size:12px;margin-top:5px;}
-optgroup.title{background-color:#625D5D;color:#FFFFFF;text-align:center;margin-top:10px;}
-input.textPath{width:240px;}
-input.textTemplate,textarea.textTemplate{width:555px;}
-input.textEnv{width:230px;}
-input.textPort{width:100px;}
-table.pathTab{width:700px;}
-table.portRows{width:400px;}
-table.envTab{width:620px;}
-table.Preferences{width:100%;}
-.show{display:block;}
-table td{font-size:14px;vertical-align:bottom;text-align:left;}
-.inline_help{font-size:12px;}
-.desc{padding:6px;line-height:15px;width:inherit;}
-.toggleMode{cursor:pointer;color:#a3a3a3;letter-spacing:0;padding:0;padding-right:10px;font-family:arimo;font-size:12px;line-height:1.3em;font-weight:bold;margin:0;}
-.toggleMode:hover,.toggleMode:focus,.toggleMode:active,.toggleMode .active{color:#625D5D;}
+  body{-webkit-overflow-scrolling:touch;}
+  .fileTree{width:240px;height:150px;overflow:scroll;position:absolute;z-index:100;display:none;margin-bottom: 100px;}
+  #TemplateSelect{width:255px;}
+  input.textTemplate,textarea.textTemplate{width:555px;}
+  option.list{padding:0 0 0 7px;font-size:11px;}
+  optgroup.bold{font-weight:bold;font-size:12px;margin-top:5px;}
+  optgroup.title{background-color:#625D5D;color:#FFFFFF;text-align:center;margin-top:10px;}
+  .textPath{width:270px;}
+
+  table.Preferences{width:100%;}
+  table.Preferences tr>td{font-weight: bold;padding-right: 10px;}
+  table.Preferences tr>td+td{font-weight: normal;}
+  table td{font-size:14px;vertical-align:bottom;text-align:left;}
+  .show{display:block;}
+  .inline_help{font-size:12px;font-weight: normal;}
+  .desc{padding:6px;line-height:15px;width:inherit;}
+  .toggleMode{cursor:pointer;color:#a3a3a3;letter-spacing:0;padding:0;padding-right:10px;font-family:arimo;font-size:12px;line-height:1.3em;font-weight:bold;margin:0;}
+  .toggleMode:hover,.toggleMode:focus,.toggleMode:active,.toggleMode .active{color:#625D5D;}
+  .basic{display:table-row;}
+  .advanced{display:none;}
+  .required:after {content: " * ";color: #E80000}
+
+  .switch-wrapper {
+    display: inline-block;
+    position: relative;
+    top: 3px;
+    vertical-align: middle;
+  }
+  .switch-button-label.off {
+    color: inherit;
+  }
+  .spacer{padding-right: 20px}
+
+  .label-warning, .label-success, .label-important {
+    padding: 1px 4px 2px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    font-size: 10.998px;
+    font-weight: bold;
+    line-height: 14px;
+    color: #ffffff;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .label-warning{background-color:#f89406;}
+  .label-success{background-color:#468847;}
+  .label-important{background-color:#b94a48;}
 </style>
+<script src="/webGui/javascript/jquery.switchbutton.js"></script>
+<script src="/webGui/javascript/jquery.filetree.js"></script>
+<script src="/plugins/dynamix.vm.manager/scripts/dynamix.vm.manager.js"></script>
+<script type="text/javascript">
+  var this_tab = $('input[name$="tabs"]').length;
+  $(function() {
+    var content= "<div class='switch-wrapper'><input type='checkbox' class='advanced-switch'></div>";
+    <?if (!$tabbed):?>
+    $("#docker_tabbed").html(content);
+    <?else:?>
+    var last = $('input[name$="tabs"]').length;
+    var elementId = "normalAdvanced";
+    $('.tabs').append("<span id='"+elementId+"' class='status vhshift' style='display: none;'>"+content+"&nbsp;</span>");
+    if ($('#tab'+this_tab).is(':checked')) {
+      $('#'+elementId).show();
+    }
+    $('#tab'+this_tab).bind({click:function(){$('#'+elementId).show();}});
+    for (var x=1; x<=last; x++) if(x != this_tab) $('#tab'+x).bind({click:function(){$('#'+elementId).hide();}});
+      <?endif;?>
+    // $('.advanced-switch').switchButton({ labels_placement: "left", on_label: 'Advanced', off_label: 'Basic', checked: $.cookie('docker-advanced-view') != 'false'});
+    $('.advanced-switch').switchButton({ labels_placement: "left", on_label: 'Advanced View', off_label: 'Basic View'});
+    $('.advanced-switch').change(function () {
+      var status = $(this).is(':checked');
+      toggleRows('advanced,.hidden', status, 'basic');
+      //$('.basic').toggle(!status);
+      //$('.advanced').toggle(status);
+      //$('.hidden').toggle(status);
+      // $.cookie('docker-advanced-view', status ? 'true' : 'false', { expires: 3650 });
+    });
+
+    /*
+    $("#app_config_tab").html("<div class='switch-wrapper'><input type='checkbox' class='hidden-switch'></div>");
+    // $('.hidden-switch').switchButton({ labels_placement: "left", on_label: 'Show Hidden', off_label: 'Show Hidden', checked: $.cookie('docker-hidden-view') != 'false'});
+    $('.hidden-switch').switchButton({ labels_placement: "left", on_label: 'Show Hidden', off_label: 'Show Hidden'});
+    $('.hidden-switch').change(function () {
+      status = $(this).is(':checked');
+      $('.hidden').toggle(status);
+      // $.cookie('docker-hidden-view', status ? 'true' : 'false', { expires: 3650 });
+    });
+    */
+  });
+
+  var confNum = 0;
+
+  if ( !Array.prototype.forEach ) {
+    Array.prototype.forEach = function(fn, scope) {
+      for(var i = 0, len = this.length; i < len; ++i) {
+        fn.call(scope, this[i], i, this);
+      }
+    };
+  }
+
+  if (!String.prototype.format) {
+    String.prototype.format = function() {
+      var args = arguments;
+      return this.replace(/{(\d+)}/g, function(match, number) {
+        return typeof args[number] != 'undefined' ? args[number] : match;
+      });
+    };
+  }
+
+  // Create config nodes using templateDisplayConfig
+  function makeConfig(opts) {
+    confNum += 1;
+    newConfig = $("#templateDisplayConfig").html();
+    newConfig = newConfig.format(opts.Name,
+                                 opts.Target,
+                                 opts.Default,
+                                 opts.Mode,
+                                 opts.Description,
+                                 opts.Type,
+                                 opts.Display,
+                                 opts.Required,
+                                 opts.Mask,
+                                 opts.Value,
+                                 opts.Buttons,
+                                 (opts.Required == "true") ? "required" : ""
+                                 );
+    newConfig = "<div id='ConfigNum"+opts.Number+"' style='margin-top: 30px;' class='"+opts.Display+"'>"+newConfig+"</div>";
+    newConfig = $($.parseHTML(newConfig));
+    value     = newConfig.find("input[name='confValue[]']");
+    if (opts.Type == "Path") {
+      value.attr("onclick", "openFileBrowser(this,$(this).val(),'',true,false);");
+    } else if (opts.Type == "Device") {
+      value.attr("onclick", "openFileBrowser(this,$(this).val(),'',false,true);")
+    } else if (opts.Type == "Variable" && opts.Default.split("|").length > 1) {
+      var valueOpts = opts.Default.split("|");
+      var newValue = "<select name='confValue[]' class='textPath' default='"+valueOpts[0]+"'>";
+      for (var i = 0; i < valueOpts.length; i++) {
+        newValue += "<option value='"+valueOpts[i]+"' "+(opts.Value == valueOpts[i] ? "selected" : "")+">"+valueOpts[i]+"</option>";
+      }
+      newValue += "</select>";
+      value.replaceWith(newValue);
+    } else if (opts.Type == "Port") {
+      value.addClass("numbersOnly");
+    }
+    if (opts.Mask == "true") {
+      value.prop("type", "password");
+    }
+    return newConfig.prop('outerHTML');
+  }
+
+  function getVal(el, name) {
+    var el = $(el).find("*[name="+name+"]");
+    if (el.length) {
+      return ( $(el).attr('type') == 'checkbox' ) ? ($(el).is(':checked') ? "on" : "off") : $(el).val();
+    } else {
+      return "";
+    }
+  }
+
+  function addConfigPopup(){
+    var title = 'Add Configuration';
+    var popup = $( "#dialogAddConfig" );
+
+    // Load popup the popup with the template info
+    popup.html($("#templatePopupConfig").html());
+
+    // Add switchButton to checkboxes
+    popup.find(".switch").switchButton({labels_placement:"right",on_label:'YES',off_label:'NO'});
+    popup.find(".switch-button-background").css("margin-top", "6px");
+
+    // Load Mode field if needed
+    toggleMode(popup.find("*[name=Type]:first"));
+
+    // Start Dialog section
+    popup.dialog({
+      title: title,
+      resizable: false,
+      width: 600,
+      modal: true,
+      show : {effect: 'fade' , duration: 250},
+      hide : {effect: 'fade' , duration: 250},
+      buttons: {
+        "Add": function() {
+          $( this ).dialog( "close" );
+          confNum += 1;
+          var Opts = Object;
+          var Element = this;
+          ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
+            Opts[e] = getVal(Element, e);
+          });
+          Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
+          if (Opts.Required == "true") {
+            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+            Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
+          } else {
+            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+            Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
+          }
+          Opts.Number      = confNum;
+          newConf = makeConfig(Opts);
+          $("#configLocation").append(newConf);
+          reloadTriggers();
+        },
+        Cancel: function() {
+          $( this ).dialog( "close" );
+        }
+      }
+    });
+    $(".ui-dialog .ui-dialog-titlebar").addClass('menu');
+    $(".ui-dialog .ui-dialog-title").css('text-align','center').css( 'width', "100%");
+    $(".ui-dialog .ui-dialog-content").css('padding-top','15px').css('vertical-align','bottom');
+    $(".ui-button-text").css('padding','0px 5px');
+  }
+
+  function editConfigPopup(num){
+    var title = 'Edit Configuration';
+    var popup = $("#dialogAddConfig");
+
+    // Load popup the popup with the template info
+    popup.html($("#templatePopupConfig").html());
+
+    // Load existing config info
+    var config = $( "#ConfigNum" + num );
+    config.find("input").each(function(){
+      var name = $(this).attr( "name" ).replace("conf", "").replace("[]", "");
+      popup.find("*[name='"+name+"']").val( $(this).val() );
+    });
+
+    // Hide passwords if needed
+    if (popup.find("*[name='Mask']").val() == "true") {
+      popup.find("*[name='Value']").prop("type", "password");
+    }
+
+    // Load Mode field if needed
+    var mode = config.find("input[name='confMode[]']").val();
+    toggleMode(popup.find("*[name=Type]:first"));
+    popup.find("*[name=Mode]:first").val(mode);
+
+    // Add switchButton to checkboxes
+    popup.find(".switch").switchButton({labels_placement:"right",on_label:'YES',off_label:'NO'});
+
+    // Start Dialog section
+    popup.find(".switch-button-background").css("margin-top", "6px");
+    popup.dialog({
+      title: title,
+      resizable: false,
+      width: 600,
+      modal: true,
+      show : {effect: 'fade' , duration: 250},
+      hide : {effect: 'fade' , duration: 250},
+      buttons: {
+        "Save": function() {
+          $( this ).dialog( "close" );
+          var Opts = Object;
+          var Element = this;
+          ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
+            Opts[e] = getVal(Element, e);
+          });
+          Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
+          if (Opts.Required == "true") {
+            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+num+")'> Edit</button> ";
+            Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button></span>";
+          } else {
+            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+num+")'> Edit</button> ";
+            Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button>";
+          }
+          Opts.Number      = confNum;
+          newConf = makeConfig(Opts);
+          config.removeClass("always advanced hidden").addClass(Opts.Display);
+          $("#ConfigNum" + num).html(newConf);
+          reloadTriggers();
+        },
+        Cancel: function() {
+          $( this ).dialog( "close" );
+        }
+      }
+    });
+    $(".ui-dialog .ui-dialog-titlebar").addClass('menu');
+    $(".ui-dialog .ui-dialog-title").css('text-align','center').css( 'width', "100%");
+    $(".ui-dialog .ui-dialog-content").css('padding-top','15px').css('vertical-align','bottom');
+    $(".ui-button-text").css('padding','0px 5px');
+    $('.desc_readmore').readmore({maxHeight:10});
+  }
+
+  function removeConfig(num) {
+    $('#ConfigNum' + num).fadeOut("fast", function() { $(this).remove(); });
+  }
+
+  function toggleMode(el) {
+    var mode       = $(el).parent().siblings('#Mode');
+    var valueDiv   = $(el).parent().siblings('#Value');
+    var defaultDiv = $(el).parent().siblings('#Default');
+    var targetDiv  = $(el).parent().siblings('#Target');
+
+    var value      = valueDiv.find('input[name=Value]');
+    var target     = targetDiv.find('input[name=Target]');
+
+    value.unbind();
+    target.unbind();
+
+    valueDiv.css('display', '');
+    defaultDiv.css('display', '');
+    targetDiv.css('display', '');
+    mode.html('');
+
+    var index = $(el)[0].selectedIndex;
+    if(index == 0){
+      // Path
+      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='rw'>Read/Write</option><option value='ro'>Read Only</option></select></dd>");
+      value.bind("click",function(){openFileBrowser(this,$(this).val(),'sh',true,false);});
+    } else if(index == 1){
+      // Port
+      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='tcp'>TCP</option><option value='udp'>UDP</option></select></dd>");
+      value.addClass("numbersOnly");
+      target.addClass("numbersOnly");
+    } else if(index == 3){
+      // Device
+      targetDiv.css('display', 'none');
+      defaultDiv.css('display', 'none');
+      value.bind("click",function(){openFileBrowser(this,$(this).val(),'',true,true);});
+    }
+    reloadTriggers();
+  }
+
+  function loadTemplate(el) {
+    var template = $(el).val();
+    if (template.length) {
+      $('#formTemplate').find( "input[name='xmlTemplate']" ).val(template);
+      $('#formTemplate').submit();
+    }
+  }
+
+  function rmTemplate(tmpl) {
+    var name = tmpl.split(/[\/]+/).pop();
+    swal({title:"Are you sure?",text:"Remove template: "+name,type:"warning",showCancelButton:true},function(){$("#rmTemplate").val(tmpl);$("#formTemplate").submit();});
+  }
+
+  function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select) {
+    if (on_folders === undefined) on_folders = true;
+    if (on_files   === undefined) on_files = true;
+    if (! filter && ! on_files)   filter = 'HIDE_FILES_FILTER';
+    if (! root.trim() ) root = "/mnt/user/";
+    p = $(el);
+    // Skip is fileTree is already open
+    if ( p.next().hasClass('fileTree') ){return null;}
+    // create a random id
+    var r = Math.floor((Math.random()*1000)+1);
+    // Add a new span and load fileTree
+    p.after("<span id='fileTree"+r+"' class='textarea fileTree'></span>");
+    var ft = $('#fileTree'+r);
+    ft.fileTree({
+      root: root,
+      filter: filter,
+      allowBrowsing : true
+    },
+    function(file){if(on_files){p.val(file);if(close_on_select){ft.slideUp('fast',function (){ft.remove();});}}},
+    function(folder){if(on_folders){p.val(folder);if(close_on_select){$(ft).slideUp('fast',function (){$(ft).remove();});}}}
+    );
+    // Format fileTree according to parent position, height and width
+    ft.css({'left':p.position().left,'top':( p.position().top + p.outerHeight() ),'width':(p.width()) });
+    // close if click elsewhere
+    $(document).mouseup(function(e){if(!ft.is(e.target) && ft.has(e.target).length === 0){ft.slideUp('fast',function (){$(ft).remove();});}});
+    // close if parent changed
+    p.bind("keydown",function(){ft.slideUp('fast',function (){$(ft).remove();});});
+    // Open fileTree
+    ft.slideDown('fast');
+  }
+
+  function resetField(el) {
+    var target = $(el).prev();
+    reset = target.attr("default");
+    if (reset.length) {
+      target.val(reset);
+    }
+  }
+</script>
+<div style='display: inline; float: right; margin: -47px -5px;' id='docker_tabbed'></div>
+<div id="dialogAddConfig" style="display: none"></div>
 <form method="GET" id="formTemplate">
   <input type="hidden" id="xmlTemplate" name="xmlTemplate" value="" />
   <input type="hidden" id="rmTemplate" name="rmTemplate" value="" />
 </form>
 
-<div id="canvas" style="z-index:1;">
-  <form method="post" id="createContainer">
+<form method="POST" autocomplete="off">
+  <div id="canvas" style="z-index:1;">
     <table class="Preferences">
       <? if($xmlType == "edit"):
-        if (ContainerExist($templateName)): echo "<input type='hidden' name='existingContainer' value='${templateName}'>\n"; endif;
+      if (ContainerExist($templateName)): echo "<input type='hidden' name='existingContainer' value='${templateName}'>\n"; endif;
       else:?>
       <tr>
-        <td style="width: 150px;">Template:</td>
-        <td >
-          <select id="TemplateSelect" size="1">
+        <td>Template:</td>
+        <td>
+          <select id="TemplateSelect" size="1" onchange="loadTemplate(this);">
             <option value="">Select a template</option>
             <?
             $rmadd = '';
@@ -583,7 +969,7 @@ table td{font-size:14px;vertical-align:bottom;text-align:left;}
                 }
                 //$value['name'] = str_replace("my-", '', $value['name']);
                 $selected = (isset($xmlTemplate) && $value['path'] == $xmlTemplate) ? ' selected ' : '';
-                if ($selected && ($key == "default")) $showAdditionalInfo = false;
+                if ($selected && ($key == "default")) $showAdditionalInfo = 'class="advanced"';
                 if (strlen($selected) && $key == 'user' ){ $rmadd = $value['path']; }
                 printf("\t\t\t\t\t\t<option class=\"list\" value=\"%s:%s\" {$selected} >%s</option>\n", htmlspecialchars($key), htmlspecialchars($value['path']), htmlspecialchars($value['name']));
               }
@@ -594,11 +980,10 @@ table td{font-size:14px;vertical-align:bottom;text-align:left;}
           <? if (!empty($rmadd)) {
             echo "<a onclick=\"rmTemplate('" . addslashes($rmadd) . "');\" style=\"cursor:pointer;\"><img src=\"/plugins/dynamix.docker.manager/images/remove.png\" title=\"" . htmlspecialchars($rmadd) . "\" width=\"30px\"></a>";
           }?>
-
         </td>
       </tr>
-      <tr class="inline_help" style="display: none">
-        <td colspan="2">
+      <tr>
+        <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>Templates are a quicker way to setting up Docker Containers on your unRAID server.  There are two types of templates:</p>
 
@@ -615,326 +1000,330 @@ table td{font-size:14px;vertical-align:bottom;text-align:left;}
         </td>
       </tr>
       <?endif;?>
-      <?if(!empty($templateDescBox)){?>
-      <tr>
-        <td style="vertical-align: top;">Description:</td>
-        <td>
-          <div class="textarea desc">
-            <?
-            echo $templateDescBox;
-            if(!empty($Registry)){
-              echo "<br><br>Container Page: <a href=\"" . htmlspecialchars($Registry) . "\" target=\"_blank\">" . htmlspecialchars($Registry) . "</a>";
-            }
-            ?>
-          </div>
-        </td>
+      <tr <?=$showAdditionalInfo?>>
+        <td style="width: 150px; vertical-align: top;">Name:</td>
+        <td><input type="text" name="contName" class="textPath" required></td>
       </tr>
-      <?};?>
-      <tr>
-        <td>Name:</td>
-
-        <td><input type="text" name="containerName" class="textPath" value="<? if(isset($templateName)){ echo htmlspecialchars(trim($templateName));} ?>"></td>
-      </tr>
-      <tr class="inline_help" style="display: none">
-        <td colspan="2">
+      <tr <?=$showAdditionalInfo?>>
+        <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>Give the container a name or leave it as default.</p>
           </blockquote>
         </td>
       </tr>
-
-      <tr class="additionalFields" style="display:none">
-        <td>Repository:</td>
-
-        <td><input type="text" name="Repository" class="textPath" value="<? if(isset($templateRepository)){ echo htmlspecialchars(trim($templateRepository));} ?>"></td>
+      <tr id="Overview" class="basic">
+        <td style="width: 150px; vertical-align: top;">Overview:</td>
+        <td><div style="color: #3B5998; width:50%;" name="contDescription"></div></td>
       </tr>
-      <tr class="additionalFields" style="display:none">
-        <td colspan="2" class="inline_help" style="display:none">
+      <tr id="Overview" class="advanced">
+        <td style="width: 150px; vertical-align: top;">Overview:</td>
+        <td><textarea name="contOverview" rows="10" cols="71" class="textTemplate"></textarea></td>
+      </tr>
+      <tr <?=$showAdditionalInfo?>>
+        <td>Repository:</td>
+        <td><input type="text" name="contRepository" class="textPath" required></td>
+      </tr>
+      <tr <?=$showAdditionalInfo?>>
+        <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>The repository for the application on the Docker Registry.  Format of authorname/appname.  Optionally you can add a : after appname and request a specific version for the container image.</p>
           </blockquote>
         </td>
       </tr>
-
-      <tr>
-        <td>Network type:</td>
-
-        <td><select id="NetworkType" name="NetworkType" class="narrow">
-          <? foreach (array('bridge', 'host', 'none') as $value) {
-            $selected = ($templateMode == $value) ? "selected" : "";
-            echo "<option value=\"{$value}\" {$selected}>".ucwords($value)."</option>";
-          }?>
-        </select></td>
+      <tr <?=$showAdditionalInfo?>>
+        <td>Network Type:</td>
+        <td>
+          <select name="contNetwork" class="narrow">
+            <option value="bridge">Bridge</option>
+            <option value="host">Host</option>
+            <option value="none">None</option>
+          </select>
+        </td>
       </tr>
-      <tr class="inline_help" style="display:none">
-        <td colspan="2">
+      <tr <?=$showAdditionalInfo?>>
+        <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>If the Bridge type is selected, the application’s network access will be restricted to only communicating on the ports specified in the port mappings section.  If the Host type is selected, the application will be given access to communicate using any port on the host that isn’t already mapped to another in-use application/service.  Generally speaking, it is recommended to leave this setting to its default value as specified per application template.</p>
             <p>IMPORTANT NOTE:  If adjusting port mappings, do not modify the settings for the Container port as only the Host port can be adjusted.</p>
           </blockquote>
         </td>
       </tr>
-
-      <tr class="additionalFields" style="display:none">
+      <tr <?=$showAdditionalInfo?>>
         <td>Privileged:</td>
-
-        <td><input type="checkbox" name="Privileged" <?if(isset($templatePrivileged)) {echo $templatePrivileged;}?>></td>
+        <td><input type="checkbox" name="contPrivileged" class="switch-on-off">
+        </td>
       </tr>
-      <tr class="additionalFields" style="display:none">
-        <td colspan="2" class="inline_help" style="display:none">
+      <tr <?=$showAdditionalInfo?>>
+        <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>For containers that require the use of host-device access directly or need full exposure to host capabilities, this option will need to be selected.  For more information, see this link:  <a href="https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration" target="_blank">https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration</a></p>
           </blockquote>
         </td>
       </tr>
-
-      <tr class="additionalFields" style="display:none">
-        <td>Bind time:</td>
-
-        <td><input type="checkbox" name="BindTime" checked></td>
-      </tr>
-      <tr class="additionalFields" style="display:none">
-        <td colspan="2" class="inline_help" style="display:none">
-          <blockquote class="inline_help">
-            <p>There's two ways of bind time: one is to mount /etc/localtime to the container (chosen method); the other is to set a variable TZ with the time zone.</p>
-          </blockquote>
-        </td>
+    </table>
+    <!--div id="title"><span class="left"><img src="/plugins/dynamix.docker.manager/icons/addcontainer.png" class="icon">App Configuration:</span></div>
+    <div style='display: inline; float: right; margin: -47px -5px;' id='app_config_tab'></div-->
+    <div id="configLocation"></div>
+    <table class="advanced">
+      <tr>
+        <td style="vertical-align: top; width: 150px; white-space:nowrap; "> &nbsp;</td>
+        <td><button type="button" onclick="addConfigPopup();" style="margin-top: 25px">Add Config</button></td>
       </tr>
     </table>
 
-    <div id="title">
-      <span class="left"><img src="/plugins/dynamix.docker.manager/icons/paths.png" class="icon">Volume Mappings</span>
-    </div>
-
-    <table id="pathRows" class="pathTab">
-      <thead>
-        <tr>
-          <td>Container volume:</td>
-          <td>Host path:</td>
-          <td>Access:</td>
-        </tr>
-      </thead>
-
-      <tbody>
-        <tr>
-          <td>
-            <input type="text" id="containerPath1" name="containerPath[]" class="textPath" onfocus="hideBrowser(1);" title="The directory your app uses inside the container. Ex: /config">
-          </td>
-          <td>
-            <input type="text" id="hostPath1" name="hostPath[]" class="textPath" autocomplete="off" onclick="toggleBrowser(1);" title="The directory in your array the app have access to. Ex: /mnt/user/Movies">
-            <div id="fileTree1" class="textarea fileTree"></div>
-          </td>
-          <td><select id="hostWritable1" name="hostWritable[]">
-              <option value="rw" selected="selected">Read/Write</option>
-              <option value="ro">Read Only</option>
-            </select>
-          </td>
-          <td>
-            <input onclick="addPath(this.form);" type="button" value="Add path" class="btn">
-          </td>
-        </tr>
-        <?if(isset($templateVolumes)){echo $templateVolumes;}?>
-      </tbody>
-    </table>
-
-    <blockquote class="inline_help">
-      <p>Applications can be given read and write access to your data by mapping a directory path from the container to a directory path on the host.  When looking at the volume mappings section, the Container volume represents the path from the container that will be mapped.  The Host path represents the path the Container volume will map to on your unRAID system.  All applications should require at least one volume mapping to store application metadata (e.g., media libraries, application settings, user profile data, etc.).  Clicking inside these fields provides a "picker" that will let you navigate to where the mapping should point.  Additional mappings can be manually created by clicking the Add Path button.  Most applications will need you to specify additional mappings in order for the application to interact with other data on the system (e.g., with Plex Media Server, you should specify an additional mapping to give it access to your media files).  It is important that when naming Container volumes that you specify a path that won’t conflict with already existing folders present in the container.  If unfamiliar with Linux, using a prefix such as "unraid_" for the volume name is a safe bet (e.g., "/unraid_media" is a valid Container volume name).</p>
-    </blockquote>
-
-    <div id="titlePort">
-      <div id="title">
-        <span class="left"><img src="/plugins/dynamix.docker.manager/icons/network.png" class="icon">Port Mappings</span>
-      </div>
-
-      <table id="portRows" class="portRows">
-        <tbody>
-          <tr>
-            <td>Container port:</td>
-            <td>Host port:</td>
-            <td>Protocol:</td>
-          </tr>
-
-          <tr>
-            <td>
-              <input type="number" min="1" max="65535" id="containerPort1" name="containerPort[]" class="textPort" title="Set the port your app uses inside the container.">
-            </td>
-            <td>
-              <input type="number" min="1" max="65535" id="hostPort1" name="hostPort[]" class="textPort" title="Set the port you use to interact with the app.">
-            </td>
-            <td>
-              <select id="portProtocol1" name="portProtocol[]" class="narrow">
-                <option value="tcp" selected="selected">TCP</option>
-                <option value="udp">UDP</option>
-              </select>
-            </td>
-            <td>
-              <input onclick="addPort(this.form);" type="button" value="Add port" class="btn">
-            </td>
-          </tr>
-          <?if(isset($templatePorts)){echo $templatePorts;}?>
-        </tbody>
-      </table>
-
-      <blockquote class="inline_help">
-        <p>When the network type is set to Bridge, you will be given the option of customizing what ports the container will use.  While applications may be configured to talk to a specific port by default, we can remap those to different ports on our host with Docker.  This means that while three different apps may all want to use port 8000, we can map each app to a unique port on the host (e.g., 8000, 8001, and 8002).  When the network type is set to Host, the container will be allowed to use any available port on your system.  Additional port mappings can be created, similar to Volumes, although this is not typically necessary when working with templates as port mappings should already be specified.</p>
-      </blockquote>
-    </div>
-
-    <div class="additionalFields" style="display:none">
-      <div id="title">
-        <span class="left"><img src="/plugins/dynamix.docker.manager/icons/default.png" class="icon">Environment Variables</span>
-      </div>
-
-      <table id="envRows" class="envTab">
-        <thead>
-          <tr>
-            <td>Variable Name:</td>
-            <td>Variable Value:</td>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr>
-            <td>
-              <input type="text" id="VariableName1" name="VariableName[]" class="textEnv">
-            </td>
-            <td>
-              <input type="text" id="VariableValue1" name="VariableValue[]" class="textEnv">
-              <input onclick="addEnv(this.form);" type="button" value="Add Variable">
-            </td>
-          </tr>
-          <?if(isset($templateVariables)){echo $templateVariables;}?>
-        </tbody>
-      </table>
-
-      <blockquote class="inline_help">
-        <p>For details, see this link: <a href="https://docs.docker.com/reference/run/#env-environment-variables" target="_blank">https://docs.docker.com/reference/run/#env-environment-variables</a></p>
-      </blockquote>
-    </div>
-
-    <div <?= empty($templateExtraParams) ? 'class="additionalFields" style="display:none"' : '' ?>>
-      <div id="title">
-        <span class="left"><img src="/plugins/dynamix.docker.manager/icons/extraparams.png" class="icon">Extra Parameters</span>
-      </div>
-
-      <input type="text" name="ExtraParams" class="textTemplate" value="<? if(isset($templateExtraParams)){ echo htmlspecialchars(trim($templateExtraParams));} ?>"/>
-
-      <blockquote class="inline_help">
-        <p>If you wish to append additional commands to your Docker container at run-time, you can specify them here.  For example, if you wish to pin an application to live on a specific CPU core, you can enter "--cpuset=0" in this field.  Change 0 to the core # on your system (starting with 0).  You can pin multiple cores by separation with a comma or a range of cores by separation with a dash.  For all possible Docker run-time commands, see here: <a href="https://docs.docker.com/reference/run/" target="_blank">https://docs.docker.com/reference/run/</a></p>
-      </blockquote>
-    </div>
-
-    <div <?= $showAdditionalInfo ? 'class="additionalFields"' : '' ?> style="display:none">
-      <div id="title">
+    <div class="advanced">
+      <!--div id="title">
         <span class="left"><img src="/plugins/dynamix.docker.manager/icons/vcard.png" class="icon">Additional Fields</span>
-      </div>
-      <table class="Template">
+      </div-->
+      <table class="Preferences">
+        <!--tr>
+          <td style="width: 150px; vertical-align: top;">Overview:</td>
+          <td><textarea name="contOverview" rows="10" cols="71" class="textTemplate"></textarea></td>
+        </tr-->
         <tr>
-          <td style="width: 150px;">Docker Hub URL:</td>
-          <td>
-            <input type="url" name="Registry" class="textTemplate" placeholder="e.g. https://registry.hub.docker.com/u/username/image" value="<? if(isset($templateRegistry)){ echo htmlspecialchars(trim($templateRegistry));} ?>"/>
+          <td colspan="2" class="inline_help">
+            <blockquote class="inline_help">
+              <p>A description for the application container.  Supports basic HTML mark-up.</p>
+            </blockquote>
           </td>
         </tr>
-        <tr class="inline_help" style="display: none">
-          <td colspan="2">
+        <tr>
+          <td>Categories:</td>
+          <td><input type="text" name="contCategory" class="textPath"></td>
+        </tr>
+        <tr>
+          <td>Support Thread:</td>
+          <td><input type="text" name="contSupport" class="textPath"></td>
+        </tr>
+        <tr>
+          <td colspan="2" class="inline_help">
+            <blockquote class="inline_help">
+              <p>Lnk to a support thread on Lime-Technology's forum.</p>
+            </blockquote>
+          </td>
+        </tr>
+        <tr>
+          <td>Docker Hub URL:</td>
+          <td><input type="text" name="contRegistry" class="textPath"></td>
+        </tr>
+        <tr>
+          <td colspan="2" class="inline_help">
             <blockquote class="inline_help">
               <p>The path to the container's repository location on the Docker Hub.</p>
             </blockquote>
           </td>
         </tr>
         <tr>
-          <td style="width: 150px;">WebUI:</td>
-          <td>
-            <input type="text" name="WebUI" class="textTemplate" placeholder="e.g. http://[IP]:[PORT:8080]/" value="<? if(isset($templateWebUI)){ echo htmlspecialchars(trim($templateWebUI));} ?>"/>
-          </td>
-        </tr>
-        <tr class="inline_help" style="display: none">
-          <td colspan="2">
-            <blockquote class="inline_help">
-              <p>When you click on an application icon from the Docker Containers page, the WebUI option will link to the path in this field.  Use [IP} to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
-            </blockquote>
-          </td>
+          <td>Icon URL:</td>
+          <td><input type="text" name="contIcon" class="textPath"></td>
         </tr>
         <tr>
-          <td style="width: 150px;">Banner:</td>
-          <td>
-            <input type="url" name="Banner" class="textTemplate" placeholder="e.g. http://address.to/banner.png" value="<? if(isset($templateBanner)){ echo htmlspecialchars(trim($templateBanner));} ?>"/>
-          </td>
-        </tr>
-        <tr class="inline_help" style="display: none">
-          <td colspan="2">
-            <blockquote class="inline_help">
-              <p>Link to the banner image for your application (only displayed on dashboard if Show Dashboard apps under Display Settings is set to Banners).</p>
-            </blockquote>
-          </td>
-        </tr>
-        <tr>
-          <td style="width: 150px;">Icon:</td>
-          <td>
-            <input type="url" name="Icon" class="textTemplate" placeholder="e.g. http://address.to/icon.png" value="<? if(isset($templateIcon)){ echo htmlspecialchars(trim($templateIcon));} ?>"/>
-          </td>
-        </tr>
-        <tr class="inline_help" style="display: none">
-          <td colspan="2">
+          <td colspan="2" class="inline_help">
             <blockquote class="inline_help">
               <p>Link to the icon image for your application (only displayed on dashboard if Show Dashboard apps under Display Settings is set to Icons).</p>
             </blockquote>
           </td>
         </tr>
         <tr>
-          <td style="width: 150px; vertical-align: top;">Description:</td>
-          <td>
-            <textarea name="Description" rows="10" cols="71" class="textTemplate"><? if(isset($templateDescription)){ echo htmlspecialchars(trimLine($templateDescription));} ?></textarea>
+          <td>WebUI:</td>
+          <td><input type="text" name="contWebUI" class="textPath"></td>
+        </tr>
+        <tr>
+          <td colspan="2" class="inline_help">
+            <blockquote class="inline_help">
+              <p>When you click on an application icon from the Docker Containers page, the WebUI option will link to the path in this field.  Use [IP} to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
+            </blockquote>
           </td>
         </tr>
-        <tr class="inline_help" style="display: none">
-          <td colspan="2">
+        <tr>
+          <td>Extra Parameters:</td>
+          <td><input type="text" name="contExtraParams" class="textPath"></td>
+        </tr>
+        <tr>
+          <td colspan="2" class="inline_help">
             <blockquote class="inline_help">
-              <p>A description for the application container.  Supports basic HTML mark-up.</p>
+              <p>If you wish to append additional commands to your Docker container at run-time, you can specify them here.  For example, if you wish to pin an application to live on a specific CPU core, you can enter "--cpuset=0" in this field.  Change 0 to the core # on your system (starting with 0).  You can pin multiple cores by separation with a comma or a range of cores by separation with a dash.  For all possible Docker run-time commands, see here: <a href="https://docs.docker.com/reference/run/" target="_blank">https://docs.docker.com/reference/run/</a></p>
             </blockquote>
           </td>
         </tr>
       </table>
     </div>
     <br>
-    <div>
-      <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save' ?>">
-      <input type="button" value="Cancel" onclick="done()">
+    <table>
+      <tr>
+        <td style="width: 160px;">&nbsp;</td>
+        <td>
+          <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save' ?>">
+          <button class="advanced" type="submit" name="dryRun" value="true" onclick="$('*[required]').prop( 'required', null );">Dry Run</button>
+          <input type="button" value="Cancel" onclick="done()">
+        </td>
+      </tr>
+    </table>
+    <br><br><br>
+  </div>
+</form>
+
+<?
+#        ██╗███████╗    ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
+#        ██║██╔════╝    ╚══██╔══╝██╔════╝████╗ ████║██╔══██╗██║     ██╔══██╗╚══██╔══╝██╔════╝██╔════╝
+#        ██║███████╗       ██║   █████╗  ██╔████╔██║██████╔╝██║     ███████║   ██║   █████╗  ███████╗
+#   ██   ██║╚════██║       ██║   ██╔══╝  ██║╚██╔╝██║██╔═══╝ ██║     ██╔══██║   ██║   ██╔══╝  ╚════██║
+#   ╚█████╔╝███████║       ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
+#    ╚════╝ ╚══════╝       ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
+?>
+<div id="templatePopupConfig" style="display: none">
+  <dl>
+    <dt>Config Type:</dt>
+    <dd>
+      <select name="Type" class="narrow" onchange="toggleMode(this);">
+        <option value="Path">Path</option>
+        <option value="Port">Port</option>
+        <option value="Variable">Variable</option>
+        <option value="Device">Device</option>
+      </select>
+    </dd>
+    <dt>Name:</dt>
+    <dd><input type="text" name="Name" class="textPath"></dd>
+    <div id="Target">
+      <dt>Target:</dt>
+      <dd><input type="text" name="Target" class="textPath"></dd>
     </div>
-  </form>
+    <div id="Value">
+      <dt>Value:</dt>
+      <dd><input type="text" name="Value" class="textPath"></dd>
+    </div>
+    <div id="Default" class="advanced">
+      <dt>Default Value:</dt>
+      <dd><input type="text" name="Default" class="textPath"></dd>
+    </div>
+    <div id="Mode"></div>
+    <dt>Description:</dt>
+    <dd>
+      <textarea name="Description" rows="6" style="width: 304px;"></textarea>
+    </dd>
+    <div class="advanced">
+      <dt>Display:</dt>
+      <dd>
+        <select name="Display" class="narrow">
+          <option value="always" selected>Always</option>
+          <option value="advanced">Advanced</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </dd>
+      <dt>Required:</dt>
+      <dd>
+        <select name="Required" class="narrow">
+          <option value="false" selected>No</option>
+          <option value="true">Yes</option>
+        </select>
+      </dd>
+      <div id="Mask">
+        <dt>Password Mask:</dt>
+        <dd>
+          <select name="Mask" class="narrow">
+            <option value="false" selected>No</option>
+            <option value="true">Yes</option>
+          </select>
+        </dd>
+      </div>
+    </div>
+
+  </dl>
 </div>
 
-<script src="/webGui/javascript/jquery.filetree.js"></script>
-<script src="/plugins/dynamix.docker.manager/javascript/addDocker.js"></script>
-<script>
-$(function() {
-  $(document).mouseup(function (e) {
-    var container = $(".fileTree");
-    if (!container.is(e.target) && container.has(e.target).length === 0) {
-      container.slideUp('fast', function () {
-        $(this).html("");
-      });
-    }
-  });
+<div id="templateDisplayConfig" style="display: none;">
+  <input type="hidden" name="confName[]" value="{0}">
+  <input type="hidden" name="confTarget[]" value="{1}">
+  <input type="hidden" name="confDefault[]" value="{2}">
+  <input type="hidden" name="confMode[]" value="{3}">
+  <input type="hidden" name="confDescription[]" value="{4}">
+  <input type="hidden" name="confType[]" value="{5}">
+  <input type="hidden" name="confDisplay[]" value="{6}">
+  <input type="hidden" name="confRequired[]" value="{7}">
+  <input type="hidden" name="confMask[]" value="{8}">
+  <table class="Preferences">
+    <tr>
+      <td style="vertical-align: top; min-width: 150px; white-space: nowrap; padding-top: 17px;" class="{11}"><b>{0}: </b></td>
+      <td style="width: 100%">
+        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11} > <button type="button" onclick="resetField(this);">Default</button>
+        {10}
+      </td>
+    </tr>
+    <tr>
+      <td>&nbsp;</td>
+      <td style="padding-top: 0px;"><div style='color: #b94a48;line-height: 1.6em'>{4}</div></td>
+    </tr>
+<!--     <tr class='advanced'>
+      <td style="padding-top: 0px;">
+        <div style="color: #3B5998;">
+          <b>Type: </b>{5}<span class="spacer"></span>
+          <b>Display: </b>{6}<span class="spacer"></span>
+          <b>Required: </b>{7}<span class="spacer"></span>
+          <b>Password: </b>{8}<span class="spacer"></span>
+          <b>Mode: </b>{3}<span class="spacer"></span>
+        </div>
+      </td>
+    </tr> -->
+  </table>
+</div>
 
-  if ($("#NetworkType").val() != 'bridge') {
-    $("#titlePort").css({'display': "none"});
+
+<script type="text/javascript">
+  function reloadTriggers() {
+    $(".basic").toggle(!$(".advanced-switch:first").is(":checked"));
+    $(".advanced").toggle($(".advanced-switch:first").is(":checked"));
+    $(".hidden").toggle($(".advanced-switch:first").is(":checked"));
+    //$(".hidden").toggle($(".hidden-switch:first").is(":checked"));
+    $(".numbersOnly").keypress(function(e){if(e.which != 45 && e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)){return false;}});
   }
-  $("#NetworkType").change(function() {
-    if ($(this).val() != "bridge") {
-      $("#titlePort").css({'display': "none"});
+  $(function(){
+    // Load container info on page load
+    if (typeof Settings != 'undefined') {
+      for (var key in Settings) {
+        if (Settings.hasOwnProperty(key)) {
+          var target = $('#canvas').find('*[name=cont'+key+']:first');
+          if (target.length) {
+            var value = Settings[key];
+            if (target.attr("type") == 'checkbox') {
+              target.prop('checked', (value == 'true') ? true : false );
+            } else if ($(target).prop('nodeName') == 'DIV'){
+              target.html(value);
+            } else {
+              target.val(value);
+            }
+          }
+        }
+      }
+
+      // Remove empty description
+      if (! Settings.Description.length) {
+        $('#canvas').find('#Overview:first').hide();
+      }
+
+      // Load config info
+      for (var i = 0; i < Settings.Config.length; i++) {
+        confNum += 1;
+        Opts             = Settings.Config[i];
+        Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
+        if (Opts.Required == "true") {
+          Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+          Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
+        } else {
+          Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+          Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
+        }
+        Opts.Number      = confNum;
+        newConf = makeConfig(Opts);
+        $("#configLocation").append(newConf);
+        reloadTriggers();
+      }
     } else {
-      $("#titlePort").css({'display': "block"});
+      $('#canvas').find('#Overview:first').hide();
     }
+
+    // Add switchButton
+    $('.switch-on-off').each(function(){var checked = $(this).is(":checked");$(this).switchButton({labels_placement: "right", checked:checked});});
+
   });
-  $("#TemplateSelect").change(function() {
-    if ($(this).val() !== "") {
-      $("#xmlTemplate").val($(this).val());
-      $("#formTemplate").submit();
-    }
-  });
-  $("#toggleMode").addClass("fa-toggle-off");
-  $("#toggleMode").removeClass("fa-toggle-on");
-  $("#toggleMode").closest("div").fadeIn('slow');
-});
 </script>
+<?END:?>

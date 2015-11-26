@@ -84,12 +84,12 @@ img.stopped{opacity:0.3;}
 			$updateStatus   = ($updateStatus == "true" or $updateStatus == "undef" ) ? 'true' : 'false';
 			$running        = ($ct['Running']) ? 'true' : 'false';
 			$webGuiUrl      = $info[$name]['url'];
-			$contextMenus[] = sprintf("addDockerContainerContext('%s', '%s', '%s', %s, %s, %s, '%s');", addslashes($ct['Name']), addslashes($ct['ImageId']), addslashes($info[$name]['template']), $running, $updateStatus, $is_autostart, addslashes($webGuiUrl));
+			$contextMenus[] = sprintf("addDockerContainerContext('%s', '%s', '%s', %s, %s, %s, '%s', '%s');", addslashes($ct['Name']), addslashes($ct['ImageId']), addslashes($info[$name]['template']), $running, $updateStatus, $is_autostart, addslashes($webGuiUrl), $ct["Id"]);
 			$shape          = ($ct["Running"]) ? "play" : "square";
 			$status         = ($ct["Running"]) ? "started" : "stopped";
 
 			$Icon           = $info[$name]['icon'];
-			if ( $Icon == "#" ){
+			if ( ! $Icon ){
 				$Icon = "/plugins/dynamix.docker.manager/images/question.png";
 			}
 
@@ -144,6 +144,7 @@ img.stopped{opacity:0.3;}
 					echo htmlspecialchars($ct['Image']);
 				}
 				?>
+				<? if($ct['BaseImage']) echo "<div class='advanced' style='color:#888; width: 160px;'><i class='fa fa-cubes' style='margin-right: 5px'></i>${ct[BaseImage]}</div>";?>
 			</td>
 			<td class="updatecolumn">
 				<?
@@ -159,10 +160,10 @@ img.stopped{opacity:0.3;}
 				}
 				?>
 			</td>
-			<td style="white-space:nowrap;"><?= implode("<br>", $ports); ?></td>
-			<td style="word-break:break-all;"><?= implode("<br>", $paths); ?></td>
+			<td style="white-space:nowrap;"><span class="docker_readmore"><?= implode("<br>", $ports); ?></span></td>
+			<td style="word-break:break-all;"><span class="docker_readmore"><?= implode("<br>", $paths); ?></span></td>
 			<td data-sort-value="<?=$is_autostart?>"><input type="checkbox" class="autostart" container="<?=htmlspecialchars($ct['Name']);?>" <?=$info[$ct['Name']]['autostart'] ? "checked" : ""?>></td>
-			<td><a class="log" onclick="containerLogs('<?=addslashes($ct['Name']);?>','Log for <?=addslashes($ct['Name']);?>', false, false)"><img class="basic" src="/plugins/dynamix/icons/log.png"/><div class="advanced" style="width: 124px;"><?=htmlspecialchars($ct['Status'])?></div><div class="advanced" style="color:#888;">Created <?=htmlspecialchars($ct['Created'])?></div></a></td>
+			<td><a class="log" onclick="containerLogs('<?=addslashes($ct['Name']);?>','<?=$ct['Id'];?>', false, false)"><img class="basic" src="/plugins/dynamix/icons/log.png"/><div class="advanced" style="width: 124px;"><?=htmlspecialchars($ct['Status'])?></div><div class="advanced" style="color:#888;">Created <?=htmlspecialchars($ct['Created'])?></div></a></td>
 		</tr>
 		<?}?>
 
@@ -243,5 +244,7 @@ $(function() {
 
 	context.init({ preventDoubleContext: false });
 	<?=implode("\n\t", $contextMenus);?>
+
+	$('.docker_readmore').readmore({maxHeight:48, moreLink: '<a href="#" style="text-align:center;"><i class="fa fa-chevron-down"></i></a>', lessLink: '<a href="#" style="text-align:center;"><i class="fa fa-chevron-up"></i></a>'});
 });
 </script>

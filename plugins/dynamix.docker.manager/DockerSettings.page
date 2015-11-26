@@ -1,6 +1,7 @@
 Menu="OtherSettings"
 Title="Docker"
 Icon="dynamix.docker.manager.png"
+Markdown="false"
 ---
 <?PHP
 /* Copyright 2015, Lime Technology
@@ -26,18 +27,6 @@ $docker          = new DockerClient();
 $DockerUpdate    = new DockerUpdate();
 $DockerTemplates = new DockerTemplates();
 
-// Docker configuration file
-$cfgfile = "/boot/config/docker.cfg";
-
-if (!file_exists($cfgfile)) {
-  echo "<p class='notice'>Missing docker.cfg file!</p>";
-  return;
-}
-$dockercfg = parse_ini_file($cfgfile);
-if (!array_key_exists('DOCKER_ENABLED', $dockercfg)) {
-  $dockercfg['DOCKER_ENABLED'] = 'no';
-}
-
 // Check for nodatacow flag on Docker file; display warning
 $realfile = $dockercfg['DOCKER_IMAGE_FILE'];
 if (file_exists($realfile)) {
@@ -54,112 +43,158 @@ if (file_exists($realfile)) {
 }
 ?>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
 <style>
-.errortext{color:#EF3D47;display:none;}
-.fileTree{width:305px;max-height:150px;overflow:scroll;position:absolute;z-index:100;display:none;}
+  .errortext{color:#EF3D47;display:none;}
+  .fileTree{width:305px;max-height:150px;overflow:scroll;position:absolute;z-index:100;display:none;}
+  .basic{display: block;}
+  .advanced{display:none;white-space: nowrap;}
+  .switch-button-label.off{color: inherit;}
 </style>
+<span class="status" style="margin-top: -44px;"><input type="checkbox" class="advancedview"></span>
+<form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="<?=$docker_cfgfile;?>" />
+<input type="hidden" id="command" name="#command" value="" />
+
+<dl>
+  <dt>Enable Docker:</dt>
+  <dd>
+    <select id="DOCKER_ENABLED" name="DOCKER_ENABLED" class="narrow">
+    <?= mk_option($dockercfg['DOCKER_ENABLED'], 'no', 'No'); ?>
+    <?= mk_option($dockercfg['DOCKER_ENABLED'], 'yes', 'Yes'); ?>
+    </select>
+  </dd>
+</dl>
+<blockquote class="inline_help">
+  <p>Before you can start the Docker service for the first time, please specify an image
+  file for Docker to install to.  Once started, Docker will always automatically start
+  after the array has been started.</p>
+</blockquote>
+
 <?if (pgrep('docker') === false):?>
-<form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
-<input type="hidden" name="#file" value="<?=$cfgfile;?>" />
-<input type="hidden" id="command" name="#command" value="" />
 
-Enable Docker:
-: <select id="DOCKER_ENABLED" name="DOCKER_ENABLED" class="narrow">
-<?= mk_option($dockercfg['DOCKER_ENABLED'], 'no', 'No'); ?>
-<?= mk_option($dockercfg['DOCKER_ENABLED'], 'yes', 'Yes'); ?>
-</select>
+<dl>
+  <dt>Docker vdisk size:</dt>
+  <dd><input id="DOCKER_IMAGE_SIZE" type="number" name="DOCKER_IMAGE_SIZE" value="<?=$dockercfg['DOCKER_IMAGE_SIZE'];?>" class="narrow" required="required" />GB <span id="SIZE_ERROR" class="errortext"></span></dd>
+</dl>
+<blockquote class="inline_help">
+  <p>If the system needs to create a new docker image file, this is the default size to use specified in GB.</p>
+  <p>To resize an existing image file, specify the new size here.  Next time the Docker service is started the file (and file system) will increased to the new size (but never decreased).</p>
+</blockquote>
 
-> Before you can start the Docker service for the first time, please specify an image
-> file for Docker to install to.  Once started, Docker will always automatically start
-> after the array has been started.
+<div class="advanced">
+  <dl>
+    <dt>Docker storage location:</dt>
+    <dd><input id="DOCKER_IMAGE_FILE" type="text" name="DOCKER_IMAGE_FILE" value="<?=$dockercfg['DOCKER_IMAGE_FILE'];?>" placeholder="e.g. /mnt/disk1/docker.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <?php if (file_exists($dockercfg['DOCKER_IMAGE_FILE'])) { ?><span id="deletePanel"><label><input type="checkbox" id="deleteCheckbox" /> Delete Image File</label></span><?php } ?> <span id="IMAGE_ERROR" class="errortext"></span></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p>You must specify an image file for Docker.  The system will automatically create this file when the Docker service is first started.</p>
+  </blockquote>
+</div>
 
-Default image size:
-: <input id="DOCKER_IMAGE_SIZE" type="number" name="DOCKER_IMAGE_SIZE" value="<?=$dockercfg['DOCKER_IMAGE_SIZE'];?>" class="narrow" required="required" />GB <span id="SIZE_ERROR" class="errortext"></span>
+<?else: /* IF DOCKER STARTED */?>
 
-> If the system needs to create a new docker image file, this is the default size to use
-> specified in GB.
->
-> To resize an existing image file, specify the new size here.  Next time the Docker service is
-> started the file (and file system) will increased to the new size (but never decreased).
+<div class="advanced">
+  <dl>
+    <dt>Docker version:</dt>
+    <dd><? $arrInfo = $docker->getInfo(); echo $arrInfo['Version']; ?></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p>This is the docker version.</p>
+  </blockquote>
 
-Docker image:
-: <input id="DOCKER_IMAGE_FILE" type="text" name="DOCKER_IMAGE_FILE" value="<?=$dockercfg['DOCKER_IMAGE_FILE'];?>" placeholder="e.g. /mnt/disk1/docker.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <?php if (file_exists($dockercfg['DOCKER_IMAGE_FILE'])) { ?><span id="deletePanel"><label><input type="checkbox" id="deleteCheckbox" /> Delete Image File</label></span><?php } ?> <span id="IMAGE_ERROR" class="errortext"></span>
+  <dl>
+    <dt>Docker storage location:</dt>
+    <dd><?=$dockercfg['DOCKER_IMAGE_FILE'];?></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p>This is the docker volume.</p>
+  </blockquote>
+</div>
 
-> You must specify an image file for Docker.  The system will automatically
-> create this file when the Docker service is first started.  If you do not want Docker
-> to run at all, set this field blank and click **Start**.
-
-&nbsp;
-: <input id="applyBtn" type="button" value="Apply"/><input type="button" value="Done" onclick="done()">
-
-</form>
-<?else:
-// IF DOCKER STARTED
-?>
-<form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
-<input type="hidden" name="#file" value="<?=$cfgfile;?>" />
-<input type="hidden" id="command" name="#command" value="" />
-
-Enable Docker:
-: <select id="DOCKER_ENABLED" name="DOCKER_ENABLED" class="narrow">
-<?= mk_option($dockercfg['DOCKER_ENABLED'], 'no', 'No'); ?>
-<?= mk_option($dockercfg['DOCKER_ENABLED'], 'yes', 'Yes'); ?>
-</select>
-
-> Stopping the Docker service will first stop all the running containers.
-
-Docker version:
-: <? $arrInfo = $docker->getInfo(); echo $arrInfo['Version']; ?>
-
-> This is the docker version.
-
-Docker image:
-: <?=$dockercfg['DOCKER_IMAGE_FILE'];?>
-
-> This is the docker volume.
-
-&nbsp;
-: <input type="button" id="applyBtn" value="Apply"><input type="button" value="Done" onclick="done()">
-
-</form>
-<div id="title"><span class="left"><img src="/plugins/dynamix.docker.manager/icons/vcard.png" class="icon">Docker volume info</span></div>
-
-btrfs filesystem show:
-: <?echo "<pre>".shell_exec("btrfs filesystem show /var/lib/docker")."</pre>";?>
-
-<form markdown="1" method="POST" action="/update.php" target="progressFrame">
-<?exec("/usr/local/emhttp/webGui/scripts/btrfs_scrub status /var/lib/docker", $scrub_status, $retval);?>
-
-btrfs scrub status:
-: <?echo "<pre>" . implode("\n", $scrub_status) . "</pre>";?>
-
-<?if ($retval != 0):?>
-<input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
-<input type="hidden" name="#arg[1]" value="start">
-<input type="hidden" name="#arg[2]" value="/var/lib/docker">
-
-&nbsp;
-: <input type="submit" value="Scrub"><label><input type="checkbox" name="#arg[3]" value="-r" checked> Don't fix file system errors</label>
-
-> **Scrub** runs the *btrfs scrub* program to check file system integrity.
->
-> If repair is needed you should uncheck the *Don't fix file system errors* option and
-> run a second Scrub pass; this will permit *btrfs scrub* to fix the file system.
-
-<?else:?>
-<input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
-<input type="hidden" name="#arg[1]" value="cancel">
-<input type="hidden" name="#arg[2]" value="/var/lib/docker">
-
-&nbsp;
-: <input type="button" value="Refresh" onclick="refresh()"><input type="submit" value="Cancel"> *Running*
-
-> **Cancel** will cancel the Scrub operation in progress.
-
-</form>
 <?endif;?>
+
+<div class="advanced">
+  <dl>
+    <dt>Default appdata storage location:</dt>
+    <dd><input id="DOCKER_APP_CONFIG_PATH" type="text" name="DOCKER_APP_CONFIG_PATH" value="<?=$dockercfg['DOCKER_APP_CONFIG_PATH'];?>" placeholder="e.g. /mnt/user/appdata" data-pickfilter="HIDE_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" data-pickfolders="true" /></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p>You can specify a folder to automatically generate and store subfolders containing configuration files for each Docker app (via the /config mapped volume).</p>
+    <p>Only used when adding new Docker apps.  Editing existing Docker apps will not be affected by this setting.</p>
+  </blockquote>
+
+  <dl>
+    <dt>Auto-map user shares to containers as /unraid:</dt>
+    <dd>
+      <select id="DOCKER_APP_UNRAID_PATH" name="DOCKER_APP_UNRAID_PATH" class="narrow">
+      <?= mk_option($dockercfg['DOCKER_APP_UNRAID_PATH'], ($dockercfg['DOCKER_APP_UNRAID_PATH'] != '' ? $dockercfg['DOCKER_APP_UNRAID_PATH'] : '/mnt/user'), 'Yes'); ?>
+      <?= mk_option($dockercfg['DOCKER_APP_UNRAID_PATH'], '', 'No'); ?>
+      </select>
+    </dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p>You can expose all of your user shares (/mnt/user) to a folder named /unraid within Docker containers.</p>
+    <p>Only used when adding new Docker apps.  Editing existing Docker apps will not be affected by this setting.</p>
+  </blockquote>
+</div>
+
+<dl>
+  <dt>&nbsp;</dt>
+  <dd><input id="applyBtn" type="button" value="Apply"><input type="button" value="Done" onclick="done()"></dd>
+</dl>
+
+</form>
+<?if (pgrep('docker') !== false):?>
+<div class="advanced">
+  <div id="title"><span class="left"><img src="/plugins/dynamix.docker.manager/icons/vcard.png" class="icon">Docker volume info</span></div>
+
+  <dl>
+    <dt>btrfs filesystem show:</dt>
+    <dd><?="<pre>".shell_exec("btrfs filesystem show /var/lib/docker")."</pre>"?></dd>
+  </dl>
+
+  <form markdown="1" method="POST" action="/update.php" target="progressFrame">
+  <?exec("/usr/local/emhttp/webGui/scripts/btrfs_scrub status /var/lib/docker", $scrub_status, $retval);?>
+
+  <dl>
+    <dt>btrfs scrub status:</dt>
+    <dd><?="<pre>".implode("\n", $scrub_status)."</pre>"?></dd>
+  </dl>
+
+  <?if ($retval != 0):?>
+  <input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
+  <input type="hidden" name="#arg[1]" value="start">
+  <input type="hidden" name="#arg[2]" value="/var/lib/docker">
+
+  <dl>
+    <dt>&nbsp;</dt>
+    <dd><input type="submit" value="Scrub"><label><input type="checkbox" name="#arg[3]" value="-r" checked> Don't fix file system errors</label></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p><b>Scrub</b> runs the <i>btrfs scrub</i> program to check file system integrity.</p>
+    <p>If repair is needed you should uncheck the <i>Don't fix file system errors</i> option and run a second Scrub pass; this will permit <i>btrfs scrub</i> to fix the file system.</p>
+  </blockquote>
+
+  <?else:?>
+  <input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
+  <input type="hidden" name="#arg[1]" value="cancel">
+  <input type="hidden" name="#arg[2]" value="/var/lib/docker">
+
+  <dl>
+    <dt>&nbsp;</dt>
+    <dd><input type="button" value="Refresh" onclick="refresh()"><input type="submit" value="Cancel"> <i>Running</i></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p><b>Cancel</b> will cancel the Scrub operation in progress.</p>
+  </blockquote>
+
+  </form>
+  <?endif;?>
+</div>
 <?endif;?>
 <script src="/webGui/javascript/jquery.filetree.js"></script>
+<script src="/webGui/javascript/jquery.switchbutton.js"></script>
 <script>
 $(function() {
   //$.ajaxSetup({ async: false });
@@ -203,7 +238,7 @@ $(function() {
   });
 
   if ($("#DOCKER_IMAGE_FILE").length) {
-    $("#DOCKER_IMAGE_FILE").on("change keyup", function(){
+    $("#DOCKER_IMAGE_FILE").on("input change", function(){
       $("#IMAGE_ERROR").fadeOut();
       $("#applyBtn").prop("disabled", false);
       <? if (file_exists($dockercfg['DOCKER_IMAGE_FILE'])) { ?>
@@ -226,8 +261,28 @@ $(function() {
       $("#DOCKER_ENABLED").prop("disabled", checked).val('no');
       $("#DOCKER_IMAGE_SIZE").prop("disabled", checked);
       $("#DOCKER_IMAGE_FILE").prop("disabled", checked).val("<?=$dockercfg['DOCKER_IMAGE_FILE']?>");
-      $("#applyBtn").val(checked ? "Delete" : "Apply");
+      $("#DOCKER_APP_CONFIG_PATH").prop("disabled", checked);
+      $("#DOCKER_APP_UNRAID_PATH").prop("disabled", checked);
+      $("#applyBtn").val(checked ? "Delete" : "Apply").removeAttr('disabled');
     });
   }
+
+  $("#DOCKER_APP_CONFIG_PATH").fileTreeAttach();
+
+  if ($.cookie('dockersettings_view_mode') == 'advanced') {
+    $('.advanced').show();
+    $('.basic').hide();
+  }
+  $('.advancedview').switchButton({
+    labels_placement: "left",
+    on_label: 'Advanced View',
+    off_label: 'Basic View',
+    checked: $.cookie('dockersettings_view_mode') == 'advanced'
+  });
+  $('.advancedview').change(function () {
+    $('.advanced').toggle('slow');
+    $('.basic').toggle('slow');
+    $.cookie('dockersettings_view_mode', $('.advancedview').is(':checked') ? 'advanced' : 'basic', { expires: 3650 });
+  });
 });
 </script>

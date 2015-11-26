@@ -55,6 +55,29 @@ if (! isset($var)){
 	$var = @parse_ini_file("/usr/local/emhttp/state/var.ini");
 }
 
+$docker_cfg_defaults = [
+	"DOCKER_ENABLED" => "no",
+	"DOCKER_OPTS" => "--storage-driver=btrfs",
+	"DOCKER_IMAGE_SIZE" => "20",
+	"DOCKER_IMAGE_FILE" => "/mnt/user/system/docker/docker.img",
+	"DOCKER_APP_CONFIG_PATH" => "/mnt/user/appdata/",
+	"DOCKER_APP_UNRAID_PATH" => ""
+];
+$dockercfg = $docker_cfg_defaults;
+
+// Docker configuration file - create if needed
+$docker_cfgfile = "/boot/config/docker.cfg";
+if (!file_exists($docker_cfgfile)) {
+	$tmp = '';
+	foreach ($docker_cfg_defaults as $key => $value) $tmp .= "$key=\"$value\"\n";
+	file_put_contents($docker_cfgfile, $tmp);
+} else {
+	$docker_cfg_existing = parse_ini_file($docker_cfgfile);
+	if (!empty($docker_cfg_existing)) {
+		$dockercfg = array_merge($docker_cfg_defaults, $docker_cfg_existing);
+	}
+}
+
 ######################################
 ##   	  DOCKERTEMPLATES CLASS       ##
 ######################################
@@ -67,10 +90,10 @@ class DockerTemplates {
 		if($this->verbose) echo $m."\n";
 	}
 
-  public function download_url($url, $path = "", $bg = FALSE){
-    exec("curl --max-time 60 --silent --insecure --location --fail ".($path ? " -o " . escapeshellarg($path) : "")." " . escapeshellarg($url) . " ".($bg ? ">/dev/null 2>&1 &" : "2>/dev/null"), $out, $exit_code );
-    return ($exit_code === 0 ) ? implode("\n", $out) : FALSE;
-  }
+	public function download_url($url, $path = "", $bg = FALSE){
+		exec("curl --max-time 60 --silent --insecure --location --fail ".($path ? " -o " . escapeshellarg($path) : "")." " . escapeshellarg($url) . " ".($bg ? ">/dev/null 2>&1 &" : "2>/dev/null"), $out, $exit_code );
+		return ($exit_code === 0 ) ? implode("\n", $out) : FALSE;
+	}
 
 	public function listDir($root, $ext=NULL) {
 		$iter = new RecursiveIteratorIterator(
@@ -133,10 +156,10 @@ class DockerTemplates {
 		$repotemplates = array();
 		$output = "";
 		$tmp_dir = "/tmp/tmp-".mt_rand();
-                if (!file_exists($dockerManPaths['template-repos'])) {
-                        @mkdir(dirname($dockerManPaths['template-repos']), 0777, true);
-                        @file_put_contents($dockerManPaths['template-repos'], "https://github.com/limetech/docker-templates");
-                }
+			if (!file_exists($dockerManPaths['template-repos'])) {
+			@mkdir(dirname($dockerManPaths['template-repos']), 0777, true);
+			@file_put_contents($dockerManPaths['template-repos'], "https://github.com/limetech/docker-templates");
+		}
 		$urls = @file($Urls, FILE_IGNORE_NEW_LINES);
 		if ( ! is_array($urls)) return false;
 		$this->debug("\nURLs:\n   " . implode("\n   ", $urls));
@@ -275,8 +298,9 @@ class DockerTemplates {
 	}
 
 
-	public function removeInfo($container){
+	public function removeInfo($container, $image){
 		global $dockerManPaths;
+		$image = ($image && count(preg_split("#[:\/]#", $image)) < 3) ? "${image}:latest" : $image;
 		$dockerIni = $dockerManPaths['webui-info'];
 		if (! is_dir( dirname( $dockerIni ))) @mkdir( dirname( $dockerIni ), 0770, true);
 		$info = (is_file($dockerIni)) ? json_decode(file_get_contents($dockerIni), TRUE) : array();
@@ -287,7 +311,7 @@ class DockerTemplates {
 
 		$update_file = $dockerManPaths['update-status'];
 		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), TRUE) : array();
-		if (isset($updateStatus[$container])) unset($updateStatus[$container]);
+		if (isset($updateStatus[$image])) unset($updateStatus[$image]);
 		file_put_contents($update_file, json_encode($updateStatus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 	}
 
@@ -296,6 +320,7 @@ class DockerTemplates {
 		global $dockerManPaths;
 		$DockerClient = new DockerClient();
 		$DockerUpdate = new DockerUpdate();
+		$DockerUpdate->verbose = $this->verbose;
 		$new_info     = array();
 
 		$dockerIni = $dockerManPaths['webui-info'];
@@ -310,9 +335,6 @@ class DockerTemplates {
 		$allAutoStart = @file($autostart_file, FILE_IGNORE_NEW_LINES);
 		if ($allAutoStart===FALSE) $allAutoStart = array();
 
-		$update_file = $dockerManPaths['update-status'];
-		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), TRUE) : array();
-
 		foreach ($containers as $ct) {
 			$name           = $ct['Name'];
 			$image          = $ct['Image'];
@@ -321,34 +343,33 @@ class DockerTemplates {
 			$tmp['running'] = $ct['Running'];
 			$tmp['autostart'] = in_array($name, $allAutoStart);
 
-			$img = $this->getBannerIcon( $image );
-			$tmp['banner'] = ( $img['banner'] ) ? $img['banner'] : "#";
-			$tmp['icon']   = ( $img['icon'] )   ? $img['icon'] : "#";
-
-			$WebUI      = $this->getControlURL($name);
-			$tmp['url'] = ($WebUI) ? $WebUI : "#";
+			if (! $tmp['icon'] || ! $tmp['banner'] || $reload) {
+				$img = $this->getBannerIcon( $image );
+				$tmp['banner'] = ( $img['banner'] ) ? $img['banner'] : null;
+				$tmp['icon']   = ( $img['icon'] )   ? $img['icon'] : null;
+			}
+			if (! $tmp['url'] || $reload) {
+				$WebUI      = $this->getControlURL($name);
+				$tmp['url'] = ($WebUI) ? $WebUI : null;
+			}
 
 			$Registry = $this->getTemplateValue($image, "Registry");
-			$tmp['registry'] = ( $Registry ) ? $Registry : "#";
+			$tmp['registry'] = ( $Registry ) ? $Registry : null;
 
-			if ($reload) {
-				$nv = $DockerUpdate->getUpdateStatus($name, $image);
-				if ($nv != 'undef'){
-					$updateStatus[$name] = $nv;
-				}
+			if (! $tmp['updated'] || $reload) {
+				if ($reload) $DockerUpdate->reloadUpdateStatus($image);
+				$vs = $DockerUpdate->getUpdateStatus($image);
+				$tmp['updated'] = ($vs === NULL) ? null : ( ($vs === TRUE) ? 'true' : 'false' );
 			}
-			$tmp['updated'] = (array_key_exists($name, $updateStatus)) ? $updateStatus[$name] : 'undef';
 
-			$tmp['template'] = $this->getUserTemplate($name);
+			if (! $tmp['template'] || $reload){
+				$tmp['template'] = $this->getUserTemplate($name);
+			}
 
-  		$this->debug("\n$name");foreach ($tmp as $c => $d) $this->debug(sprintf("   %-10s: %s", $c, $d));
+			$this->debug("\n$name");foreach ($tmp as $c => $d) $this->debug(sprintf("   %-10s: %s", $c, $d));
 			$new_info[$name] = $tmp;
 		}
 		file_put_contents($dockerIni, json_encode($new_info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-		if($reload) {
-			foreach ($updateStatus as $ct => $update)	if (!isset($new_info[$ct])) unset($updateStatus[$ct]);
-			file_put_contents($update_file, json_encode($updateStatus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-		}
 		return $new_info;
 	}
 
@@ -358,11 +379,8 @@ class DockerTemplates {
 		$out = array();
 		$Images = array();
 
-		$Images    		 = array('banner' => $this->getTemplateValue($Repository, "Banner"),
+		$Images        = array('banner' => $this->getTemplateValue($Repository, "Banner"),
 		                       'icon' => $this->getTemplateValue($Repository, "Icon") );
-
-		$defaultImages = array('banner' => '/plugins/dynamix.docker.manager/images/spacer.png',
-		                       'icon'   => '/plugins/dynamix.docker.manager/images/question.png');
 
 		foreach ($Images as $type => $imgUrl) {
 			preg_match_all("/(.*?):([\w]*$)/i", $Repository, $matches);
@@ -389,6 +407,12 @@ class DockerTemplates {
 ##   	  DOCKERUPDATE CLASS        ##
 ######################################
 class DockerUpdate{
+	public $verbose = false;
+
+	private function debug($m) {
+		if($this->verbose) echo $m."\n";
+	}
+
 
   public function download_url($url, $path = "", $bg = FALSE){
     exec("curl --max-time 30 --silent --insecure --location --fail ".($path ? " -o " . escapeshellarg($path) : "")." " . escapeshellarg($url) . " ".($bg ? ">/dev/null 2>&1 &" : "2>/dev/null"), $out, $exit_code );
@@ -396,37 +420,58 @@ class DockerUpdate{
   }
 
 
-	public function getRemoteVersion($RegistryUrl, $image){
-		preg_match_all("/:([\w]*$)/i", $image, $matches);
-		$tag        = isset($matches[1][0]) ? $matches[1][0] : "latest";
-		preg_match("#/u/([^/]*)/([^/]*)#", $RegistryUrl, $matches);
-		$apiUrl     = sprintf("http://index.docker.io/v1/repositories/%s/%s/tags/%s", $matches[1], $matches[2], $tag);
+	public function getRemoteVersion($image){
+		$apiUrl     = vsprintf("http://index.docker.io/v1/repositories/%s/%s/tags/%s", preg_split("#[:\/]#", $image));
+		$this->debug("API URL: $apiUrl");
 		$apiContent = $this->download_url($apiUrl);
-		return ( $apiContent === FALSE ) ? NULL : substr(json_decode($apiContent, TRUE)[0]['id'],0,16);
+		return ( $apiContent === FALSE ) ? NULL : substr(json_decode($apiContent, TRUE)[0]['id'],0,8);
 	}
 
 
-	public function getLocalVersion($file){
-		if(is_file($file)){
-			$doc = new DOMDocument();
-			$doc->load($file);
-			if ( ! $doc->getElementsByTagName( "Version" )->length == 0 ) {
-				return $doc->getElementsByTagName( "Version" )->item(0)->nodeValue;
+	public function getLocalVersion($image){
+		$DockerClient = new DockerClient();
+		return substr($DockerClient->getImageID($image), 0, 8);
+	}
+
+
+	public function getUpdateStatus($image) {
+		global $dockerManPaths;
+		$DockerClient = new DockerClient();
+		$update_file  = $dockerManPaths['update-status'];
+		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), TRUE) : array();
+		// Add :latest tag to image if it's absent
+		$image = ($image && count(preg_split("#[:\/]#", $image)) < 3) ? "${image}:latest" : $image;
+		if(isset($updateStatus[$image])) {
+			if ($updateStatus[$image]['local'] && $updateStatus[$image]['remote']) {
+				return ($updateStatus[$image]['local'] == $updateStatus[$image]['remote']) ? true : false;
 			} else {
-				return NULL;
+				return null;
 			}
+		} else {
+			return null;
 		}
 	}
 
 
-	public function getUpdateStatus($container, $image) {
-		$DockerTemplates = new DockerTemplates();
-		$RegistryUrl     = $DockerTemplates->getTemplateValue($image, "Registry");
-		$userFile        = $DockerTemplates->getUserTemplate($container);
-		$localVersion    = $this->getLocalVersion($userFile);
-		$remoteVersion   = $this->getRemoteVersion($RegistryUrl, $image);
-		// echo "\n $localVersion => $remoteVersion";
-		return ($localVersion && $remoteVersion) ? (($remoteVersion == $localVersion) ? "true" : "false") : "undef" ;
+	public function reloadUpdateStatus($image = null) {
+		global $dockerManPaths;
+		$DockerClient = new DockerClient();
+		$update_file  = $dockerManPaths['update-status'];
+		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), TRUE) : array();
+
+		// Add :latest tag to image if it's absent
+		$image = ($image && count(preg_split("#[:\/]#", $image)) < 3) ? "${image}:latest" : $image;
+		$images = ($image) ? array($image) : array_map(function($ar){return $ar['Tags'][0];}, $DockerClient->getDockerImages());
+		foreach ($images as $img) {
+			$localVersion  = $this->getLocalVersion($img);
+			$remoteVersion = $this->getRemoteVersion($img);
+			$status        = ($localVersion && $remoteVersion) ? (($remoteVersion == $localVersion) ? "true" : "false") : "undef";
+			$updateStatus[$img] = array('local'  => $localVersion,
+			                            'remote' => $remoteVersion,
+			                            'status' => $status);
+			$this->debug("Update status: Image='${img}', Local='${localVersion}', Remote='${remoteVersion}'");
+		}
+		file_put_contents($update_file, json_encode($updateStatus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 	}
 
 
@@ -444,6 +489,12 @@ class DockerUpdate{
 ##   	  DOCKERCLIENT CLASS        ##
 ######################################
 class DockerClient {
+
+	private $allContainersCache = null;
+
+
+	private $allImagesCache = null;
+
 
 	private function build_sorter($key) {
 		return function ($a, $b) use ($key) {
@@ -486,65 +537,114 @@ class DockerClient {
 	}
 
 
-	private function getDockerJSON($url, $method = "GET"){
+	public function getDockerJSON($url, $method = "GET", &$code = null, $callback = null, $unchunk = false){
 		$fp = stream_socket_client('unix:///var/run/docker.sock', $errno, $errstr);
 
 		if ($fp === false) {
 			echo "Couldn't create socket: [$errno] $errstr";
 			return NULL;
 		}
-		$out="$method {$url} HTTP/1.1\r\nConnection: Close\r\n\r\n";
+		$protocol = ($unchunk) ? "HTTP/1.0" : "HTTP/1.1";
+		$out="${method} {$url} ${protocol}\r\nConnection: Close\r\n\r\n";
 		fwrite($fp, $out);
 		// Strip headers out
+		$headers = '';
 		while (($line = fgets($fp)) !== false) {
+			if (! is_bool(strpos($line, "HTTP/1"))) {
+				$code = vsprintf('%2$s',preg_split("#\s+#", $line));
+			}
+			$headers .= $line;
 			if (rtrim($line) == '') {
 				break;
 			}
 		}
-		$data = '';
+		$data = array();
 		while (($line = fgets($fp)) !== false) {
-			$data .= $line;
+			if (is_array($j = json_decode($line, true))) {
+				$data = array_merge($data, $j);
+			}
+			if ($callback) $callback($line);
 		}
 		fclose($fp);
-		$data = $this->unchunk($data);
-		$json = json_decode( $data, true );
-		if ($json === null) {
-			$json = array();
-		} else if (!array_key_exists(0, $json) && !empty($json)) {
-			$json = [ $json ];
-		}
-		return $json;
+		return $data;
+	}
+
+
+	public function createDockerContainer() {
+		return false;
+
 	}
 
 
 	public function getInfo(){
 		$info = $this->getDockerJSON("/info");
 		$version = $this->getDockerJSON("/version");
-		return array_merge($info[0], $version[0]);
+		return array_merge($info, $version);
 	}
 
 
-	private function getContainerDetails($id){
+	public function getContainetLog($id, $callback, $tail = null, $since = null) {
+		$this->getDockerJSON("/containers/${id}/logs?stderr=1&stdout=1&tail=${tail}&since=${since}", "GET", $code, $callback, true);
+	}
+
+
+	public function getContainerDetails($id){
 		$json = $this->getDockerJSON("/containers/{$id}/json");
 		return $json;
 	}
 
 
 	public function startContainer($id){
-		$json = $this->getDockerJSON("/containers/${id}/start", "POST");
-		return $json;
-	}
-
-
-	public function removeImage($id){
-		$json = $this->getDockerJSON("/images/{$id}", "DELETE");
-		return $json;
+		$this->getDockerJSON("/containers/${id}/start", "POST", $code);
+		$codes = array("204" => "No error",
+		               "304" => "Container already started",
+		               "404" => "No such container",
+		               "500" => "Server error");
+		return ($code == "204") ? true : $codes[$code];
 	}
 
 
 	public function stopContainer($id){
-		$json = $this->getDockerJSON("/containers/${id}/stop", "POST");
-		return $json;
+		$this->getDockerJSON("/containers/${id}/stop", "POST", $code);
+		$codes = array("204" => "No error.",
+		               "304" => "Container already started.",
+		               "404" => "No such container.",
+		               "500" => "Server error.");
+		return ($code == "204") ? true : $codes[$code];
+	}
+
+
+	public function restartContainer($id){
+		$json = $this->getDockerJSON("/containers/${id}/restart", "POST", $code);
+		$codes = array("204" => "No error.",
+		               "404" => "No such container.",
+		               "500" => "Server error.");
+		return ($code == "204") ? true : $codes[$code];
+	}
+
+
+	public function removeContainer($id){
+		$json = $this->getDockerJSON("/containers/{$id}?force=1", "DELETE", $code);
+		$codes = array("204" => "No error.",
+		               "400" => "Bad parameter.",
+		               "404" => "No such container.",
+		               "500" => "Server error.");
+		return ($code == "204") ? true : $codes[$code];
+	}
+
+
+	public function pullImage($image, $callback = null) {
+		return $this->getDockerJSON("/images/create?fromImage=$image", "POST", $code, $callback);
+	}
+
+
+	public function removeImage($id){
+		$json = $this->getDockerJSON("/images/{$id}?force=1", "DELETE", $code);
+		$codes = array("200" => "No error.",
+		               "404" => "No such image.",
+		               "409" => "Conflict: image used by container ".$this->usedBy($id)[0].".",
+		               "500" => "Server error.");
+		return ($code == "200") ? true : $codes[$code];
 	}
 
 
@@ -555,6 +655,11 @@ class DockerClient {
 
 
 	public function getDockerContainers(){
+		// Return cached values
+		if (is_array($this->allContainersCache)){
+			return $this->allContainersCache;
+		}
+
 		$containers = array();
 		$json = $this->getDockerJSON("/containers/json?all=1");
 
@@ -566,24 +671,24 @@ class DockerClient {
 			preg_match("/\b^Up\b/", $status, $matches);
 			$running = $matches ? TRUE : FALSE;
 			$details = $this->getContainerDetails($obj['Id']);
+			// echo "<pre>".print_r($obj,TRUE)."</pre>";
 
-			// echo "<pre>".print_r($details,TRUE)."</pre>";
-
+			// Docker 1.7 uses full image ID when there aren't tags, so lets crop it
+			$Image            = (strlen($obj['Image']) == 64) ? substr($obj['Image'],0,12) : $obj['Image'];
 			// Docker 1.7 doesn't automatically append the tag 'latest', so we do that now if there's no tag
-			preg_match_all("/:([\w]*$)/i", $obj['Image'], $matches2);
-
-			$c["Image"]       = $obj['Image'] . (isset($matches2[1][0]) ? "" : ":latest");
-			$c["ImageId"]     = substr($details[0]["Image"],0,12);
-			$c["Name"]        = substr($details[0]['Name'], 1);
+			$c["Image"]       = ($Image && count(preg_split("#[:\/]#", $Image)) < 3) ? "${Image}:latest" : $Image;
+			$c["ImageId"]     = substr($details["Image"],0,12);
+			$c["Name"]        = substr($details['Name'], 1);
 			$c["Status"]      = $status;
 			$c["Running"]     = $running;
 			$c["Cmd"]         = $obj['Command'];
 			$c["Id"]          = substr($obj['Id'],0,12);
-			$c['Volumes']     = $details[0]["HostConfig"]['Binds'];
+			$c['Volumes']     = $details["HostConfig"]['Binds'];
 			$c["Created"]     = $this->humanTiming($obj['Created']);
-			$c["NetworkMode"] = $details[0]['HostConfig']['NetworkMode'];
+			$c["NetworkMode"] = $details['HostConfig']['NetworkMode'];
+			$c["BaseImage"]   = isset($obj["Labels"]["BASEIMAGE"]) ? $obj["Labels"]["BASEIMAGE"] : false;
 
-			$Ports = $details[0]['HostConfig']['PortBindings'];
+			$Ports = $details['HostConfig']['PortBindings'];
 			$Ports = (count ( $Ports )) ? $Ports : array();
 			$c["Ports"] = array();
 			if ($c["NetworkMode"] != 'host'){
@@ -599,7 +704,21 @@ class DockerClient {
 			$containers[] = $c;
 		}
 		usort($containers, $this->build_sorter('Name'));
+		$this->allContainersCache = $containers;
+
 		return $containers;
+	}
+
+
+	public function getContainerID($Container){
+		$allContainers = $this->getDockerContainers();
+		foreach ($allContainers as $ct) {
+			preg_match("%" . preg_quote($Container, "%") ."%", $ct["Name"], $matches);
+			if( $matches){
+				return $ct["Id"];
+			}
+		}
+		return NULL;
 	}
 
 
@@ -629,7 +748,10 @@ class DockerClient {
 
 
 	public function getDockerImages(){
-
+		// Return cached values
+		if (is_array($this->allImagesCache)){
+			return $this->allImagesCache;
+		}
 		$images = array();
 		$c = array();
 		$json = $this->getDockerJSON("/images/json?all=0");
@@ -642,6 +764,7 @@ class DockerClient {
 			foreach($obj['RepoTags'] as $t){
 				$tags[] = htmlentities($t);
 			}
+				// echo "<pre>".print_r($obj,TRUE)."</pre>";
 
 			$c["Created"]      = $this->humanTiming($obj['Created']);//date('Y-m-d H:i:s', $obj['Created']);
 			$c["Id"]           = substr($obj['Id'],0,12);
@@ -649,17 +772,12 @@ class DockerClient {
 			$c["Size"]         = $this->formatBytes($obj['Size']);
 			$c["VirtualSize"]  = $this->formatBytes($obj['VirtualSize']);
 			$c["Tags"]         = $tags;
+			$c["Repository"]   = vsprintf('%1$s/%2$s',preg_split("#[:\/]#", $tags[0]));
 			$c["usedBy"]       = $this->usedBy($c["Id"]);
 
-			$imgDetails = $this->getImageDetails($obj['Id']);
-			// echo "<pre>".print_r($imgDetails,TRUE)."</pre>";
-			$a = $imgDetails[0]['Config']['Volumes'];
-			$b = $imgDetails[0]['Config']['ExposedPorts'];
-			$c['ImageType'] = (! count($a) && ! count($b)) ? 'base' : 'user';
-
-			$images[]          = $c;
-
+			$images[$c["Id"]]  = $c;
 		}
+		$this->allImagesCache = $images;
 		return $images;
 	}
 }
