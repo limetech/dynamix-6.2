@@ -133,7 +133,7 @@ var context = context || (function () {
 			if (typeof options.above == 'boolean') {
 				place_above = options.above;
 			} else if (typeof options.above == 'string' && options.above == 'auto') {
-				place_above = ((e.pageY + $dd.height() + 32) > $(document).height());
+				place_above = ((e.pageY + $dd.height() + 32) > $(window).height() + $(document).scrollTop());
 			}
 
 			if (place_above) {
