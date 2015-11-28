@@ -134,7 +134,7 @@
 
 		'Windows Server 2008' => [
 			'form' => 'Custom.form.php',
-			'icon' => 'windowsxp.png',
+			'icon' => 'windows7.png',
 			'os' => 'windows2008',
 			'overrides' => [
 				'domain' => [
