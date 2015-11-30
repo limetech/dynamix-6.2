@@ -30,10 +30,7 @@ $DockerTemplates = new DockerTemplates();
 // Check for nodatacow flag on Docker file; display warning
 $realfile = $dockercfg['DOCKER_IMAGE_FILE'];
 if (file_exists($realfile)) {
-  if (strpos($realfile, '/mnt/user/') === 0) {
-    $tmp = parse_ini_string(shell_exec("getfattr --absolute-names -n user.LOCATION " . escapeshellarg($dockercfg['DOCKER_IMAGE_FILE']) . " | grep user.LOCATION"));
-    $realfile = str_replace('user', $tmp['user.LOCATION'], $realfile);  // replace 'user' with say 'cache' or 'disk1' etc
-  }
+  $realfile = transpose_user_path($realfile);
 
   if (exec("stat -c %T -f " . escapeshellarg($realfile)) == "btrfs") {
     if (shell_exec("lsattr " . escapeshellarg($realfile) . " | grep \"\\-C\"") == "") {
