@@ -168,7 +168,7 @@ if (!empty($_GET['uuid'])) {
 		background-position: -600px;
 		background-repeat: no-repeat;
 		background-clip: content-box;
-    	transition: background 0.3s linear;
+		transition: background 0.3s linear;
 	}
 	#vmform table.multiple:hover {
 		background-position: 0 0;
@@ -343,8 +343,8 @@ $(function() {
 	$('.advancedview').switchButton({
 		labels_placement: "left",
 		on_label: 'Advanced View',
-  		off_label: 'Basic View',
-  		checked: isVMAdvancedMode()
+		off_label: 'Basic View',
+		checked: isVMAdvancedMode()
 	});
 	$('.advancedview').change(function () {
 		toggleRows('advanced', $(this).is(':checked'), 'basic');
