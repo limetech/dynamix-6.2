@@ -26,17 +26,6 @@ $DockerTemplates = new DockerTemplates();
 
 $echo = function($m){echo "<pre>".print_r($m,true)."</pre>";};
 
-function prepareDir($dir){
-  if (strlen($dir)){
-    if ( ! is_dir($dir) && ! is_file($dir)){
-      mkdir($dir, 0777, true);
-      chown($dir, 'nobody');
-      chgrp($dir, 'users');
-      sleep(1);
-    }
-  }
-}
-
 function ContainerExist($container){
   global $DockerClient;
   $all_containers = $DockerClient->getDockerContainers();
@@ -44,7 +33,6 @@ function ContainerExist($container){
   foreach ($all_containers as $ct) {
     if ($ct['Name'] == $container){
       return True;
-      break;
     }
   }
   return False;
@@ -57,7 +45,6 @@ function ImageExist($image){
   foreach ($all_images as $img) {
     if ( ! is_bool(strpos($img['Tags'][0], $image)) ){
       return True;
-      break;
     }
   }
   return False;
@@ -67,51 +54,53 @@ function trimLine($text){
   return preg_replace("/([\n^])[\s]+/", '$1', $text);
 }
 
-$pullecho = function($line) {
-  global $alltotals;
-  $cnt =  json_decode( $line, TRUE );
-  $id = ( isset( $cnt['id'] )) ? $cnt['id'] : "";
-  $status = ( isset( $cnt['status'] )) ? $cnt['status'] : "";
-  if (strlen(trim($status)) && strlen(trim($id))) {
-    if ( isset($cnt['progressDetail']['total']) && $cnt['progressDetail']['total'] > 0 ) {
-      $alltotals[$cnt['id']] = $cnt['progressDetail']['total'];
-    }
-    echo "<script>addToID('${id}','${status}');</script>\n";
-    @flush();
-  }
-  if ($status == "Downloading") {
-    $total = $cnt['progressDetail']['total'];
-    $current = $cnt['progressDetail']['current'];
-    $alltotals[$cnt['id']] = $cnt['progressDetail']['current'];
-    if ($total > 0) {
-      $percentage = round(($current/$total) * 100);
-      echo "<script>progress('${id}',' ". $percentage ."% of " . sizeToHuman($total) . "');</script>\n";
-    } else {
-      // Docker must not know the total download size (http-chunked or something?)
-      //  just show the current download progress without the percentage
-      echo "<script>progress('${id}',' " . sizeToHuman($current) . "');</script>\n";
-    }
-    @flush();
-  }
-};
-
-
-function pullImage($image) {
-  global $DockerClient, $pullecho, $alltotals;
-  $alltotals = array();
+function pullImage($name, $image) {
+  global $DockerClient, $DockerTemplates, $DockerUpdate;
   if (! preg_match("/:[\w]*$/i", $image)) $image .= ":latest";
-  readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
-  echo "<script>
-  addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Pulling image: ${image}</legend><p class=\"logLine\" id=\"logBody\"></p></fieldset>');
-  function progress(id, prog){ $('.'+id+'_progress:last').text(prog);}
-  function addToID(id, m) {
-    if ($('#'+id).length === 0){ addLog('<span id=\"'+id+'\">IMAGE ID ['+id+']: </span>');}
-    if ($('#'+id).find('.content:last').text() != m){ $('#'+id).append('<span class=\"content\">'+m+'</span><span class=\"'+id+'_progress\"></span>. ');}
-  }</script>";
+
+  echo "<script>addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Pulling image: ${image}</legend><p class=\"logLine\" id=\"logBody\"></p></fieldset>');</script>\n";
   @flush();
 
-  $DockerClient->pullImage($image, $pullecho);
+  $alltotals = array();
+
+  // Force information reload
+  $DockerTemplates->removeInfo($name, $image);
+
+  $DockerClient->pullImage($image, function ($line) use (&$alltotals, $DockerUpdate, $image) {
+    $cnt = json_decode( $line, TRUE );
+    $id = ( isset( $cnt['id'] )) ? $cnt['id'] : "";
+    $status = ( isset( $cnt['status'] )) ? $cnt['status'] : "";
+    if (strlen(trim($status)) && strlen(trim($id))) {
+      if (!empty($cnt['progressDetail']) && !empty($cnt['progressDetail']['total'])) {
+        $alltotals[$cnt['id']] = $cnt['progressDetail']['total'];
+      }
+      echo "<script>addToID('${id}','${status}');</script>\n";
+    }
+    if ($status == "Downloading") {
+      $total = $cnt['progressDetail']['total'];
+      $current = $cnt['progressDetail']['current'];
+      $alltotals[$cnt['id']] = $cnt['progressDetail']['current'];
+      if ($total > 0) {
+        $percentage = round(($current/$total) * 100);
+        echo "<script>progress('${id}',' ". $percentage ."% of " . sizeToHuman($total) . "');</script>\n";
+      } else {
+        // Docker must not know the total download size (http-chunked or something?)
+        //  just show the current download progress without the percentage
+        echo "<script>progress('${id}',' " . sizeToHuman($current) . "');</script>\n";
+      }
+    } else if (!empty($status) && empty($id)) {
+      if (strpos($status, 'Status: ') === 0) {
+        echo "<script>addLog('${status}');</script>\n";
+      }
+      if (strpos($status, 'Digest: ') === 0) {
+        $DockerUpdate->setUpdateStatus($image, substr($status, 8));
+      }
+    }
+    @flush();
+  });
+
   echo "<script>addLog('<br><b>TOTAL DATA PULLED:</b> " . sizeToHuman(array_sum($alltotals)) . "<span class=\"progress\"></span>');</script>\n";
+  @flush();
 }
 
 function sizeToHuman($size) {
@@ -233,6 +222,7 @@ function xmlToVar($xml) {
     if (isset($xml->Networking->Publish->Port)) {
       $portNum = 0;
       foreach ($xml->Networking->Publish->Port as $port) {
+        if (empty(xml_decode($port->ContainerPort))) continue;
         $portNum += 1;
         $out['Config'][] = array('Name'       => "Port ${portNum}",
                                  'Target'      => xml_decode($port->ContainerPort),
@@ -251,6 +241,7 @@ function xmlToVar($xml) {
     if (isset($xml->Data->Volume)) {
       $volNum = 0;
       foreach ($xml->Data->Volume as $vol) {
+        if (empty(xml_decode($vol->ContainerDir))) continue;
         $volNum += 1;
         $out['Config'][] = array('Name'       => "Path ${volNum}",
                                  'Target'      => xml_decode($vol->ContainerDir),
@@ -269,6 +260,7 @@ function xmlToVar($xml) {
     if (isset($xml->Environment->Variable)) {
       $varNum = 0;
       foreach ($xml->Environment->Variable as $var) {
+        if (empty(xml_decode($var->Name))) continue;
         $varNum += 1;
         $out['Config'][] = array('Name'       => "Variable ${varNum}",
                                  'Target'      => xml_decode($var->Name),
@@ -386,41 +378,44 @@ if (isset($_POST['contName'])) {
     goto END;
   }
 
+  include("/usr/local/emhttp/plugins/dynamix.docker.manager/log.php");
+  @flush();
+
   // Will only pull image if it's absent
   if (! ImageExist($Repository)) {
     // Pull image
-    pullImage($Repository);
+    pullImage($Name, $Repository);
   }
 
   // Saving the generated configuration file.
   $userTmplDir = $dockerManPaths['templates-user'];
-  if(is_dir($userTmplDir) === FALSE){
+  if (!is_dir($userTmplDir)) {
     mkdir($userTmplDir, 0777, true);
   }
-  if(strlen($Name)) {
+  if (!empty($Name)) {
     $filename = sprintf('%s/my-%s.xml', $userTmplDir, $Name);
     file_put_contents($filename, $postXML);
   }
 
   // Remove existing container
-  if (ContainerExist($Name)){
+  if (ContainerExist($Name)) {
     // attempt graceful stop of container first
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $Name";
     include($dockerManPaths['plugin'] . "/include/Exec.php");
 
-    // force kill container if still running after 30 seconds
+    // force kill container if still running after 10 seconds
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $Name";
     include($dockerManPaths['plugin'] . "/include/Exec.php");
   }
 
   // Remove old container if renamed
   $existing = isset($_POST['existingContainer']) ? $_POST['existingContainer'] : FALSE;
-  if ($existing && ContainerExist($existing)){
+  if ($existing && ContainerExist($existing)) {
     // attempt graceful stop of container first
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $existing";
     include($dockerManPaths['plugin'] . "/include/Exec.php");
 
-    // force kill container if still running after 30 seconds
+    // force kill container if still running after 10 seconds
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $existing";
     include($dockerManPaths['plugin'] . "/include/Exec.php");
   }
@@ -428,10 +423,6 @@ if (isset($_POST['contName'])) {
   // Injecting the command in $_GET variable and executing.
   $_GET['cmd'] = $cmd;
   include($dockerManPaths['plugin'] . "/include/Exec.php");
-
-  // Force information reload
-  $DockerTemplates->removeInfo($Name, $Repository);
-  $DockerUpdate->reloadUpdateStatus($Repository);
 
   echo '<center><input type="button" value="Done" onclick="done()"></center><br>';
   goto END;
@@ -441,12 +432,16 @@ if (isset($_POST['contName'])) {
 ##   UPDATE CONTAINER
 ##
 if ($_GET['updateContainer']){
+  include("/usr/local/emhttp/plugins/dynamix.docker.manager/log.php");
+  @flush();
+
   foreach ($_GET['ct'] as $value) {
     $Name = urldecode($value);
     $tmpl = $DockerTemplates->getUserTemplate($Name);
 
     if (! $tmpl){
-      echo 'Configuration not found. Was this container created using this plugin?';
+      echo "<script>addLog('<p>Configuration not found. Was this container created using this plugin?</p>');</script>";
+      @flush();
       continue;
     }
 
@@ -454,15 +449,13 @@ if ($_GET['updateContainer']){
     list($cmd, $Name, $Repository) = xmlToCommand($tmpl);
     $Registry = getXmlVal($xml, "Registry");
 
-    readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
     echo "<script>addLog('<p>Preparing to update: " . $Repository . "</p>');</script>";
     @flush();
 
     $oldContainerID = $DockerClient->getImageID($Repository);
 
     // Pull image
-    flush();
-    pullImage($Repository);
+    pullImage($Name, $Repository);
 
     // attempt graceful stop of container first
     $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $Name";
@@ -480,10 +473,6 @@ if ($_GET['updateContainer']){
       $_GET['cmd'] = sprintf("/plugins/dynamix.docker.manager/scripts/docker rmi %s", $oldContainerID);
       include($dockerManPaths['plugin'] . "/include/Exec.php");
     }
-
-    // Force information reload
-    $DockerTemplates->removeInfo($Name, $Repository);
-    $DockerUpdate->reloadUpdateStatus($Repository);
   }
 
   echo '<center><input type="button" value="Done" onclick="window.parent.jQuery(\'#iframe-popup\').dialog(\'close\');"></center><br>';
@@ -514,6 +503,7 @@ if ($_GET['xmlTemplate']) {
           if ($arrConfig['Type'] == 'Path' && strtolower($arrConfig['Target']) == '/config') {
             $arrConfig['Default'] = $arrConfig['Value'] = realpath($dockercfg["DOCKER_APP_CONFIG_PATH"]).'/'.$xml["Name"];
             $arrConfig['Display'] = 'hidden';
+            $arrConfig['Name'] = 'AppData Config Path';
           }
         }
       }
@@ -524,6 +514,7 @@ if ($_GET['xmlTemplate']) {
           if ($arrConfig['Type'] == 'Path' && strtolower($arrConfig['Target']) == '/unraid') {
             $arrConfig['Default'] = $arrConfig['Value'] = realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]);
             $arrConfig['Display'] = 'hidden';
+            $arrConfig['Name'] = 'unRAID Share Path';
             $boolFound = true;
           }
         }
@@ -562,10 +553,26 @@ $showAdditionalInfo = '';
   optgroup.title{background-color:#625D5D;color:#FFFFFF;text-align:center;margin-top:10px;}
   .textPath{width:270px;}
 
-  table.Preferences{width:100%;}
-  table.Preferences tr>td{font-weight: bold;padding-right: 10px;}
-  table.Preferences tr>td+td{font-weight: normal;}
-  table td{font-size:14px;vertical-align:bottom;text-align:left;}
+  table {
+    margin-top: 0;
+  }
+  table tr {
+    vertical-align:top;
+    line-height:24px;
+  }
+  table tr td:nth-child(odd) {
+    width: 150px;
+    text-align: right;
+    padding-right: 10px;
+    white-space: nowrap;
+  }
+  table tr td:nth-child(even) {
+    width: 80px;
+  }
+  table tr td:last-child {
+    width: inherit;
+  }
+
   .show{display:block;}
   .inline_help{font-size:12px;font-weight: normal;}
   .desc{padding:6px;line-height:15px;width:inherit;}
@@ -681,7 +688,7 @@ $showAdditionalInfo = '';
                                  opts.Buttons,
                                  (opts.Required == "true") ? "required" : ""
                                  );
-    newConfig = "<div id='ConfigNum"+opts.Number+"' style='margin-top: 30px;' class='"+opts.Display+"'>"+newConfig+"</div>";
+    newConfig = "<div id='ConfigNum"+opts.Number+"' class='"+opts.Display+"'>"+newConfig+"</div>";
     newConfig = $($.parseHTML(newConfig));
     value     = newConfig.find("input[name='confValue[]']");
     if (opts.Type == "Path") {
@@ -931,16 +938,16 @@ $showAdditionalInfo = '';
     }
   }
 </script>
-<div style='display: inline; float: right; margin: -47px -5px;' id='docker_tabbed'></div>
+<div id="docker_tabbed" style="display: inline; float: right; margin: -47px 0px;"></div>
 <div id="dialogAddConfig" style="display: none"></div>
 <form method="GET" id="formTemplate">
   <input type="hidden" id="xmlTemplate" name="xmlTemplate" value="" />
   <input type="hidden" id="rmTemplate" name="rmTemplate" value="" />
 </form>
 
-<form method="POST" autocomplete="off">
-  <div id="canvas" style="z-index:1;">
-    <table class="Preferences">
+<div id="canvas" style="z-index:1;margin-top:-21px;">
+  <form method="POST" autocomplete="off">
+    <table>
       <? if($xmlType == "edit"):
       if (ContainerExist($templateName)): echo "<input type='hidden' name='existingContainer' value='${templateName}'>\n"; endif;
       else:?>
@@ -1001,7 +1008,7 @@ $showAdditionalInfo = '';
       </tr>
       <?endif;?>
       <tr <?=$showAdditionalInfo?>>
-        <td style="width: 150px; vertical-align: top;">Name:</td>
+        <td>Name:</td>
         <td><input type="text" name="contName" class="textPath" required></td>
       </tr>
       <tr <?=$showAdditionalInfo?>>
@@ -1012,12 +1019,19 @@ $showAdditionalInfo = '';
         </td>
       </tr>
       <tr id="Overview" class="basic">
-        <td style="width: 150px; vertical-align: top;">Overview:</td>
-        <td><div style="color: #3B5998; width:50%;" name="contDescription"></div></td>
+        <td>Overview:</td>
+        <td><div style="color: #3B5998; width:50%; line-height: 16px; padding-top: 4px;" name="contDescription"></div></td>
       </tr>
       <tr id="Overview" class="advanced">
-        <td style="width: 150px; vertical-align: top;">Overview:</td>
+        <td>Overview:</td>
         <td><textarea name="contOverview" rows="10" cols="71" class="textTemplate"></textarea></td>
+      </tr>
+      <tr>
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>A description for the application container.  Supports basic HTML mark-up.</p>
+          </blockquote>
+        </td>
       </tr>
       <tr <?=$showAdditionalInfo?>>
         <td>Repository:</td>
@@ -1027,6 +1041,65 @@ $showAdditionalInfo = '';
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>The repository for the application on the Docker Registry.  Format of authorname/appname.  Optionally you can add a : after appname and request a specific version for the container image.</p>
+          </blockquote>
+        </td>
+      </tr>
+      <tr class="advanced">
+        <td>Categories:</td>
+        <td><input type="text" name="contCategory" class="textPath"></td>
+      </tr>
+      <tr class="advanced">
+        <td>Support Thread:</td>
+        <td><input type="text" name="contSupport" class="textPath"></td>
+      </tr>
+      <tr class="advanced">
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>Link to a support thread on Lime-Technology's forum.</p>
+          </blockquote>
+        </td>
+      </tr>
+      <tr class="advanced">
+        <td>Docker Hub URL:</td>
+        <td><input type="text" name="contRegistry" class="textPath"></td>
+      </tr>
+      <tr class="advanced">
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>The path to the container's repository location on the Docker Hub.</p>
+          </blockquote>
+        </td>
+      </tr>
+      <tr class="advanced">
+        <td>Icon URL:</td>
+        <td><input type="text" name="contIcon" class="textPath"></td>
+      </tr>
+      <tr class="advanced">
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>Link to the icon image for your application (only displayed on dashboard if Show Dashboard apps under Display Settings is set to Icons).</p>
+          </blockquote>
+        </td>
+      </tr>
+      <tr class="advanced">
+        <td>WebUI:</td>
+        <td><input type="text" name="contWebUI" class="textPath"></td>
+      </tr>
+      <tr class="advanced">
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>When you click on an application icon from the Docker Containers page, the WebUI option will link to the path in this field.  Use [IP} to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
+          </blockquote>
+        </td>
+      </tr>
+      <tr class="advanced">
+        <td>Extra Parameters:</td>
+        <td><input type="text" name="contExtraParams" class="textPath"></td>
+      </tr>
+      <tr class="advanced">
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>If you wish to append additional commands to your Docker container at run-time, you can specify them here.  For example, if you wish to pin an application to live on a specific CPU core, you can enter "--cpuset=0" in this field.  Change 0 to the core # on your system (starting with 0).  You can pin multiple cores by separation with a comma or a range of cores by separation with a dash.  For all possible Docker run-time commands, see here: <a href="https://docs.docker.com/reference/run/" target="_blank">https://docs.docker.com/reference/run/</a></p>
           </blockquote>
         </td>
       </tr>
@@ -1050,7 +1123,7 @@ $showAdditionalInfo = '';
       </tr>
       <tr <?=$showAdditionalInfo?>>
         <td>Privileged:</td>
-        <td><input type="checkbox" name="contPrivileged" class="switch-on-off">
+        <td style="line-height: 16px; vertical-align: middle;"><input type="checkbox" name="contPrivileged" class="switch-on-off">
         </td>
       </tr>
       <tr <?=$showAdditionalInfo?>>
@@ -1066,92 +1139,14 @@ $showAdditionalInfo = '';
     <div id="configLocation"></div>
     <table class="advanced">
       <tr>
-        <td style="vertical-align: top; width: 150px; white-space:nowrap; "> &nbsp;</td>
-        <td><button type="button" onclick="addConfigPopup();" style="margin-top: 25px">Add Config</button></td>
+        <td>&nbsp;</td>
+        <td><button type="button" onclick="addConfigPopup();">Add Config</button></td>
       </tr>
     </table>
-
-    <div class="advanced">
-      <!--div id="title">
-        <span class="left"><img src="/plugins/dynamix.docker.manager/icons/vcard.png" class="icon">Additional Fields</span>
-      </div-->
-      <table class="Preferences">
-        <!--tr>
-          <td style="width: 150px; vertical-align: top;">Overview:</td>
-          <td><textarea name="contOverview" rows="10" cols="71" class="textTemplate"></textarea></td>
-        </tr-->
-        <tr>
-          <td colspan="2" class="inline_help">
-            <blockquote class="inline_help">
-              <p>A description for the application container.  Supports basic HTML mark-up.</p>
-            </blockquote>
-          </td>
-        </tr>
-        <tr>
-          <td>Categories:</td>
-          <td><input type="text" name="contCategory" class="textPath"></td>
-        </tr>
-        <tr>
-          <td>Support Thread:</td>
-          <td><input type="text" name="contSupport" class="textPath"></td>
-        </tr>
-        <tr>
-          <td colspan="2" class="inline_help">
-            <blockquote class="inline_help">
-              <p>Lnk to a support thread on Lime-Technology's forum.</p>
-            </blockquote>
-          </td>
-        </tr>
-        <tr>
-          <td>Docker Hub URL:</td>
-          <td><input type="text" name="contRegistry" class="textPath"></td>
-        </tr>
-        <tr>
-          <td colspan="2" class="inline_help">
-            <blockquote class="inline_help">
-              <p>The path to the container's repository location on the Docker Hub.</p>
-            </blockquote>
-          </td>
-        </tr>
-        <tr>
-          <td>Icon URL:</td>
-          <td><input type="text" name="contIcon" class="textPath"></td>
-        </tr>
-        <tr>
-          <td colspan="2" class="inline_help">
-            <blockquote class="inline_help">
-              <p>Link to the icon image for your application (only displayed on dashboard if Show Dashboard apps under Display Settings is set to Icons).</p>
-            </blockquote>
-          </td>
-        </tr>
-        <tr>
-          <td>WebUI:</td>
-          <td><input type="text" name="contWebUI" class="textPath"></td>
-        </tr>
-        <tr>
-          <td colspan="2" class="inline_help">
-            <blockquote class="inline_help">
-              <p>When you click on an application icon from the Docker Containers page, the WebUI option will link to the path in this field.  Use [IP} to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
-            </blockquote>
-          </td>
-        </tr>
-        <tr>
-          <td>Extra Parameters:</td>
-          <td><input type="text" name="contExtraParams" class="textPath"></td>
-        </tr>
-        <tr>
-          <td colspan="2" class="inline_help">
-            <blockquote class="inline_help">
-              <p>If you wish to append additional commands to your Docker container at run-time, you can specify them here.  For example, if you wish to pin an application to live on a specific CPU core, you can enter "--cpuset=0" in this field.  Change 0 to the core # on your system (starting with 0).  You can pin multiple cores by separation with a comma or a range of cores by separation with a dash.  For all possible Docker run-time commands, see here: <a href="https://docs.docker.com/reference/run/" target="_blank">https://docs.docker.com/reference/run/</a></p>
-            </blockquote>
-          </td>
-        </tr>
-      </table>
-    </div>
     <br>
     <table>
       <tr>
-        <td style="width: 160px;">&nbsp;</td>
+        <td>&nbsp;</td>
         <td>
           <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save' ?>">
           <button class="advanced" type="submit" name="dryRun" value="true" onclick="$('*[required]').prop( 'required', null );">Dry Run</button>
@@ -1160,8 +1155,8 @@ $showAdditionalInfo = '';
       </tr>
     </table>
     <br><br><br>
-  </div>
-</form>
+  </form>
+</div>
 
 <?
 #        ██╗███████╗    ████████╗███████╗███╗   ███╗██████╗ ██╗      █████╗ ████████╗███████╗███████╗
@@ -1241,17 +1236,14 @@ $showAdditionalInfo = '';
   <input type="hidden" name="confDisplay[]" value="{6}">
   <input type="hidden" name="confRequired[]" value="{7}">
   <input type="hidden" name="confMask[]" value="{8}">
-  <table class="Preferences">
+  <table>
     <tr>
-      <td style="vertical-align: top; min-width: 150px; white-space: nowrap; padding-top: 17px;" class="{11}"><b>{0}: </b></td>
+      <td style="vertical-align: top; min-width: 150px; white-space: nowrap; padding-top: 17px;" class="{11}">{0}:</td>
       <td style="width: 100%">
         <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11} > <button type="button" onclick="resetField(this);">Default</button>
         {10}
+        <div style='color: #C98C21;line-height: 1.4em'>{4}</div>
       </td>
-    </tr>
-    <tr>
-      <td>&nbsp;</td>
-      <td style="padding-top: 0px;"><div style='color: #b94a48;line-height: 1.6em'>{4}</div></td>
     </tr>
 <!--     <tr class='advanced'>
       <td style="padding-top: 0px;">
