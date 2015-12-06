@@ -378,7 +378,7 @@ if (isset($_POST['contName'])) {
     goto END;
   }
 
-  include("/usr/local/emhttp/plugins/dynamix.docker.manager/log.php");
+  readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
   @flush();
 
   // Will only pull image if it's absent
@@ -432,7 +432,7 @@ if (isset($_POST['contName'])) {
 ##   UPDATE CONTAINER
 ##
 if ($_GET['updateContainer']){
-  include("/usr/local/emhttp/plugins/dynamix.docker.manager/log.php");
+  readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
   @flush();
 
   foreach ($_GET['ct'] as $value) {
