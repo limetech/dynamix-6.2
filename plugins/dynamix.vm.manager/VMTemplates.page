@@ -36,6 +36,7 @@ Cond="(pgrep('libvirtd')!==false)"
 	}
 	.vmtemplate p {
 		text-align: center;
+		margin-top: 8px;
 		line-height: 12px;
 	}
 </style>
@@ -48,7 +49,7 @@ Cond="(pgrep('libvirtd')!==false)"
 ?>
 <div class="vmtemplate">
 	<a href="/VMs/AddVM?template=<?=htmlentities(urlencode($strName))?>">
-		<img src="/plugins/dynamix.vm.manager/templates/images/<?=$arrTemplate['icon']?>">
+		<img src="/plugins/dynamix.vm.manager/templates/images/<?=$arrTemplate['icon']?>" title="<?=$strName?>">
 		<p><?=$strName?></p>
 	</a>
 </div>
