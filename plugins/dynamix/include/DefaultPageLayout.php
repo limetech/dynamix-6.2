@@ -20,7 +20,7 @@
 <meta name="robots" content="noindex">
 <link type="image/png" rel="shortcut icon" href="/webGui/images/<?=$var['mdColor']?>.png">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/default-fonts.css">
-<link type="text/css" rel="stylesheet" href="/webGui/styles/font-awesome.css">
+<link type="text/css" rel="stylesheet" href="/webGui/styles/font-awesome.css?v=4.5.0">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.sweetalert.css">
 <link type="text/css" rel="stylesheet" href="<?autov("/webGui/styles/default-{$display['theme']}.css")?>">
 <link type="text/css" rel="stylesheet" href="<?autov("/webGui/styles/dynamix-{$display['theme']}.css")?>">
