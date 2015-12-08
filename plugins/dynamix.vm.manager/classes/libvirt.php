@@ -641,7 +641,7 @@
 
 					list($gpu_bus, $gpu_slot, $gpu_function) = explode(":", str_replace('.', ':', $gpu['id']));
 
-					$pcidevs .= "<hostdev mode='subsystem' type='pci' managed='yes'".((empty($gpudevs_used) && empty($domain['ovmf'])) ? " xvga='on'" : "").">
+					$pcidevs .= "<hostdev mode='subsystem' type='pci' managed='yes'".((empty($gpudevs_used) && empty($domain['ovmf'])) ? " xvga='yes'" : "").">
 									<driver name='vfio'/>
 									<source>
 										<address domain='0x0000' bus='0x".$gpu_bus."' slot='0x".$gpu_slot."' function='0x".$gpu_function."'/>
