@@ -78,7 +78,7 @@ function parseScript(_source) {
     source = source.substring(0, s) + source.substring(e_e+1);
   }
 
-  for(var i=0; i<scripts.length; i++) {
+  for (var i=0; i<scripts.length; i++) {
     try {
       eval(scripts[i]);
     } catch(ex) {}
@@ -90,22 +90,18 @@ function parseScript(_source) {
 function progress(id, prog) {
   var elms = document.getElementsByClassName(id+'_progress');
   if (elms.length) {
-    var el = elms[elms.length-1];
-    el.innerHTML = prog;
+    elms[elms.length-1].textContent = prog;
   }
 }
 
 function addToID(id, m) {
   var elms = document.getElementById(id);
   if (elms === null) {
-    addLog('<span id=\"'+id+'\">IMAGE ID ['+id+']: </span><span class=\"content\">'+m+'</span><span class=\"'+id+'_progress\"></span>.');
+    addLog('<span id=\"'+id+'\">IMAGE ID ['+id+']: <span class=\"content\">'+m+'</span><span class=\"'+id+'_progress\"></span>. </span>');
   } else {
     var elms_content = elms.getElementsByClassName("content");
-    if (elms_content.length) {
-      var el = elms_content[elms_content.length - 1];
-      if (el.innerText != m) {
-        elms.innerHTML += '<span class=\"content\">'+m+'</span><span class=\"'+id+'_progress\"></span>. ';
-      }
+    if (!elms_content.length || elms_content[elms_content.length-1].textContent != m) {
+      elms.innerHTML += '<span class=\"content\">'+m+'</span><span class=\"'+id+'_progress\"></span>. ';
     }
   }
 }
