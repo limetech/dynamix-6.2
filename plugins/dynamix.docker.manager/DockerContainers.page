@@ -58,7 +58,6 @@ img.stopped{opacity:0.3;}
 		<tr>
 			<th>&nbsp;</th>
 			<th>Application</th>
-			<th>Author / Repo</th>
 			<th>Version</th>
 			<th>Port Mappings <small>(App to Host)</small></th>
 			<th>Volume Mappings <small>(App to Host)</small></th>
@@ -129,22 +128,21 @@ img.stopped{opacity:0.3;}
 			</td>
 			<td>
 				<?if($info[$ct['Name']]['template']):?>
-				<a class="exec" onclick="editContainer('<?=addslashes($ct['Name']);?>','<?=addslashes($info[$ct['Name']]['template']);?>');"><?=htmlspecialchars($ct['Name']);?></a>
+					<a class="exec" onclick="editContainer('<?=addslashes($ct['Name']);?>','<?=addslashes($info[$ct['Name']]['template']);?>');"><?=htmlspecialchars($ct['Name']);?></a>
 				<?else:?>
-				<?=htmlspecialchars($ct['Name']);?>
+					<?=htmlspecialchars($ct['Name']);?>
 				<?endif;?>
 				<div class="advanced" style="color:#888; width: 160px;">Container ID: <?=htmlspecialchars($ct['Id']);?></div>
-			</td>
-			<td>
-				<?
-				$Registry = $info[$ct['Name']]['registry'];
-				if ($Registry){
-					printf("<a href=\"%s\" target=\"_blank\">%s</a>", htmlspecialchars($Registry), htmlspecialchars($ct['Image']) );
-				} else {
-					echo htmlspecialchars($ct['Image']);
-				}
-				?>
-				<? if($ct['BaseImage']) echo "<div class='advanced' style='color:#888; width: 160px;'><i class='fa fa-cubes' style='margin-right: 5px'></i>${ct[BaseImage]}</div>";?>
+				<?if($ct['BaseImage']):?>
+					<div class="advanced" style="color:#888; width: 160px;"><i class="fa fa-cubes" style="margin-right: 5px"></i><?=${ct[BaseImage]}?></div>
+				<?endif;?>
+				<div class="advanced" style="color:#888; width: 160px;">By:
+				<?if($Registry = $info[$ct['Name']]['registry']):?>
+					<a href="<?=htmlspecialchars($Registry)?>" target="_blank"><?=htmlspecialchars($ct['Image'])?></a>
+				<?else:?>
+					<?=htmlspecialchars($ct['Image']);?>
+				<?endif;?>
+				</div>
 			</td>
 			<td class="updatecolumn">
 				<?
@@ -193,9 +191,11 @@ img.stopped{opacity:0.3;}
 			</td>
 			<td data-sort-value="ZZZZZZZZZZZ">
 				<i>(orphan image)</i>
-				<div class="advanced" style="color:#888; width: 160px;">Image ID: <?=$image['Id']?></div>
+				<div style="color:#888; width: 160px;">Image ID: <?=$image['Id']?></div>
+				<?if(strpos(implode($image['Tags']), "&lt;none&gt;:&lt;none&gt;") === false):?>
+					<div style="color:#888; width: 160px;"><?=implode("<br>", $image['Tags'])?></div>
+				<?endif;?>
 			</td>
-			<td><?=implode("<br>", $image['Tags']);?></td>
 			<td>&nbsp;</td>
 			<td>&nbsp;</td>
 			<td>&nbsp;</td>
