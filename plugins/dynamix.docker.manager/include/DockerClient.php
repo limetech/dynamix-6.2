@@ -466,7 +466,7 @@ class DockerUpdate{
 		// Add :latest tag to image if it's absent
 		$image = ($image && count(preg_split("#[:\/]#", $image)) < 3) ? "${image}:latest" : $image;
 		if(isset($updateStatus[$image])) {
-			if ($updateStatus[$image]['local'] && $updateStatus[$image]['remote']) {
+			if ($updateStatus[$image]['local'] || $updateStatus[$image]['remote']) {
 				return ($updateStatus[$image]['local'] == $updateStatus[$image]['remote']) ? true : false;
 			}
 		}

@@ -45,8 +45,10 @@ if (!isset($check)) {
     $image = $ct['Image'];
     if ($info[$name]['updated'] == "false") {
       $updateStatus = (is_file($dockerManPaths['update-status'])) ? json_decode(file_get_contents($dockerManPaths['update-status']), TRUE) : array();
-      $new = $updateStatus[$image]['remote'];
-      exec("$notify -e 'Docker - $name [$new]' -s 'Notice [$server] - Docker update $new' -d 'A new version of $name is available' -i 'normal $output' -x");
+      $new = str_replace('sha256:', '', $updateStatus[$image]['remote']);
+      $new = substr($new, 0, 4).'..'.substr($new, -4, 4);
+
+      exec("$notify -e ".escapeshellarg("Docker - $name [$new]")." -s ".escapeshellarg("Notice [$server] - Docker update $new")." -d ".escapeshellarg("A new version of $name is available")." -i ".escapeshellarg("normal $output")." -x");
     }
   }
 }
