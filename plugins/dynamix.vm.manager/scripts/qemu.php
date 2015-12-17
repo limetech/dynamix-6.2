@@ -11,7 +11,7 @@ if (!isset($argv[1])) {
 
 
 function detect_user_share(&$arg) {
-	$arg = preg_replace_callback('|(/mnt/user/[^, ]+)|', function($match) {
+	$arg = preg_replace_callback('|(/mnt/user/[^,]+\.[^, ]+)[, ]?|', function($match) {
 		if (is_file($match[0])) {
 			// resolve the actual disk or cache backing device for this user share path
 			$realdisk = trim(shell_exec("getfattr --absolute-names -n user.LOCATIONS ".escapeshellarg($match[0])." 2>/dev/null|grep -Po '^user.LOCATIONS=\"\K[^\\\"]+'"));
