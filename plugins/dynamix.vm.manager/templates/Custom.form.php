@@ -63,7 +63,7 @@
 				'driver' => 'raw',
 				'dev' => 'hda',
 				'select' => $domain_cfg['VMSTORAGEMODE'],
-				'bus' => 'sata'
+				'bus' => 'virtio'
 			]
 		],
 		'gpu' => [
