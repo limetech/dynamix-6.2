@@ -136,7 +136,7 @@ echo $size;
 <?
 // Memory Device (16) will get us each ram chip. By matching on MB it'll filter out Flash/Bios chips
 // Sum up all the Memory Devices to get the amount of system memory installed
-$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} END{print t}'");
+$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'");
 // Physical Memory Array (16) usually one of these for a desktop-class motherboard but higher-end xeon motherboards
 // might have two or more of these.  The trick is to filter out any Flash/Bios types by matching on GB
 // Sum up all the Physical Memory Arrays to get the motherboard's total memory capacity
