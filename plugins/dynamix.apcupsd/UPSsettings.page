@@ -106,7 +106,7 @@ UPS type:
 > + **ModBus** - serial device for use with newest SmartUPS models supporting the MODBUS protocol
 
 Device:
-: <input type="text" name="DEVICE" maxlength="40" value="<?=$cfg['DEVICE'];?>">
+: <input type="text" name="DEVICE" maxlength="200" value="<?=$cfg['DEVICE'];?>">
 
 > Enter the *device* which correspondes to your situation, only applicable when *UPS type* is not set to USB.
 >
