@@ -1,0 +1,38 @@
+Menu="SMB:2"
+Title="SMB Extras"
+Cond="($var['shareSMBEnabled']!='no')"
+Png="smbsettings.png"
+---
+<?PHP
+/* Copyright 2016, Lime Technology
+ * Copyright 2016, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+> Use this page to make changes to your `smb-extra.conf` file.  Samba will need
+> to be restarted in order for changes to take effect.
+
+<?
+$file = "/boot/config/smb-extra.conf";
+$text = @file_get_contents($file);
+?>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#include" value="/webGui/include/update.file.php">
+<input type="hidden" name="#file" value="<?=$file;?>">
+Samba extra configuration:
+
+: <textarea spellcheck="false" cols="80" rows="22" maxlength="2048" name="text" style="font-family:bitstream;width:66%"><?=$text;?></textarea>
+
+&nbsp;
+: <input type="submit" value="Apply"/><input type="button" value="Done" onclick="done()">
+
+> Click the **Apply** button to commit the current edits.  Click **Reset** to
+> undo any changes you make (before Saving). Click **Done** to exit this page.
+
+</form>

@@ -28,9 +28,26 @@ if ($tmp_stale) foreach (glob("/tmp/plugins/*.{plg,txt}", GLOB_NOSORT+GLOB_BRACE
 <script src="/webGui/javascript/jquery.filetree.js"></script>
 
 <script>
+<?if ($display['resize']):?>
+function resize(bind) {
+  var width = [];
+  var h = $('#plugin_list').height();
+  var s = Math.max(window.innerHeight-300,370);
+  if (h>s || bind) {
+    $('#plugin_list').height(s);
+    $('#plugin_table tbody tr:first-child td').each(function(){width.push($(this).width());});
+    $('#plugin_table thead tr th').each(function(i){$(this).width(width[i]);});
+    if (!bind) $('#plugin_table thead,#plugin_table tbody').addClass('fixed');
+  }
+}
+<?endif;?>
 $(function() {
   $.get('/plugins/dynamix.plugin.manager/include/ShowPlugins.php',{stale:'<?=$tmp_stale?>'},function(data) {
     if (data) $('#plugin_list').html(data);
+<?if ($display['resize']):?>
+    resize();
+    $(window).bind('resize',function(){resize(true);});
+<?endif;?>
     $('#plugin_table').tablesorter({headers:{0:{sorter:false},5:{sorter:false}}});
     $('.desc_readmore').readmore({maxHeight:58});
   });
@@ -43,7 +60,7 @@ $(function() {
 Click <strong><big>check for updates</big></strong> to check all plugins. This page might take some time to load depending on your internet connection and how many plugins need to be checked.
 </blockquote>
 
-<table class='tablesorter shift plugins' id='plugin_table'>
+<table class='tablesorter plugins shift' id='plugin_table'>
 <thead><tr><th></th><th>Plugin</th><th>Author</th><th>Version</th><th>Status</th><th></th></tr></thead>
-<tbody id='plugin_list'><tr><td colspan='6'><br><i class="fa fa-spinner fa-spin icon"></i><em>Please wait, retrieving plugin information ...</em></td><tr></tbody>
+<tbody id="plugin_list"><tr><td></td><td colspan='4'><br><i class="fa fa-spinner fa-spin icon"></i><em>Please wait, retrieving plugin information ...</em></td><td></td><tr></tbody>
 </table>

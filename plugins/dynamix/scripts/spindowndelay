@@ -1,0 +1,41 @@
+#!/usr/bin/php -q
+<?PHP
+/* Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+$disks = parse_ini_file("/var/local/emhttp/disks.ini",true);
+$port  = $argv[1];
+$timer = $argv[2];
+
+// search for disk and fill variables
+foreach ($disks as $disk) {
+  if ($disk['device']==$port) {
+    $idx = $disk['idx'];
+    $delay = $disk['spindownDelay'];
+    break;
+  }
+}
+// disk not found, quit without action
+if (!isset($idx)) exit(0);
+
+$file = "/var/tmp/diskSpindownDelay.$idx";
+if ($timer=='') {
+// restore 'old' spindown time
+  $delay = file_exists($file) ? file_get_contents($file) : -1;
+  @unlink($file);
+} else {
+// save 'old' and set 'new' spindown time
+  file_put_contents($file, $delay);
+  $delay = $timer;
+}
+// update spindown time of selected disk
+exec("wget -qO /dev/null 127.0.0.1:$(lsof -lbnPi4 -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K[\d]+')/update.htm?diskSpindownDelay.$idx=$delay&changeDisk=apply");

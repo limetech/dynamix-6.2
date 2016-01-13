@@ -1,3 +1,29 @@
-#!/bin/bash
+#!/usr/bin/php -q
+<?PHP
+/* Copyright 2015, Bergware International.
+ * Copyright 2015, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+echo "<p style='text-align:center'><span class='error label'>Error</span><span class='warn label'>Warning</span><span class='system label'>System</span><span class='array label'>Array</span><span class='login label'>Login</span></p>\n";
 
-exec /usr/bin/tail -n 42 -f "/var/log/$1"
+require_once '/usr/local/emhttp/webGui/include/ColorCoding.php';
+
+$handle = popen("/usr/bin/tail -n 40 -f /var/log/{$argv[1]} 2>&1", 'r');
+while (!feof($handle)) {
+  $line = fgets($handle);
+  if (strpos($line,'tail_log')!==false) continue;
+  $span = "span";
+  foreach ($match as $type) foreach ($type['text'] as $text) if (preg_match("/$text/i",$line)) {$span = "span class='{$type['class']}'"; break 2;}
+  echo "<$span>".htmlentities($line)."</span>";
+  flush();
+}
+pclose($handle);
+?>

@@ -65,7 +65,7 @@ img.stopped{opacity:0.3;}
 			<th>Log</th>
 		</tr>
 	</thead>
-	<tbody>
+	<tbody id="docker_list">
 		<?
 		$all_containers = $docker->getDockerContainers();
 		if ( ! $all_containers) {
@@ -212,6 +212,19 @@ img.stopped{opacity:0.3;}
 <script src="/webGui/javascript/context.js"></script>
 <script src="/plugins/dynamix.docker.manager/javascript/docker.js"></script>
 <script>
+<?if ($display['resize']):?>
+function resize(bind) {
+  var width = [];
+  var h = $('#docker_list').height();
+  var s = Math.max(window.innerHeight-300,370);
+  if (h>s || bind) {
+    $('#docker_list').height(s);
+    $('#docker_containers tbody tr:first-child td').each(function(){width.push($(this).width());});
+    $('#docker_containers thead tr th').each(function(i){$(this).width(width[i]);});
+    if (!bind) $('#docker_containers thead,#docker_containers tbody').addClass('fixed');
+  }
+}
+<?endif;?>
 $(function() {
 	if ($.cookie('docker_listview_mode') == 'advanced') {
 		$('.advanced').show();
@@ -238,6 +251,11 @@ $(function() {
 		$('.basic').toggle('slow');
 		$.cookie('docker_listview_mode', $('.advancedview').is(':checked') ? 'advanced' : 'basic', { expires: 3650 });
 	});
+
+<?if ($display['resize']):?>
+  resize();
+  $(window).bind('resize',function(){resize(true);});
+<?endif;?>
 
 	$('#docker_containers').tablesorter( {sortList: [[1,0]], headers: {0: {sorter: false }, 7: {sorter: false }}});
 	$('#docker_containers tr:even').addClass('odd');

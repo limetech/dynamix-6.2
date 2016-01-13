@@ -27,7 +27,6 @@ $(function() {
     mailtest();
     $.get('/webGui/include/SMTPtest.php',function(data){clearTimeout(pid); $('#testresult').html(data)});
   });
-  passcheck(document.smtp_setup);
   tls(document.smtp_setup);
   pwd(document.smtp_setup);
 });
@@ -38,9 +37,6 @@ function mailcheck(form) {
     return false;
   }
   return true;
-}
-function passcheck(form) {
-  if (form.AuthPass.value.indexOf('#')<0) $('#authpass').hide(); else $('#authpass').show();
 }
 function tls(form) {
   form.TLSCert.disabled = form.UseTLSCert.selectedIndex==0;
@@ -180,7 +176,7 @@ Username:
 : <input type="text" name="AuthUser" value="<?=$ssmtp['AuthUser']?>">
 
 Password:
-: <input type="password" name="AuthPass" value="<?=$ssmtp['AuthPass']?>" onchange="passcheck(this.form)"><span id='authpass' style='display:none;color:red;font-weight:bold'>Warning: do not use the # character in your password!</span>
+: <input type="password" name="AuthPass" value="<?=$ssmtp['AuthPass']?>">
 
 > Enter the username and password to login to your email account. Be aware that the password is stored unencrypted in the email configuration file.
 

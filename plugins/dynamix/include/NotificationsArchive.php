@@ -11,18 +11,33 @@
  */
 ?>
 <?
-$files = glob($_POST['log'], GLOB_NOSORT);
+require_once 'Wrappers.php';
+
+$dynamix = parse_plugin_cfg('dynamix',true);
+$files = glob("{$dynamix['notify']['path']}/archive/*.notify", GLOB_NOSORT);
 usort($files, create_function('$a,$b', 'return filemtime($b)-filemtime($a);'));
 
+$row = 1;
 foreach ($files as $file) {
-  $fields = preg_split('/\n/', file_get_contents($file));
+  $fields = explode(PHP_EOL, file_get_contents($file));
+  $archive = basename($file);
+  if ($extra = count($fields)>6) {
+    $td_ = "<td rowspan='3'><a href='#' onclick='openClose($row)'>"; $_td = "<i class='fa fa-anchor'></i></a></td>";
+  } else {
+    $td_ = "<td>"; $_td = "</td>";
+  }
   $c = 0;
   foreach ($fields as $field) {
-    if (!$field) continue;
-    $item = explode('=', $field);
-    if (!$c++) echo "<tr><td>".date("{$_POST['date']} {$_POST['time']}", $item[1])."</td>"; else echo "<td>{$item[1]}</td>";
+    if ($c==5) break;
+    $item = $field ? explode('=', $field, 2) : array("","-");
+    echo (!$c++) ? "<tr>$td_".date("{$dynamix['notify']['date']} {$dynamix['notify']['time']}", $item[1])."$_td" : "<td>{$item[1]}</td>";
   }
-  echo "<td style='text-align:right'><a href='#' onclick='$.get(\"/webGui/include/DeleteLogFile.php\",{log:\"$file\"},function(){archiveList();});return false' title='Delete notification'><i class='fa fa-trash-o'></i></a></td></tr>";
+  echo "<td style='text-align:right'><a href='#' onclick='$.post(\"/webGui/include/DeleteLogFile.php\",{log:\"$archive\"},function(){archiveList();});return false' title='Delete notification'><i class='fa fa-trash-o'></i></a></td></tr>";
+  if ($extra) {
+    $item = explode('=', $field, 2);
+    echo "<tr class='expand-child row$row'><td colspan='5'>{$item[1]}</td></tr><tr class='expand-child row$row'><td colspan='5'></td></tr>";
+    $row++;
+  }
 }
 if (empty($files)) echo "<tr><td colspan='6' style='text-align:center'><em>No notifications available</em></td></tr>";
 ?>

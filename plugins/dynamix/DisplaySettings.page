@@ -37,11 +37,9 @@ function restore() {
   $('select[name="banner"]').trigger('change');
   filename = 'reset';
 }
-
 function forceReload() {
   window.onload = parent.location.reload(true);
 }
-
 function upload(remove) {
   // gets invoked when the user clicks APPLY, at this point image will be saved or deleted
   if (remove || filename=='reset') {
@@ -51,7 +49,20 @@ function upload(remove) {
     window.onload = forceReload();
   }
 }
-
+function presetTime(form) {
+  var system = form.date.selectedIndex==0;
+  if (system) form.time.selectedIndex = 0;
+  form.time.disabled = system;
+}
+function presetBanner(form) {
+  if (form.banner.selectedIndex == 0) $('#custom').hide(); else $('#custom').show();
+}
+function presetRefresh(form) {
+  for (var i=0,item; item=form.refresh.options[i]; i++) item.value *= -1;
+}
+function presetPassive(index) {
+  if (index==0) $('#passive').hide(); else $('#passive').show();
+}
 $(function() {
   // appending a time dummy will make the browser think/realize the image has changed
   $('#image').attr('src', $('#image').attr('src')+'?t='+new Date().getTime());
@@ -106,73 +117,15 @@ $(function() {
   presetTime(document.display_settings);
   presetBanner(document.display_settings);
 });
-
-function prepareDisplay(form) {
-  if (!form.critical.value | !form.warning.value) {
-    swal({title:"Missing value",text:"An empty percentage value is not allowed!",type:"error"});
-    return false;
-  }
-  if (form.warning.value>form.critical.value) {
-    swal({title:"Wrong value",text:"Warning percentage must be lower than Critical percentage!",type:"error"});
-    return false;
-  }
-  if (!form.number.value) form.number.value='.,';
-  if (form.unit.selectedIndex==1) {
-    form.hot.value = Math.round(5/9*(form.hot.value-32));
-    form.max.value = Math.round(5/9*(form.max.value-32));
-  }
-  return true;
-}
-
-function presetTime(form) {
-  var system = form.date.selectedIndex==0;
-  if (system) form.time.selectedIndex = 0;
-  form.time.disabled = system;
-}
-
-function presetBanner(form) {
-  if (form.banner.selectedIndex == 0) $('#custom').hide(); else $('#custom').show();
-}
-
-function presetTemp(form) {
-  var hot = $('#hot').html();
-  var max = $('#max').html();
-  if (form.unit.selectedIndex==0) {
-    form.hot.value = Math.round(5/9*(form.hot.value-32));
-    form.max.value = Math.round(5/9*(form.max.value-32));
-  $('#hot').html(hot.replace('F)','C)'));
-  $('#max').html(max.replace('F)','C)'));
-  } else {
-    form.hot.value = Math.round((9/5*form.hot.value)+32);
-    form.max.value = Math.round((9/5*form.max.value)+32);
-  $('#hot').html(hot.replace('C)','F)'));
-  $('#max').html(max.replace('C)','F)'));
-  }
-}
-
-function presetRefresh(form) {
-  for (var i=0,item; item=form.refresh.options[i]; i++) item.value *= -1;
-}
-
-function presetPassive(index) {
-  if (index==0) $('#passive').hide(); else $('#passive').show();
-}
-
-function checkTemp(form,what) {
-  if (form.hot.value>=form.max.value) {
-    var message = what ? 'Warning temperature must be lower than Critical temperature' : 'Critical temperature must be higher than Warning temperature';
-    swal({title:"Incorrect value",text:message,type:"warning"});
-  }
-}
 </script>
 
 > The display settings below determine how items are displayed on screen. Use these settings to tweak the visual effects to your likings.
 >
 > You can experiment with these settings as desired, they only affect visual properties.
 
-<form markdown="1" name="display_settings" method="POST" action="/update.php" target="progressFrame" onsubmit="return prepareDisplay(this)">
-<input type="hidden" name="#file" value="dynamix/dynamix.cfg"/>
-<input type="hidden" name="#section" value="display"/>
+<form markdown="1" name="display_settings" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="dynamix/dynamix.cfg">
+<input type="hidden" name="#section" value="display">
 Date format:
 : <select name="date" size="1" onchange="presetTime(this.form)">
   <?=mk_option($display['date'], "%c", "System Setting")?>
@@ -193,8 +146,12 @@ Time format:
 
 Number format:
 : <select name="number" size="1">
-  <?=mk_option($display['number'], ".,", "American")?>
- <?=mk_option($display['number'], ",.", "European")?>
+  <?=mk_option($display['number'], ".,", "[D] dot : [G] comma")?>
+  <?=mk_option($display['number'], ". ", "[D] dot : [G] space")?>
+  <?=mk_option($display['number'], ".",  "[D] dot : [G] none")?>
+  <?=mk_option($display['number'], ",.", "[D] comma : [G] dot")?>
+  <?=mk_option($display['number'], ", ", "[D] comma : [G] space")?>
+  <?=mk_option($display['number'], ",",  "[D] comma : [G] none")?>
   </select>
 
 Number scaling:
@@ -219,6 +176,18 @@ Page view:
 : <select name="tabs" size="1">
   <?=mk_option($display['tabs'], "0", "Tabbed")?>
   <?=mk_option($display['tabs'], "1", "Non-tabbed")?>
+  </select>
+
+Placement of Users menu:
+: <select name="users" size="1">
+  <?=mk_option($display['users'], "Tasks:3", "Header menu")?>
+  <?=mk_option($display['users'], "UserPreferences", "Settings menu")?>
+  </select>
+
+Listing height:
+: <select name="resize" size="1">
+  <?=mk_option($display['resize'], "0", "Automatic")?>
+  <?=mk_option($display['resize'], "1", "Fixed")?>
   </select>
 
 Table view spacing:
@@ -285,20 +254,8 @@ Used / Free columns:
   <?=mk_option($display['text'], "21", "Bar (color) - Text")?>
   </select>
 
-Warning disk utilization level (%):
-: <input type="number" min="0" max="99" name="warning" class="narrow" maxlength="2" value="<?=$display['warning']?>">
-
-> *Warning disk utilization* sets the warning threshold for a hard disk utilization. Exceeding this threshold will result in a warning notification.
->
-> When the warning level is set equal or greater than the critical level, there will be only critical notifications (warnings are not existing).
-
-Critical disk utilization level (%):
-: <input type="number" min="0" max="100" name="critical" class="narrow" maxlength="3" value="<?=$display['critical']?>">
-
-> *Critical disk utilization* sets the critical threshold for a hard disk utilization. Exceeding this threshold will result in an alert notification.
-
 Temperature unit:
-: <select name="unit" size="1" onchange="presetTemp(this.form)">
+: <select name="unit" size="1">
   <?=mk_option($display['unit'], "C", "Celsius")?>
   <?=mk_option($display['unit'], "F", "Fahrenheit")?>
   </select>
@@ -306,16 +263,6 @@ Temperature unit:
 > Selects the temperature unit for the disk temperature thresholds. Changing the unit will adjust the existing value in the disk temperature thresholds as appropriate.
 >
 > Make sure any newly entered values represent the selected temperature unit.
-
-<span id="hot">Warning disk temperature threshold (&deg;<?=$display['unit']?>):</span>
-: <input type="number" min="0" max="300" name="hot" class="narrow" maxlength="3" value="<?=$display['unit']=='C'?$display['hot']:round(9/5*$display['hot']+32)?>" onchange="checkTemp(this.form,true)">
-
-> *Warning disk temperature* sets the warning threshold for a hard disk temperature. Exceeding this threshold will result in a warning notification.
-
-<span id="max">Critical disk temperature threshold (&deg;<?=$display['unit']?>):</span>
-: <input type="number" min="0" max="300" name="max" class="narrow" maxlength="3" value="<?=$display['unit']=='C'?$display['max']:round(9/5*$display['max']+32)?>" onchange="checkTemp(this.form,false)">
-
-> *Critical disk temperature* sets the critical threshold for a hard disk temperature. Exceeding this threshold will result in an alert notification.
 
 Page update frequency:
 : <select name="refresh" size="1" onchange="presetPassive(this.selectedIndex)">

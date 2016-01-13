@@ -3,17 +3,16 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "dynamix">
 <!ENTITY author    "Bergware">
-<!ENTITY version   "2015.09.20">
+<!ENTITY version   "2016.01.11"> <!-- Intended new version of Dynamix webGUI -->
+<!ENTITY unRAID    "6.2.0-b16">  <!-- Change to new unRAID version when issued together -->
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/plugins/&name;/&name;.plg">
 ]>
 
-<PLUGIN  name="&name;"
-         author="&author;"
-         version="&version;">
 <!--
 Prevent independent update for now
          pluginURL="&pluginURL;">
 -->
+<PLUGIN name="&name;" author="&author;" version="&version;" unRAID="&unRAID;">
 
 <CHANGES>
 Dynamix webGui v&version;
@@ -24,16 +23,12 @@ Please refer to
 on github.
 </CHANGES>
 
-<!--
-Get from github as tarball.
--->
+<!-- Get from github as tarball. -->
 <FILE Name="/boot/config/plugins/&name;/&name;-&version;.tar.gz">
 <URL>"https://github.com/limetech/&name;/archive/&version;.tar.gz"</URL>
 </FILE>
 
-<!--
-The 'install' script.
--->
+<!-- The 'install' script. -->
 <FILE Run="/bin/bash">
 <INLINE>
 rm -r /tmp/plugins/&name;-&version; 2&gt;/dev/null
@@ -48,9 +43,7 @@ find /boot/config/plugins/&name; -type f -iname "*.tar.gz" ! -iname "&name;-&ver
 </INLINE>
 </FILE>
 
-<!--
-The 'remove' script.
--->
+<!-- The 'remove' script. -->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
 rm -r /boot/config/plugins/&name;/&name;-&version;.tar.gz 2&gt;/dev/null

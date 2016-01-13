@@ -15,8 +15,6 @@ var UI;
 (function () {
     "use strict";
 
-    var resizeTimeout;
-
     // Load supporting scripts
     window.onscriptsload = function () { UI.load(); };
     Util.load_scripts(["webutil.js", "base64.js", "websock.js", "des.js",
@@ -26,6 +24,7 @@ var UI;
     UI = {
 
         rfb_state : 'loaded',
+        resizeTimeout: null,
         settingsOpen : false,
         connSettingsOpen : false,
         popupStatusTimeout: null,
@@ -97,8 +96,9 @@ var UI;
             UI.initSetting('view_only', false);
             UI.initSetting('path', 'websockify');
             UI.initSetting('repeaterID', '');
+            UI.initSetting('token', '');
 
-            var autoconnect = WebUtil.getQueryVar('autoconnect', false);
+            var autoconnect = WebUtil.getConfigVar('autoconnect', false);
             if (autoconnect === 'true' || autoconnect == '1') {
                 autoconnect = true;
                 UI.connect();
@@ -253,8 +253,8 @@ var UI;
                     // When the local window has been resized, wait until the size remains
                     // the same for 0.5 seconds before sending the request for changing
                     // the resolution of the session
-                    clearTimeout(resizeTimeout);
-                    resizeTimeout = setTimeout(function(){
+                    clearTimeout(UI.resizeTimeout);
+                    UI.resizeTimeout = setTimeout(function(){
                         display.set_maxWidth(size.w);
                         display.set_maxHeight(size.h);
                         Util.Debug('Attempting setDesktopSize(' +
@@ -358,7 +358,7 @@ var UI;
         // Initial page load read/initialization of settings
         initSetting: function(name, defVal) {
             // Check Query string followed by cookie
-            var val = WebUtil.getQueryVar(name);
+            var val = WebUtil.getConfigVar(name);
             if (val === null) {
                 val = WebUtil.readSetting(name, defVal);
             }
@@ -519,6 +519,7 @@ var UI;
                 UI.connSettingsOpen = false;
                 UI.saveSetting('host');
                 UI.saveSetting('port');
+                UI.saveSetting('token');
                 //UI.saveSetting('password');
             } else {
                 $D('noVNC_controls').style.display = "block";
@@ -812,7 +813,14 @@ var UI;
             var host = $D('noVNC_host').value;
             var port = $D('noVNC_port').value;
             var password = $D('noVNC_password').value;
+            var token = $D('noVNC_token').value;
             var path = $D('noVNC_path').value;
+
+            //if token is in path then ignore the new token variable
+            if (token) {
+                path = WebUtil.injectParamIfMissing(path, "token", token);
+            }
+
             if ((!host) || (!port)) {
                 throw new Error("Must set host and port");
             }

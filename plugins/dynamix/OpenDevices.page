@@ -20,10 +20,10 @@ $tabX = '#tab'.($var['fsState']=='Stopped'||is_dir('/mnt/cache') ? '4' : '3');
 ?>
 <script>
 function open_status() {
-  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'open',width:window.innerWidth,timer:timer},function(data) {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'open'},function(data) {
     if (data) $('#open_devices').html(data);
 <?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
-<?if ($display['tabs']==0):?>
+<?if ($tabbed):?>
     if ($('<?=$tabX?>').is(':checked')) timer = setTimeout(open_status,<?=abs($display['refresh'])?>);
 <?else:?>
     setTimeout(open_status,<?=abs($display['refresh'])?>);

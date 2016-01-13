@@ -22,7 +22,17 @@ default:
   echo '<span class="green"><strong>Array Started</strong></span>'; break;
 }
 if ($var['mdResync']) {
-  echo '&bullet;<span class="orange"><strong>'.($var['mdNumInvalid']==0 ? 'Parity-Check:' : ($var['mdInvalidDisk']==0 ? 'Parity-Sync:' : 'Data-Rebuild:')).' '.number_format(($var['mdResyncPos']/($var['mdResync']/100+1)),1,$_POST['dot'],'').' %</strong></span>';
+  $mode = '';
+  if (strstr($var['mdResyncAction'],"recon")) {
+    $mode = 'Parity-Sync / Data-Rebuild';
+  } elseif (strstr($var['mdResyncAction'],"clear")) {
+    $mode = 'Clearing';
+  } elseif ($var['mdResyncAction']=="check") {
+    $mode = 'Read-Check';
+  } elseif (strstr($var['mdResyncAction'],"check")) {
+    $mode = 'Parity-Check';
+  }
+  echo '&bullet;<span class="orange"><strong>'.$mode.' '.number_format(($var['mdResyncPos']/($var['mdResync']/100+1)),1,$_POST['dot'],'').' %</strong></span>';
   if ($_POST['mode']<0) echo '#stop';
 }
 ?>

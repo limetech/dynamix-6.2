@@ -90,12 +90,7 @@ Included disk(s):
   </select>
 
 > This setting defines the set of array disks which are *included* in User Shares.
-> Set this field to *blank* in order to allow **all** array disks to be included.
->
-> To specify a set of disks name them like this:
-> * disk1,disk2,disk3 *disk names seperated by commas*
-> * disk1-3 *a range of disks*
-> * disk2,disk4-6,disk10 *another example*
+> Unchecking all disks will allow **all** array disks to be included.
 
 Excluded disk(s):
 : <select id="s2" name="shareUserExclude" size="1" multiple="multiple" style="display:none">
@@ -104,12 +99,11 @@ Excluded disk(s):
   <?endforeach;?>
   </select>
 
-> This setting defines the set of array disk which are *excluded* from User Shares. Set this
-> field to *blank* in order to not exclude any disks; otherwise, set this field as above to define the set
-> of disks to exclude.
+> This setting defines the set of array disk which are *excluded* from User Shares.
+> Uncheck all disks in order to not exclude any disks
 >
-> **Note:** Each separate User Share also includes its own set of Included and Excluded disks which represent
-> a subset of the Included/Excluded disks defined here.
+> **Note:** Each separate User Share also includes its own set of Included and Excluded
+> disks which represent a subset of the Included/Excluded disks defined here.
 
 &nbsp;
 : <input type="submit" name="changeShare" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?if ($disabled):?>Array must be **Stopped** to change<?endif;?>

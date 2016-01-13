@@ -22,6 +22,7 @@ if (file_exists($ftp_userlist_file)) {
   $ftp_userlist = str_replace("\n", " ", trim(file_get_contents($ftp_userlist_file)));
   if ($ftp_userlist === false) $ftp_userlist = "";
 }
+$ftp_server = exec("lsof -i:21 -Pln|awk '/\(LISTEN\)/{print $2;exit}'") ? 1 : 0;
 ?>
 <script>
 $(function() {
@@ -32,11 +33,20 @@ $(function() {
 <form markdown="1" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#command" value="/webGui/scripts/ftpusers">
 
-FTP user(s):
-: <input type="text" name="#arg[1]" size="40" maxlength="80" value="<?=$ftp_userlist;?>">
+FTP server:
+: <select name="#arg[1]" size="1">
+  <?=mk_option($ftp_server, "0", "Disabled")?>
+  <?=mk_option($ftp_server, "1", "Enabled")?>
+  </select>
 
-> Enter the user names (separated by spaces) permitted to acces the server using [FTP](/Help).
-> To disable FTP, clear this setting.
+> Enable or disable the FTP server daemon. By default the FTP server is enabled.
+> This setting is not saved, i.e. upon system reboot it will revert to its default setting.
+
+FTP user(s):
+: <input type="text" name="#arg[2]" size="40" maxlength="80" value="<?=$ftp_userlist;?>">
+
+> Enter the user names (separated by spaces) permitted to access the server using FTP.
+> To disallow any user access, clear this setting.
 >
 > **Note:** do not enter user name `root` since this may cause problems in the future.
 

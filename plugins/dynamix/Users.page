@@ -1,2 +1,4 @@
-Menu="Tasks:3"
+Menu="$display['users'] Tasks:3"
 Type="xmenu"
+Title="Users"
+Icon="users.png"

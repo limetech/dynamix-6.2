@@ -34,34 +34,64 @@ $memory_maximum = exec("dmidecode -t 16 | awk -F: '/^\tMaximum Capacity: [0-9]+ 
 // If maximum < installed then roundup maximum to the next power of 2 size of installed. E.g. 6 -> 8 or 12 -> 16
 if ($memory_maximum*1024 < $memory_installed) $memory_maximum = pow(2,ceil(log($memory_installed/1024)/log(2)));
 
-function init_row($label) {
-  echo "<tr><td>$label</td>".str_repeat("<td></td>",25)."</tr>";
+function init_row($label,$slots) {
+  echo "<tr><td>$label</td>".str_repeat("<td></td>",$slots)."</tr>";
 }
-
 function parity_status() {
   global $var,$disks;
-  if ($disks['parity']['status']=='DISK_NP') {
-    echo "<tr><td colspan='2'><span class='red p0'><strong>Parity disk not present</strong></span></td></tr>";
-    return;
-  }
-  if ($var['mdNumInvalid']==0) {
-    echo "<tr><td colspan='2'><span class='green p0'><strong>Parity is valid</strong></span></td></tr>";
-    if ($var['sbSynced']==0) {
-      echo "<tr><td><em>Parity has not been checked yet.<em></td><td id='parity'></td></tr>";
-    } else {
-      unset($time);
-      exec("awk '/sync completion/ {gsub(\"(time=|sec)\",\"\",x);print x;print \$NF};{x=\$NF}' /var/log/syslog|tail -2", $time);
-      if (!count($time)) $time = array_fill(0,2,0);
-      if ($time[1]==0) {
-        echo "<tr><td>Last checked on <strong>".my_time($var['sbSynced']).day_count($var['sbSynced'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
-        echo "<br><em>Duration: ".my_check($time[0])."</em></td><td id='parity'></td></tr>";
-      } else {
-        echo "<tr><td>Last check incomplete on <strong>".my_time($var['sbSynced']).day_count($var['sbSynced'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
-        echo "<br><em>Error code: ".my_error($time[1])."</em></td><td id='parity'></td></tr>";
+
+  $parity_num_slots = 0;
+  $parity_disabled = [];
+  $parity_invalid = [];
+  foreach ($disks as $disk) {
+    if ($disk['type']=='Parity') {
+      $parity_num_slots++;
+      if (strpos($disk['status'],"DISK_NP")===0) {
+        $parity_disabled[] = trim('Parity ' . filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT));
+      }
+      if (strpos($disk['status'],"DISK_INVALID")===0) {
+        $parity_invalid[] = trim('Parity ' . filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT));
       }
     }
+  }
+
+  if ($parity_num_slots == count($parity_disabled)) {
+    echo "<tr style='vertical-align:top'><td><span class='red p0'><strong>Parity disk".($parity_num_slots>1?'s':'')." not present</strong></span></td><td id='parity'></td></tr>";
+    return;
+  }
+  if ($parity_num_slots > count($parity_invalid)) {
+    if (count($parity_invalid)==0) {
+      echo "<tr><td colspan='2'><span class='green p0'><strong>Parity is valid</strong></span></td></tr>";
+    } else {
+      echo "<tr><td colspan='2'><span class='orange p0'><strong>Degraded parity: </strong></span><span class='red p0'><strong>".implode(' and ',$parity_invalid)." ".(count($parity_invalid)>1)?'are':'is'." invalid</strong></span></td></tr>";
+    }
+    if ($var['sbSyncExit']!=0) {
+      echo "<tr><td>Last check incomplete on <strong>".my_time($var['sbSynced2']).day_count($var['sbSynced2'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
+      echo "<br><i class='fa fa-dot-circle-o icon'></i><em>Error code: ".my_error($var['sbSyncExit'])."</em></td><td id='parity'></td></tr>";
+      return;
+    }
+    if ($var['sbSynced']==0) {
+      echo "<tr><td><em>Parity has not been checked yet.<em></td><td id='parity'></td></tr>";
+      return;
+    }
+    if ($var['sbSynced2']==0) {
+      list($entry,$duration,$speed,$status) = explode('|', read_parity_log($var['sbSynced']));
+      if ($status==0) {
+        echo "<tr><td>Last checked on <strong>".my_time($var['sbSynced']).day_count($var['sbSynced'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
+        echo "<br><i class='fa fa-clock-o icon'></i><em>Duration: ".my_check($duration,$speed)."</em></td><td id='parity'></td></tr>";
+      } else {
+        echo "<tr><td>Last check incomplete on <strong>".my_time($var['sbSynced']).day_count($var['sbSynced'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
+        echo "<br><i class='fa fa-dot-circle-o icon'></i><em>Error code: $status</em></td><td id='parity'></td></tr>";
+      }
+    } else {
+      $status = 0;
+      $duration = $var['sbSynced2']-$var['sbSynced'];
+      $speed = $duration?my_scale($var['mdResyncSize']*1024/$duration,$unit,1)." $unit/sec":'';
+      echo "<tr><td>Last checked on <strong>".my_time($var['sbSynced2']).day_count($var['sbSynced2'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
+      echo "<br><i class='fa fa-clock-o icon'></i><em>Duration: ".my_check($duration,$speed)."</em></td><td id='parity'></td></tr>";
+    }
   } else {
-    if ($var['mdInvalidDisk']==0) {
+    if (empty($var['mdInvalidDisk'])) {
       echo "<tr><td colspan='2'><span class='red p0'><strong>Parity is invalid</strong></span></td></tr>";
     } else {
       echo "<tr><td colspan='2'><span class='red p0'><strong>Data is invalid</strong></span></td></tr>";
@@ -77,6 +107,8 @@ function export_settings($protocol,$share) {
   return '<em>'.ucfirst($share['security']).'</em>';
 }
 ?>
+<link type="text/css" rel="stylesheet" href="/webGui/styles/context.standalone.css">
+<script src="/webGui/javascript/context.js"></script>
 <script>
 var timer2,timer30;
 
@@ -131,13 +163,25 @@ function update30() {
     if (data) $('#dash1').html(data);
     clearTimeout(timer2);
     timer2 = setTimeout(heatAlarm,2000);
+    $('[id^="smart-"]').each(function() {
+      var opts = [];
+      var id = '#'+$(this).attr('id');
+      var page = $(this).attr('name');
+      var view = $(this).attr('class');
+      var disk = id.substr(id.indexOf('-')+1);
+      opts.push({text:'Attributes',icon:'fa-sitemap',action:function(e){e.preventDefault();attributes(page,disk);}});
+      opts.push({text:'Capabilities',icon:'fa-user',action:function(e){e.preventDefault();capabilities(page,disk);}});
+      opts.push({text:'Identity',icon:'fa-home',action:function(e){e.preventDefault();identity(page,disk);}});
+      if (view == 'alert') opts.push({text:'Acknowledge',icon:'fa-check-square-o',action:function(e){e.preventDefault();acknowledge(disk);}});
+      context.attach(id,opts);
+    });
 <?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
     timer30 = setTimeout(update30,<?=max(abs($display['refresh']),30000)?>);
 <?endif;?>
   });
 }
 function update60() {
-<?if ($var['mdNumInvalid']==0 && $var['mdResync']>0):?>
+<?if ((strstr($var['mdResyncAction'],"clear") || strstr($var['mdResyncAction'],"check")) && $var['mdResync']>0):?>
   $.post('<?=$url?>',{cmd:'parity'},function(data) {
     if (data) $('#parity').html(data);
 <?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
@@ -152,6 +196,24 @@ function heatAlarm() {
   }
   timer2 = setTimeout(heatAlarm,2000);
 }
+function attributes(page,disk) {
+  var tab = page=='New' ? 'tab2' : 'tab3';
+  $.cookie('one',tab,{path:'/'});
+  location.replace('/Dashboard/'+page+'?name='+disk);
+}
+function capabilities(page,disk) {
+  var tab = page=='New' ? 'tab3' : 'tab4';
+  $.cookie('one',tab,{path:'/'});
+  location.replace('/Dashboard/'+page+'?name='+disk);
+}
+function identity(page,disk) {
+  var tab = page=='New' ? 'tab4' : 'tab5';
+  $.cookie('one',tab,{path:'/'});
+  location.replace('/Dashboard/'+page+'?name='+disk);
+}
+function acknowledge(disk) {
+  $.post('/webGui/include/Acknowledge.php',{disk:disk},function(data){clearTimeout(timer30);update30();});
+}
 $(function() {
   if ($.cookie('shareMode')!=null) { $('select[name="enter_share"] option')[$.cookie('shareMode')].selected = true; $('select[name="enter_share"]').change(); }
   if ($.cookie('viewMode')!=null) { $('select[name="enter_view"] option')[$.cookie('viewMode')].selected = true; $('select[name="enter_view"]').change(); }
@@ -161,38 +223,37 @@ $(function() {
 <?if ($display['refresh']==0 || ($display['refresh']<0 && $var['mdResync']>0)):?>
   $('.tabs').append("<span class='status vhshift'><input type='button' value='Refresh' onclick='refresh()'></span>");
 <?endif;?>
+  context.init({preventDoubleContext:false});
 });
 </script>
 
 <table class='share_status fixed'>
 <thead><tr>
 <?
-$row0 = array_fill(0,25,"<td>-</td>"); $i = 1;
-foreach ($disks as $disk):
-  switch ($disk['type']):
-  case 'Parity':
-    if ($disk['status']!='DISK_NP') $row0[0] = '<td>Parity<br>0</td>';
-  break;
-  case 'Data':
-  case 'Cache':
-    if ($disk['status']!='DISK_NP') $row0[$i++] = "<td>{$disk['type']}<br>{$disk['idx']}</td>";
-  break;
-  endswitch;
-endforeach;
-foreach ($devs as $dev):
+$slots = max(count($disks)+count($devs)-1, 25);
+$row0 = array_fill(0,$slots,"<td>-</td>"); $i = 0;
+foreach ($disks as $disk)
+  if ($disk['type']=='Parity' && $disk['status']!='DISK_NP')
+    $row0[$i++] = "<td>Parity<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
+foreach ($disks as $disk)
+  if ($disk['type']=='Data' && $disk['status']!='DISK_NP')
+    $row0[$i++] = "<td>Disk<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
+foreach ($disks as $disk)
+  if ($disk['type']=='Cache' && $disk['status']!='DISK_NP')
+    $row0[$i++] = "<td>Cache<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
+foreach ($devs as $dev)
   $row0[$i++] = "<td>{$dev['device']}</td>";
-endforeach;
 echo "<td>Array Status</td>".implode('',$row0);
 ?>
 </tr></thead>
 <tbody id='dash1'>
-<?init_row('Active')?>
-<?init_row('Inactive')?>
-<?init_row('Unassigned')?>
-<?init_row('Faulty')?>
-<?init_row('Heat alarm')?>
-<?init_row('SMART status')?>
-<?init_row('Utilization')?>
+<?init_row('Active',$slots)?>
+<?init_row('Inactive',$slots)?>
+<?init_row('Unassigned',$slots)?>
+<?init_row('Faulty',$slots)?>
+<?init_row('Heat alarm',$slots)?>
+<?init_row('SMART status',$slots)?>
+<?init_row('Utilization',$slots)?>
 </tbody>
 </table>
 <table class='share_status table'>

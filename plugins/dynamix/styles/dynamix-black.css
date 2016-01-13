@@ -67,7 +67,8 @@ table.tablesorter.plugins td:first-child{width:64px;text-align:center;}
 table.tablesorter.plugins tr>td+td+td{width:9%;white-space:nowrap;}
 table.tablesorter.plugins td:last-child{width:96px;padding:0;}
 table.tablesorter.shift{margin-top:-21px;}
-table.tablesorter.shift2{margin-top:-33px;}
+table.tablesorter thead.fixed{display:table;width:100%;}
+table.tablesorter tbody.fixed{display:block;overflow:auto;}
 span.select ul{display:none;list-style-type:none;margin:0 0 2px 0;padding:0;}
 span.select ul.unused{display:block;}
 span.select ul li.nosort{font-weight:bold;}

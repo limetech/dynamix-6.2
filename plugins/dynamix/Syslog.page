@@ -13,10 +13,8 @@ Title="System Log"
  * all copies or substantial portions of the Software.
  */
 ?>
-
 <?
 $zip = str_replace(' ','_',strtolower($var['NAME']))."-syslog-".date('Ymd-Hi').".zip";
-echo "<pre class='up'>".shell_exec('cat /var/log/syslog')."</pre>";
 ?>
 <script>
 function cleanUp() {
@@ -26,7 +24,7 @@ function cleanUp() {
   } else {
     setTimeout(cleanUp,4000);
   }
-}  
+}
 function syslog() {
   $('input[value="Download"]').val('Downloading...').prop('disabled',true);
   $.post('/webGui/include/Download.php',{cmd:'save',source:'/var/log/syslog',file:'<?=$zip?>'},function(zip) {
@@ -34,6 +32,51 @@ function syslog() {
     setTimeout(cleanUp,4000);
   });
 }
-$('.tabs').append("<span class='status vhshift'><input type='button' value='Download' onclick='syslog()'></span>");
+function highlight(checked,line) {
+  var o = checked ? '-' : '';
+  var n = ($('span.text').css('display')=='none' && !checked) ? 'none' : '';
+  switch (line) {
+    case 'E': $('span.'+o+'error').css('display',n); $('span.error'+o).toggleClass('error -error error-'); break;
+    case 'W': $('span.'+o+'warn').css('display',n); $('span.warn'+o).toggleClass('warn -warn warn-'); break;
+    case 'S': $('span.'+o+'system').css('display',n); $('span.system'+o).toggleClass('system -system system-'); break;
+    case 'A': $('span.'+o+'array').css('display',n); $('span.array'+o).toggleClass('array -array array-'); break;
+    case 'L': $('span.'+o+'login').css('display',n); $('span.login'+o).toggleClass('login -login login-'); break;
+    case 'N': $('span.text,span[class^="-"]').css('display',checked ? 'none':''); break;
+  }
+  $('span.label').show();
+}
+function toggle(checked) {
+  highlight(checked,'E');
+  highlight(checked,'W');
+  highlight(checked,'S');
+  highlight(checked,'A');
+  highlight(checked,'L');
+  $('span.label input[type=checkbox]').not('.ctrl').prop('checked',checked);
+}
+<?if ($display['resize']):?>
+function resize() {
+  $('pre.up').height(Math.max(window.innerHeight-280,370)).show();
+}
+$(function() {
+  resize();
+  $(window).bind('resize',function(){resize();});
+});
+<?endif;?>
+$('.tabs').append("<span class='status'><span class='lite label'><label>Text<input type='checkbox' class='ctrl' onclick='highlight(!this.checked,\"N\")' checked></label></span><span class='error label'><label>Error<input type='checkbox' onclick='highlight(this.checked,\"E\")' checked></label></span><span class='warn label'><label>Warning<input type='checkbox' onclick='highlight(this.checked,\"W\")' checked></label></span><span class='system label'><label>System<input type='checkbox' onclick='highlight(this.checked,\"S\")' checked></label></span><span class='array label'><label>Array<input type='checkbox' onclick='highlight(this.checked,\"A\")' checked></label></span><span class='login label'><label>Login<input type='checkbox' onclick='highlight(this.checked,\"L\")' checked></label></span><span class='lite label'><input type='checkbox' class='ctrl' onclick='toggle(this.checked)' checked></span></span>");
 </script>
+<?
+require_once 'webGui/include/ColorCoding.php';
+
+echo $display['resize'] ? "<pre class='up' style='display:none'>" : "<pre class='up'>";
+$logs = glob('/var/log/syslog*',GLOB_NOSORT);
+usort($logs, create_function('$a,$b', 'return filemtime($a)-filemtime($b);'));
+foreach ($logs as $log) {
+  foreach (file($log) as $line) {
+    $span = "span class='text'";
+    foreach ($match as $type) foreach ($type['text'] as $text) if (preg_match("/$text/i",$line)) {$span = "span class='{$type['class']}'"; break 2;}
+    echo "<$span>".htmlentities($line)."</span>";
+  }
+}
+echo "</pre>";
+?>
 <input type="button" value="Download" onclick="syslog()"><input type="button" value="Done" onclick="done()">

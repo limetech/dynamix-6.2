@@ -16,23 +16,12 @@ Icon="notifications.png"
  * all copies or substantial portions of the Software.
  */
 ?>
-
 <?
 $events = explode('|', $notify['events']);
 $disabled = $notify['system'] ? '' : 'disabled';
 ?>
-<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
-<style>
-.advanced{display:none;}
-.switch-button-label.off{color:inherit;}
-</style>
-<script src="/webGui/javascript/jquery.switchbutton.js"></script>
-
 <script>
-var this_tab = $('input[name$="tabs"]').length;
-
 function prepareNotify(form) {
-  var events = [];
   form.entity.value = form.normal1.checked | form.warning1.checked | form.alert1.checked;
   form.normal.value = form.normal1.checked*1 + form.normal2.checked*2 + form.normal3.checked*4;
   form.warning.value = form.warning1.checked*1 + form.warning2.checked*2 + form.warning3.checked*4;
@@ -58,12 +47,6 @@ function prepareNotify(form) {
   form.report1.disabled = true;
   form.report2.disabled = true;
   form.report3.disabled = true;
-  for (var i=1; i<=5; i++) {
-    if (form.elements['a'+i].checked) events.push(form.elements['a'+i].value);
-    form.elements['a'+i].disabled = true;
-  }
-  if (form.custom.value>0) events.push(form.custom.value);
-  form.events.value = events.join('|');
 }
 function prepareCheckbox(index) {
   if (index==0) $('.checkbox').attr('disabled','disabled'); else $('.checkbox').removeAttr('disabled');
@@ -88,27 +71,6 @@ function prepareReport(value) {
   prepareTitle();
 }
 $(function(){
-  var last = $('input[name$="tabs"]').length;
-  var elementId = "basicAdvanced";
-  $('.tabs').append($('<span id="'+elementId+'" class="status" style="margin-top: 2px;display: none;"><input type="checkbox" class="advancedview"></span>'));
-<?if ($tabbed):?>
-  if ($('#tab'+this_tab).is(':checked')) $('#'+elementId).show();
-  $('#tab'+this_tab).bind({click:function(){$('#'+elementId).show();}});
-  for (var x=1; x<=last; x++) if(x != this_tab) $('#tab'+x).bind({click:function(){$('#'+elementId).hide();}});
-<?else:?>
-  $('#'+elementId).show();
-<?endif;?>
-  if ($.cookie('notifcations_view_mode') == 'advanced') $('.advanced').show();
-  $('.advancedview').switchButton({
-    labels_placement: "left",
-    on_label: 'Advanced View',
-    off_label: 'Basic View',
-    checked: $.cookie('notifcations_view_mode') == 'advanced'
-  });
-  $('.advancedview').change(function() {
-    $('.advanced').finish().toggle('fast');
-    $.cookie('notifcations_view_mode', $(this).is(':checked') ? 'advanced' : 'basic', {expires:3650});
-  });
   preparePlugin(document.notify_settings.version.value);
   prepareDocker(document.notify_settings.docker_update.value);
   prepareReport(document.notify_settings.status.value);
@@ -126,7 +88,6 @@ $(function(){
 <input type="hidden" name="plugin">
 <input type="hidden" name="docker_notify">
 <input type="hidden" name="report">
-<input type="hidden" name="events">
 Date format:
 : <select name="date" size="1">
   <?=mk_option($notify['date'], "d-m-Y", "DD-MM-YYYY")?>
@@ -260,31 +221,6 @@ Notification entity:
 > *alert* - these are serious notifications and require immediate attention, e.g. a failing hard disk<br>
 >
 > Choose for each classification how you want to be notified.
-
-<div class="advanced" markdown="1">
-SMART attribute notifications:
-: <input type="checkbox" name="a1" value="5"<?=in_array(5,$events) ? ' checked' : ''?>><span style="display:inline-block;width:72px">5</span>Reallocated sectors count
-
-&nbsp;
-: <input type="checkbox" name="a2" value="187"<?=in_array(187,$events) ? ' checked' : ''?>><span style="display:inline-block;width:72px">187</span>Reported uncorrectable errors
-
-&nbsp;
-: <input type="checkbox" name="a3" value="188"<?=in_array(188,$events) ? ' checked' : ''?>><span style="display:inline-block;width:72px">188</span>Command timeout
-
-&nbsp;
-: <input type="checkbox" name="a4" value="197"<?=in_array(197,$events) ? ' checked' : ''?>><span style="display:inline-block;width:72px">197</span>Current pending sector count
-
-&nbsp;
-: <input type="checkbox" name="a5" value="198"<?=in_array(198,$events) ? ' checked' : ''?>><span style="display:inline-block;width:72px">198</span>Uncorrectable sector count
-
-&nbsp;
-: <input type="text" name="custom" value="<?=$notify['custom']?>" maxlength="3" style="width:25px;margin-right:57px">Custom attribute number</dd>
-</div>
-
-<div class="advanced" markdown="1">
-> The user can enable or disable notifications for the given SMART attributes. It is recommended to keep the default, which is ALL selected attributes, but when certain attributes are not present on your hard disk, these may be excluded.
-> In addition a custom SMART attribute number can be given to generate notifications. Be careful in the selection, this may cause an avalance of notifcations if an inappropriate SMART attribute is chosen.
-</div>
 
 <input type="submit" name="#default" value="Default">
 : <input type="submit" name="#apply" value="Apply"><input type="button" value="Done" onclick="done()"></td>

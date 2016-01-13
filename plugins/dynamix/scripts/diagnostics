@@ -1,4 +1,4 @@
-#!/usr/bin/php
+#!/usr/bin/php -q
 <?PHP
 /* Copyright 2015, Bergware International.
  * Copyright 2015, Lime Technology

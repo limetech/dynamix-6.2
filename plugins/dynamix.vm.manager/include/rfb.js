@@ -374,8 +374,6 @@ var RFB;
             }
 
             for (i = 0; i < 4; i++) {
-                //this._FBU.zlibs[i] = new TINF();
-                //this._FBU.zlibs[i].init();
                 this._FBU.zlibs[i] = new inflator.Inflate();
             }
         },
@@ -739,6 +737,7 @@ var RFB;
                 // an RFB state change and a UI interface issue
                 this._updateState('password', "Password Required");
                 this._onPasswordRequired(this);
+                return false;
             }
 
             if (this._sock.rQwait("auth challenge", 16)) { return false; }
@@ -921,18 +920,17 @@ var RFB;
                 var totalMessagesLength = (numServerMessages + numClientMessages + numEncodings) * 16;
                 if (this._sock.rQwait('TightVNC extended server init header', totalMessagesLength, 32 + name_length)) { return false; }
 
-                var i;
-                for (i = 0; i < numServerMessages; i++) {
-                    var srvMsg = this._sock.rQshiftStr(16);
-                }
+                // we don't actually do anything with the capability information that TIGHT sends,
+                // so we just skip the all of this.
 
-                for (i = 0; i < numClientMessages; i++) {
-                    var clientMsg = this._sock.rQshiftStr(16);
-                }
+                // TIGHT server message capabilities
+                this._sock.rQskipBytes(16 * numServerMessages);
 
-                for (i = 0; i < numEncodings; i++) {
-                    var encoding = this._sock.rQshiftStr(16);
-                }
+                // TIGHT client message capabilities
+                this._sock.rQskipBytes(16 * numClientMessages);
+
+                // TIGHT encoding capabilities
+                this._sock.rQskipBytes(16 * numEncodings);
             }
 
             // NB(directxman12): these are down here so that we don't run them multiple times
@@ -1688,7 +1686,7 @@ var RFB;
 
             var resetStreams = 0;
             var streamId = -1;
-            var decompress = function (data) {
+            var decompress = function (data, expected) {
                 for (var i = 0; i < 4; i++) {
                     if ((resetStreams >> i) & 1) {
                         this._FBU.zlibs[i].reset();
@@ -1697,7 +1695,7 @@ var RFB;
                 }
 
                 //var uncompressed = this._FBU.zlibs[streamId].uncompress(data, 0);
-                var uncompressed = this._FBU.zlibs[streamId].inflate(data, true);
+                var uncompressed = this._FBU.zlibs[streamId].inflate(data, true, expected);
                 /*if (uncompressed.status !== 0) {
                     Util.Error("Invalid data in zlib stream");
                 }*/
@@ -1830,7 +1828,7 @@ var RFB;
                 if (raw) {
                     data = this._sock.rQshiftBytes(cl_data);
                 } else {
-                    data = decompress(this._sock.rQshiftBytes(cl_data));
+                    data = decompress(this._sock.rQshiftBytes(cl_data), rowSize * this._FBU.height);
                 }
 
                 // Convert indexed (palette based) image data to RGB
@@ -1879,7 +1877,7 @@ var RFB;
                 if (raw) {
                     data = this._sock.rQshiftBytes(cl_data);
                 } else {
-                    data = decompress(this._sock.rQshiftBytes(cl_data));
+                    data = decompress(this._sock.rQshiftBytes(cl_data), uncompressedSize);
                 }
 
                 this._display.blitRgbImage(this._FBU.x, this._FBU.y, this._FBU.width, this._FBU.height, data, 0, false);

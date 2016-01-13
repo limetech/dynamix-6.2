@@ -17,10 +17,10 @@ Title="Array Devices"
 var timer = null;
 
 function array_status() {
-  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'array',width:window.innerWidth,timer:timer},function(data) {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'array'},function(data) {
     if (data) $('#array_devices').html(data);
 <?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
-<?if ($display['tabs']==0):?>
+<?if ($tabbed):?>
     if ($('#tab1').is(':checked')) timer = setTimeout(array_status,<?=abs($display['refresh'])?>);
 <?else:?>
     setTimeout(array_status,<?=abs($display['refresh'])?>);
@@ -40,7 +40,7 @@ array_status();
 <tbody id="array_devices">
 <?
 foreach ($disks as $disk):
-  if ($disk['type']=='Parity' or $disk['type']=='data')
+  if ($disk['type']=='Parity' or $disk['type']=='Data')
     echo "<tr><td colspan='11'>&nbsp;</td></tr>";
 endforeach;
 if ($display['total']) echo "<tr class='tr_last'><td colspan='11'>&nbsp;</td></tr>";

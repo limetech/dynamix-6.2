@@ -13,8 +13,18 @@ Title="Processes"
  * all copies or substantial portions of the Software.
  */
 ?>
-
+<?if ($display['resize']):?>
+<script>
+function resize() {
+  $('pre.up').height(Math.max(window.innerHeight-280,370)).show();
+}
+$(function() {
+  resize();
+  $(window).bind('resize',function(){resize();});
+});
+</script>
+<?endif;?>
 <?
-echo "<pre class='up'>".shell_exec('ps -ef')."</pre>";
+echo ($display['resize'] ? "<pre class='up' style='display:none'>" : "<pre class='up'>").shell_exec('ps -ef')."</pre>";
 ?>
 <input type="button" value="Done" onclick="done()">

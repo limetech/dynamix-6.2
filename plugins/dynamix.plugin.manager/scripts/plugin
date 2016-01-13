@@ -1,4 +1,4 @@
-#!/usr/bin/php
+#!/usr/bin/php -q
 <?PHP
 // Copyright 2015, Lime Technology LLC.
 // License: GPLv2 only

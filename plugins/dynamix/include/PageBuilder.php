@@ -11,7 +11,21 @@
  */
 ?>
 <?
-require_once('Markdown.php');
+require_once 'Markdown.php';
+
+function get_ini_key($key,$default) {
+  $x = strpos($key, '[');
+  $var = $x>0 ? substr($key,1,$x-1) : substr($key,1);
+  global $$var;
+  eval("\$var=$key;");
+  return $var ? $var : $default;
+}
+
+function get_file_key($file,$default) {
+  list($key, $default) = explode('=',$default,2);
+  $var = @parse_ini_file($file);
+  return isset($var[$key]) ? $var[$key] : $default;
+}
 
 function build_pages($pattern) {
   global $site;
@@ -32,6 +46,10 @@ function find_pages($item) {
   foreach ($site as $page) {
     if (empty($page['Menu'])) continue;
     $menu = strtok($page['Menu'], ' ');
+    switch ($menu[0]) {
+      case '$': $menu = get_ini_key($menu,strtok(' ')); break;
+      case '/': $menu = get_file_key($menu,strtok(' ')); break;
+    }
     while ($menu !== false) {
       $add = explode(':', $menu);
       $add[] = '';

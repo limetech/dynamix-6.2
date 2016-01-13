@@ -1,4 +1,4 @@
-#!/usr/bin/php
+#!/usr/bin/php -q
 <?PHP
 /* Copyright 2012, Andrew Hamer-Adams, http://www.pixeleyes.co.nz.
  * Copyright 2015, Bergware International.
@@ -13,7 +13,7 @@
  */
 ?>
 <?
-require_once('/usr/local/emhttp/webGui/include/Wrappers.php');
+require_once '/usr/local/emhttp/webGui/include/Wrappers.php';
 
 function usage() {
   echo <<<EOT
@@ -187,8 +187,8 @@ case 'add':
   $archive = "{$archive}/".safe_filename("{$event}-{$ticket}.notify");
   if (file_exists($archive)) break;
   $entity = $overrule===false ? $notify[$importance] : $overrule;
-  if (!$mailtest) file_put_contents($archive,"timestamp = $timestamp\nevent = $event\nsubject = $subject\ndescription = $description\nimportance = $importance\n");
-  if (($entity & 1)==1 && !$mailtest) file_put_contents($unread,"timestamp = $timestamp\nevent = $event\nsubject = $subject\ndescription = $description\nimportance = $importance\n");
+  if (!$mailtest) file_put_contents($archive,"timestamp=$timestamp\nevent=$event\nsubject=$subject\ndescription=$description\nimportance=$importance\n".($message ? "message=".str_replace('\n','<br>',$message)."\n" : ""));
+  if (($entity & 1)==1 && !$mailtest) file_put_contents($unread,"timestamp=$timestamp\nevent=$event\nsubject=$subject\ndescription=$description\nimportance=$importance\n");
   if (($entity & 2)==2 || $mailtest)  if (!generate_email($event, $subject, str_replace('<br>','. ',$description), $importance, $message)) exit(1);
   if (($entity & 4)==4 && !$mailtest) { if (is_array($agents)) {foreach ($agents as $agent) {exec("TIMESTAMP='$timestamp' EVENT='$event' SUBJECT='$subject' DESCRIPTION='$description' IMPORTANCE='$importance' CONTENT='$message' ".$agent);};}};
   break;

@@ -40,6 +40,7 @@ Shadowbox.init({skipSetup:true});
 
 // server uptime
 var uptime = <?=strtok(exec("cat /proc/uptime"),' ')?>;
+var before = new Date();
 
 // Page refresh timer
 var update = <?=abs($display['refresh'])/1000?>;
@@ -64,11 +65,13 @@ function plus(value, label, last) {
   return value>0 ? (value+' '+label+(value!=1?'s':'')+(last?'':', ')) : '';
 }
 function updateTime() {
+  var now = new Date();
   days = parseInt(uptime/86400);
   hour = parseInt(uptime/3600%24);
   mins = parseInt(uptime/60%60);
   $('#uptime').html(((days|hour|mins)?plus(days,'day',(hour|mins)==0)+plus(hour,'hour',mins==0)+plus(mins,'minute',true):'less than a minute'));
-  uptime++;
+  uptime += Math.round((now.getTime() - before.getTime())/1000);
+  before = now;
   setTimeout(updateTime,1000);
 }
 function refresh(top) {

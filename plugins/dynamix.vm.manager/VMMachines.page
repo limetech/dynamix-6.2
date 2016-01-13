@@ -111,7 +111,7 @@ if ($action) {
                   <th class='header'>Log</th>
                </tr>
             </thead>
-            <tbody>";
+            <tbody id='kvm_list'>";
    //Get domain variables for each domain
    if ($libvirt_running == "yes")
 		$doms = $lv->get_domains();
@@ -252,7 +252,7 @@ if ($action) {
                            <th class='header'>Actions</th><th class='header'></th>
                         </tr>
                      </thead>
-                     <tbody>";
+                     <tbody id='domdisk_list'>";
 		/* Display domain disks */
 			$tmp = $lv->get_disk_stats($res);
          if (!empty($tmp)) {
@@ -413,7 +413,7 @@ if ($action) {
                   echo "</th><th class='header'></th><th class='header'></th>
 	                  </tr>
                      </thead>
-                     <tbody>";
+                     <tbody id=''domsnap_list>";
          $tmp = $lv->domain_snapshots_list($res);
          if (!empty($tmp)) {
          	sort($tmp);
@@ -621,6 +621,19 @@ function addVMContext(name, uuid, template, state, vncurl, log){
   context.attach('#vm-'+uuid, opts);
 }
 
+<?if ($display['resize']):?>
+function resize(bind) {
+  var width = [];
+  var h = $('#kvm_list').height();
+  var s = Math.max(window.innerHeight-300,370);
+  if (h>s || bind) {
+    $('#kvm_list').height(s);
+    $('#kvm_table tbody tr:first-child td').each(function(){width.push($(this).width());});
+    $('#kvm_table thead tr th').each(function(i){$(this).width(width[i]);});
+    if (!bind) $('#kvm_table thead,#kvm_table tbody').addClass('fixed');
+  }
+}
+<?endif;?>
 
 $(function() {
    $('.text').click(showInput);
@@ -638,8 +651,12 @@ $(function() {
       }, "json");
    });
 
+<?if ($display['resize']):?>
+   resize();
+   $(window).bind('resize',function(){resize(true);});
+<?endif;?>
+
    context.init({ preventDoubleContext: false });
    <?=implode("\n\t", $contextMenus);?>
 });
 </script>
-

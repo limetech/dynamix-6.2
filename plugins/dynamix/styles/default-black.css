@@ -167,7 +167,17 @@ table.share_status.m36 tr>td+td+td{width:14%;}
 table.share_status.m36 tr>td+td+td+td{width:8%;text-align:center;}
 table.share_status.m0{width:30%;}
 table.share_status.m0 tr>td+td+td{width:12%;text-align:center;}
+tr.alert,t{color:#F0000C;background-color:#FF9E9E;}
+tr.warn{color:#E68A00;background-color:#FEEFB3;}
+tr.past{color:#D63301;background-color:#FFDDD1;}
 [name=arrayOps]{margin-top:12px;}
+span.error{color:#F0000C;background-color:#FF9E9E;display:block;width:100%;}
+span.warn{color:#E68A00;background-color:#FEEFB3;display:block;width:100%;}
+span.system{color:#00529B;background-color:#BDE5F8;display:block;width:100%;}
+span.array{color:#4F8A10;background-color:#DFF2BF;display:block;width:100%;}
+span.login{color:#D63301;background-color:#FFDDD1;display:block;width:100%;}
+span.lite{background-color:#0F0F0F;}
+span.label{font-size:small;padding:2px 0 2px 6px;margin-right:6px;border-radius:4px;display:inline;width:auto;vertical-align:middle;}
 span.heat-text{font-size:10px;color:#CC0000;}
 span.cpu-speed{display:block;color:#3B5998;}
 span.status{float:right;font-size:14px;margin-top:0px;padding-right:8px;}
@@ -191,9 +201,9 @@ div.Panel{text-align:center;float:left;margin:0 30px 30px 12px;height:80px;}
 div.Panel .PanelText{padding-top:10px;}
 div.user-list{float:left;padding:10px;margin-right:10px;margin-bottom:24px;border:1px solid #202020;border-radius:5px;line-height:16px;background:-webkit-radial-gradient(#303030,#101010);background:linear-gradient(#303030,#101010);}
 div.user-list img{margin-bottom:12px;}
-div.up{margin-top:-20px;}
+div.up{margin-top:-20px;border:1px solid #202020;padding:4px 6px;overflow:auto;}
 pre.up{margin-top:-20px;}
-pre{border:1px solid #202020;font-family:bitstream;font-size:11px;padding:6px 12px;overflow:auto;}
+pre{border:1px solid #202020;font-family:bitstream;font-size:11px;padding:4px 6px;overflow:auto;}
 iframe#progressFrame{position:fixed;bottom:32px;left:0;margin:0;padding:8px 8px 0 8px;width:100%;height:12px;line-height:12px;border-style:none;overflow:hidden;font-family:bitstream;font-size:10px;color:#A0A0A0;white-space:nowrap;z-index:-10;}
 dl{margin:0;padding-left:12px;line-height:26px;}
 dt{clear:left;float:left;width:33%;font-weight:bold;}

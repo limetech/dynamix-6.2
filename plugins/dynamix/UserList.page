@@ -20,4 +20,7 @@ Title="Users"
 <div style='clear:both'></div>
 <form method="GET" action="<?=$path?>/UserAdd">
 <input type="submit" value="Add User">
+<?if (!empty($display['users']) && substr($display['users'],0,5)!='Tasks'):?>
+<input type="button" value="Done" onclick="done()">
+<?endif;?>
 </form>

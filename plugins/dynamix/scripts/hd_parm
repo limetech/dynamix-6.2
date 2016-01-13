@@ -1,0 +1,5 @@
+#!/bin/bash
+
+[[ $1 == up ]] && cmd=-S0
+[[ $1 == down ]] && cmd=-y
+exec /usr/sbin/hdparm $cmd /dev/$2

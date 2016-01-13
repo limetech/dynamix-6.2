@@ -1,4 +1,4 @@
-Menu="Device"
+Menu="Device New"
 Title="Capabilities"
 Cond="strpos($disks[$name]['status'],'_NP')===false"
 ---
@@ -14,10 +14,9 @@ Cond="strpos($disks[$name]['status'],'_NP')===false"
  * all copies or substantial portions of the Software.
  */
 ?>
-
 <script>
 $(function() {
-  $.post("/webGui/include/SmartInfo.php",{cmd:'capabilities',port:'<?=isset($disks[$name]['device'])?$disks[$name]['device']:$name?>'}, function(data) {
+  $.post("/webGui/include/SmartInfo.php",{cmd:'capabilities',port:'<?=isset($disks[$name]['device'])?$disks[$name]['device']:$name?>',name:'<?=$name?>'}, function(data) {
     $('#disk_capabilities').html(data);
   });
 });

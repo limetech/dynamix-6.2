@@ -1,11 +1,17 @@
-#!/usr/bin/php
+#!/usr/bin/php -q
 <?php
-// usage: ftpusers ['user1 user2 .. ']
+// usage: ftpusers 0|1 ['user1 user2 .. ']
+// 0 = disable, 1 = enable FTP server daemon
 // the list of users must be within quotes, ie, as one argument
 // if no user(s) specified, deletes the config file
+
 $config_file = "/boot/config/vsftpd.user_list";
-if ($argc > 1)
-  file_put_contents($config_file, implode("\n", explode(' ', $argv[1]))."\n");
+if (trim($argv[2]))
+  file_put_contents($config_file, implode("\n", explode(' ', trim($argv[2])))."\n");
 else
   @unlink($config_file);
+
+$state = $argv[1] ? "'s/^#\(ftp.*vsftpd\)\$/\\1/'" : "'s/^\(ftp.*vsftpd\)\$/#\\1/'";
+exec("sed -i $state /etc/inetd.conf");
+exec("killall -HUP inetd");
 ?>

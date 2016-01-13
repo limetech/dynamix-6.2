@@ -11,7 +11,7 @@
  */
 ?>
 <?
-require_once "webGui/include/Wrappers.php";
+require_once 'webGui/include/Wrappers.php';
 
 $memory = '/tmp/memory.tmp';
 if (isset($_POST['#apply'])) {

@@ -11,26 +11,28 @@
  */
 ?>
 <?
-require_once('Wrappers.php');
+require_once 'Wrappers.php';
 
 // Helper functions
-function my_scale($value, &$unit, $precision = NULL) {
+function my_scale($value, &$unit, $decimals = NULL) {
   global $display;
   $scale = $display['scale'];
   $number = $display['number'];
   $dot = substr($number,0,1);
   $comma = substr($number,1,1);
   $units = array('B','KB','MB','GB','TB','PB');
-  if ($scale==0 && !$precision) {
+  if ($scale==0 && $decimals==NULL) {
+    $decimals = 0;
     $unit = '';
-    return number_format($value, 0, $dot, ($value>=10000 ? $comma : ''));
   } else {
     $base = $value ? floor(log($value, 1000)) : 0;
     if ($scale>0 && $base>$scale) $base = $scale;
+    $value /= pow(1000, $base);
+    if ($decimals==NULL) $decimals = $value>=100 ? 0 : ($value>=10 ? 1 : (round($value*100)%100==0 ? 0 : 2));
+    if ($scale<0 && round($value,$decimals)==1000) { $value = 1; $base++; }
     $unit = $units[$base];
-    $value = round($value/pow(1000, $base), $precision ? $precision : 2);
-    return number_format($value, $precision ? $precision : (($value-intval($value)==0 || $value>=100) ? 0 : ($value>=10 ? 1 : 2)), $dot, ($value>=10000 ? $comma : ''));
   }
+  return number_format($value, $decimals, $number[0], $value>=10000 ? $number[1] : '');
 }
 function my_number($value) {
   global $display;
@@ -58,7 +60,7 @@ function my_word($num) {
   return $num<count($words) ? $words[$num] : $num;
 }
 function my_usage() {
-  global $disks,$var;
+  global $disks,$var,$display;
   $arraysize=0;
   $arrayfree=0;
   foreach ($disks as $disk) {
@@ -69,33 +71,34 @@ function my_usage() {
   }
   if ($var['fsNumMounted']>0) {
     $used = $arraysize ? 100-round(100*$arrayfree/$arraysize) : 0;
-    echo "<div class='usage-bar'><span style='width:{$used}%' class='".usage_color($used,false)."'><span>{$used}%</span></span></div>";
+    echo "<div class='usage-bar'><span style='width:{$used}%' class='".usage_color($display,$used,false)."'><span>{$used}%</span></span></div>";
   } else {
     echo "<div class='usage-bar'><span><center>".($var['fsState']=='Started'?'Maintenance':'off-line')."</center></span></div>";
   }
 }
-function usage_color($limit,$free) {
+function usage_color(&$disk,$limit,$free) {
   global $display;
   if ($display['text']==1 || intval($display['text']/10)==1) return '';
+  $critical = !empty($disk['critical']) ? $disk['critical'] : $display['critical'];
+  $warning = !empty($disk['warning']) ? $disk['warning'] : $display['warning'];
   if (!$free) {
-    if ($limit>=$display['critical']) return 'redbar';
-    if ($limit>=$display['warning']) return 'orangebar';
+    if ($limit>=$critical) return 'redbar';
+    if ($limit>=$warning) return 'orangebar';
     return 'greenbar';
   } else {
-    if ($limit<=100-$display['critical']) return 'redbar';
-    if ($limit<=100-$display['warning']) return 'orangebar';
+    if ($limit<=100-$critical) return 'redbar';
+    if ($limit<=100-$warning) return 'orangebar';
     return 'greenbar';
   }
 }
-function my_check($time) {
-  global $var;
-  if (!$time) return "unavailable (system reboot or log rotation)";
+function my_check($time,$speed) {
+  if (!$time) return 'unavailable (no parity-check entries logged)';
   $days = floor($time/86400);
   $hmss = $time-$days*86400;
   $hour = floor($hmss/3600);
   $mins = $hmss/60%60;
   $secs = $hmss%60;
-  return plus($days,'day',($hour|$mins|$secs)==0).plus($hour,'hour',($mins|$secs)==0).plus($mins,'minute',$secs==0).plus($secs,'second',true).". Average speed: ".my_scale($var['mdResyncSize']*1024/$time,$unit,1)." $unit/sec";
+  return plus($days,'day',($hour|$mins|$secs)==0).plus($hour,'hour',($mins|$secs)==0).plus($mins,'minute',$secs==0).plus($secs,'second',true).". Average speed: $speed";
 }
 function my_error($code) {
   switch ($code) {
@@ -139,6 +142,18 @@ function day_count($time) {
 }
 function plus($val, $word, $last) {
   return $val>0 ? (($val || $last) ? ($val.' '.$word.($val!=1?'s':'').($last ?'':', ')) : '') : '';
+}
+function read_parity_log($epoch) {
+  $log = '/boot/config/parity-checks.log';
+  if (file_exists($log)) {
+    $timestamp = str_replace(['.0','.'],['  ',' '],date('M.d H:i:s',$epoch));
+    $handle = fopen($log, 'r');
+    while (($line = fgets($handle)) !== false) {
+      if (strpos($line,$timestamp)!==false) break;
+    }
+    fclose($handle);
+  }
+  return $line ? $line : '0|0|0|0';
 }
 function urlencode_path($path) {
   return str_replace("%2F", "/", urlencode($path));
@@ -209,7 +224,7 @@ function transpose_user_path($path) {
     if (!empty($realdisk)) {
       // there may be several disks participating in this path (e.g. disk1,2,3) so
       // only return the first disk and replace 'user' with say 'cache' or 'disk1'
-      $path = str_replace('/mnt/user/', '/mnt/'.strtok($realdisk.',', ',').'/', $dir);
+      $path = str_replace('/mnt/user/', '/mnt/'.strtok($realdisk.',', ',').'/', $path);
     }
   }
   return $path;

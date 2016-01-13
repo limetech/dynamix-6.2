@@ -41,20 +41,13 @@ function shareEmpty($name) {
   return (($files = @scandir('/mnt/user/'.$name)) && (count($files) <= 2));
 }
 
-if ($var['shareUserInclude']) {
-  $myDisks = explode(',',$var['shareUserInclude']);
-} else {
-  $myDisks = array();
-  foreach ($disks as $disk) $myDisks[] = $disk['name'];
+function globalInclude($name) {
+  global $var;
+  return substr($name,0,4)=='disk' && (!$var['shareUserInclude'] || strpos("{$var['shareUserInclude']},","$name,")!==false);
 }
 
-if ($var['shareUserExclude']) {
-  $exclude = explode(',',$var['shareUserExclude']);
-  foreach ($exclude as $disk) {
-    $index = array_search($disk,$myDisks);
-    if ($index !== false) array_splice($myDisks,$index,1);
-  }
-}
+// global shares include/exclude
+$myDisks = array_filter(array_diff(array_keys($disks), explode(',',$var['shareUserExclude'])), 'globalInclude');
 ?>
 
 > A *Share*, also called a *User Share*, is simply the name of a top-level directory that exists on one or more of your
@@ -65,7 +58,7 @@ if ($var['shareUserExclude']) {
 $(function() {
   $("#s1").dropdownchecklist({emptyText:'All', width:300, explicitClose:'...close'});
   $("#s2").dropdownchecklist({emptyText:'None', width:300, explicitClose:'...close'});
-  setDiskList(document.share_edit.shareUseCache);
+  setDiskList(document.share_edit.shareUseCache.value);
   presetSpace(document.share_edit.shareFloor);
 });
 function setDiskList(cache) {

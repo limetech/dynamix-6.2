@@ -14,7 +14,43 @@ Icon="disk-settings.png"
  * all copies or substantial portions of the Software.
  */
 ?>
-<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<?
+require_once "$docroot/webGui/include/Preselect.php";
+$events = isset($var['smEvents']) ? explode('|', $var['smEvents']) : $numbers;
+
+function displayTemp($temp) {
+  global $display;
+  return $display['unit']=='F' ? round(9/5*$temp)+32 : $temp;
+}
+?>
+<script>
+function doDispatch(form) {
+  var fields = {};
+<?if ($display['unit']=='F'):?>
+  form.display_hot.value = Math.round((form.display_hot.value-32)*5/9);
+  form.display_max.value = Math.round((form.display_max.value-32)*5/9);
+<?endif;?>
+  fields['#cfg'] = "/boot/config/plugins/dynamix/dynamix.cfg";
+  $(form).find('input[name^="display_"]').each(function(){fields[$(this).attr('name')] = $(this).val(); $(this).prop('disabled',true);});
+  $.post('/webGui/include/Dispatcher.php',fields);
+}
+function prepareDiskSettings(form) {
+  var events = [];
+  for (var i=0; i < <?=count($preselect)?>; i++) {
+    if (form.elements['at'+i].checked) events.push(form.elements['at'+i].value);
+    form.elements['at'+i].disabled = true;
+  }
+  var custom = form.smCustom.value.trim();
+  var custom = custom.length ? custom.split(',') : [];
+  for (var i=0; i < custom.length; i++) events.push(custom[i].trim());
+  form.smEvents.value = events.join('|');
+}
+function setIndex(form) {
+  form.smIndex.value = form.smType.selectedIndex;
+}
+</script>
+
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame" onsubmit="doDispatch(this)">
 Enable auto start:
 : <select name="startArray" size="1">
   <?=mk_option($var['startArray'], "no", "No")?>
@@ -135,6 +171,96 @@ Tunable (md_write_method):
 >
 > *Auto* selects `read/modify/write`.
 
+Default warning disk utilization level (%):
+: <input type="number" min="0" max="99" name="display_warning" class="narrow" value="<?=$display['warning']?>">
+
+> *Warning disk utilization* sets the default warning threshold for all hard disks utilization. Exceeding this threshold will result in a warning notification.
+>
+> When the warning level is set equal or greater than the critical level, there will be only critical notifications (warnings are not existing).
+
+Default critical disk utilization level (%):
+: <input type="number" min="0" max="100" name="display_critical" class="narrow" value="<?=$display['critical']?>">
+
+> *Critical disk utilization* sets the default critical threshold for all hard disks utilization. Exceeding this threshold will result in an alert notification.
+
+Default warning disk temperature threshold (&deg;<?=$display['unit']?>):
+: <input type="number" min="1" max="300" name="display_hot" class="narrow" value="<?=displayTemp($display['hot'])?>">
+
+> *Warning disk temperature* sets the default warning threshold for all hard disks temperature. Exceeding this threshold will result in a warning notification.
+
+Default critical disk temperature threshold (&deg;<?=$display['unit']?>):
+: <input type="number" min="1" max="300" name="display_max" class="narrow" value="<?=displayTemp($display['max'])?>">
+
+> *Critical disk temperature* sets the default critical threshold for all hard disks temperature. Exceeding this threshold will result in an alert notification.
+
 &nbsp;
 : <input type="submit" name="changeDisk" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+
+<div id="title"><span class="left"><img src="/webGui/icons/smartchecks.png" class="icon">Global SMART Settings</span></div>
+
+<form markdown="1" name="smart_settings" method="POST" action="/update.php" target="progressFrame" onsubmit="prepareDiskSettings(this)">
+<input type="hidden" name="#file" value="/boot/config/smart-all.cfg">
+<input type="hidden" name="#include" value="webGui/include/update.smart.php">
+<input type="hidden" name="smEvents" value="">
+<input type="hidden" name="smIndex" value="0">
+Default SMART notification value:
+: <select name="smSelect" size="1">
+  <?=mk_option($var['smSelect'], "0", "Raw")?>
+  <?=mk_option($var['smSelect'], "1", "Normalized")?>
+  </select>
+
+> SMART notifications are generated on either an increasing RAW value of the attribute, or a decreasing NORMALIZED value which reaches a predefined threshold set by the manufacturer.
+>
+> This section is used to set the global settings for all disks. It is possible to adjust settings for individual disks.
+
+Default SMART notification tolerance level:
+: <select name="smLevel" size="1">
+  <?=mk_option($var['smLevel'], "1.00", "Absolute")?>
+  <?=mk_option($var['smLevel'], "1.05", "5%")?>
+  <?=mk_option($var['smLevel'], "1.10", "10%")?>
+  <?=mk_option($var['smLevel'], "1.15", "15%")?>
+  <?=mk_option($var['smLevel'], "1.20", "20%")?>
+  <?=mk_option($var['smLevel'], "1.25", "25%")?>
+  <?=mk_option($var['smLevel'], "1.50", "50%")?>
+  </select>
+
+> A tolerance level may be given to prevent that small changes result in a notification. Setting a too high tolerance level may result in critical changes without a notification.
+>
+> This section is used to set the global settings for all disks. It is possible to adjust settings for individual disks.
+
+Default SMART controller type:
+: <select name="smType" size="1" onchange="setIndex(this.form)">
+  <?=mk_option($var['smType'], "", "Automatic")?>
+  <?=mk_option($var['smType'], "-d ata", "ATA")?>
+  <?=mk_option($var['smType'], "-d scsi", "SCSI")?>
+  <?=mk_option($var['smType'], "-d 3ware", "3Ware")?>
+  <?=mk_option($var['smType'], "-d areca", "Areca")?>
+  <?=mk_option($var['smType'], "-d hpt", "HighPoint")?>
+  <?=mk_option($var['smType'], "-d marvell", "Marvell")?>
+  <?=mk_option($var['smType'], "-d megaraid", "MegaRAID")?>
+  </select>
+
+> By default automatic controller selection is done by smartctl to read the SMART information. Certain controllers however need specific settings for smartctl to work.
+> Use this setting to select your controller type and fill-in the specific disk index and device name for your situation. Use the manufacturer's documentation to find the relevant information.
+>
+> This section is used to set the global settings for all disks. It is possible to adjust settings for individual disks.
+
+Default SMART attribute notifications:
+: <input type="text" name="smCustom" value="<?=$var['smCustom']?>" class="narrow">Custom attributes (use comma to separate numbers)
+
+  <?for ($x = 0; $x < count($preselect); $x++):?>
+&nbsp;
+: <input type="checkbox" name="at<?=$x?>" value="<?=$preselect[$x]['code']?>"<?=in_array($preselect[$x]['code'],$events)?' checked':''?>><span style="display:inline-block;width:136px"><?=$preselect[$x]['code']?></span><?=$preselect[$x]['text']?>
+  <?endfor;?>
+
+> The user can enable or disable notifications for the given SMART attributes. It is recommended to keep the default, which is ALL selected attributes,
+> when certain attributes are not present on your hard disk or do not provide the correct information, these may be excluded.
+> In addition custom SMART attributes can be entered to generate notifications. Be careful in this selection,
+> it may cause an avalance of notifcations if inappropriate SMART attributes are chosen.
+>
+> This section is used to set the global settings for all disks. It is possible to adjust settings for individual disks.
+
+<input type="submit" name="#default" value="Default">
+: <input type="submit" name="#apply" value="Apply"><input type="button" value="Done" onclick="done()">
 </form>

@@ -42,8 +42,8 @@ function presetMover(form) {
   form.min.disabled = false;
   form.day.disabled = mode!=2;
   form.dotm.disabled = mode!=3;
-  form.day.value = form.day.disabled ? '*' : '0';
-  form.dotm.value = form.dotm.disabled ? '*' : '1';
+  form.day.value = form.day.disabled ? '*' : (form.day.value=='*' ? 0 : form.day.value);
+  form.dotm.value = form.dotm.disabled ? '*' : (form.dotm.value=='*' ? 1 : form.dotm.value);
   if (mode==0) {$('#H1').hide(); $('#H2').show();} else {$('#H2').hide(); $('#H1').show();}
 }
 </script>

@@ -11,9 +11,10 @@
  */
 ?>
 <?
-require_once('webGui/include/Markdown.php');
-require_once('plugins/dynamix.plugin.manager/include/PluginHelpers.php');
+require_once 'webGui/include/Markdown.php';
+require_once 'plugins/dynamix.plugin.manager/include/PluginHelpers.php';
 
+$current = parse_ini_file('/etc/unraid-version');
 foreach (glob("/var/log/plugins/*.plg", GLOB_NOSORT) as $plugin_link) {
 // only consider symlinks
   $plugin_file = @readlink($plugin_link);
@@ -50,9 +51,14 @@ foreach (glob("/var/log/plugins/*.plg", GLOB_NOSORT) as $plugin_link) {
     if (file_exists($filename)) {
       $latest = plugin("version", $filename);
       if ($latest && strcmp($latest, $version) > 0) {
-        $version_info .= "<br><span class='red-text'>{$latest}</span>";
-        $status_info = make_link("update", basename($plugin_file));
-        $changes_file = $filename;
+        $unRAID = plugin("unRAID", $filename);
+        if (empty($unRAID) || strcmp($current['version'], $unRAID) >= 0) {
+          $version_info .= "<br><span class='red-text'>{$latest}</span>";
+          $status_info = make_link("update", basename($plugin_file));
+          $changes_file = $filename;
+        } else {
+          $status_info = "up-to-date";
+        }
       } else {
         $status_info = "up-to-date";
       }
@@ -70,7 +76,7 @@ foreach (glob("/var/log/plugins/*.plg", GLOB_NOSORT) as $plugin_link) {
   $action = strpos($plugin_file, "/usr/local/emhttp/plugins") !== 0 ? make_link("remove", basename($plugin_file)) : "built-in";
 // write plugin information
   echo "<tr>";
-  echo "<td style='vertical-align:top'><p>{$link}</p></td>";
+  echo "<td style='vertical-align:top;width:64px'><p style='text-align:center'>{$link}</p></td>";
   echo "<td><span class='desc_readmore' style='display:block'>{$desc}</span></td>";
   echo "<td>{$author}</td>";
   echo "<td>{$version_info}</td>";

@@ -16,10 +16,10 @@ Cond="($var['fsState']=='Stopped' || $var['cacheSbNumDisks'])"
 ?>
 <script>
 function cache_status() {
-  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'cache',width:window.innerWidth,timer:timer},function(data) {
+  $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'cache'},function(data) {
     if (data) $('#cache_device').html(data);
 <?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
-<?if ($display['tabs']==0):?>
+<?if ($tabbed):?>
     if ($('#tab2').is(':checked')) timer = setTimeout(cache_status,<?=abs($display['refresh'])?>);
 <?else:?>
     setTimeout(cache_status,<?=abs($display['refresh'])?>);
