@@ -16,7 +16,7 @@ echo "<p style='text-align:center'><span class='error label'>Error</span><span c
 
 require_once '/usr/local/emhttp/webGui/include/ColorCoding.php';
 
-$handle = popen("/usr/bin/tail -n 40 -f /var/log/{$argv[1]} 2>&1", 'r');
+$handle = popen('/usr/bin/tail -n 40 -f '.escapeshellarg("/var/log/{$argv[1]}").' 2>&1', 'r');
 while (!feof($handle)) {
   $line = fgets($handle);
   if (strpos($line,'tail_log')!==false) continue;
