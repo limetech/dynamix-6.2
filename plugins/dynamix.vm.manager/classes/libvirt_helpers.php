@@ -262,6 +262,12 @@
 
 
 	$virtio_isos = [
+		'virtio-win-0.1.112-1' => [
+			'name' => 'virtio-win-0.1.112-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.112-1/virtio-win-0.1.112.iso',
+			'size' => 56926208,
+			'md5' => '7db0211d7aec3e08fadd21c8eaaf35db'
+		],
 		'virtio-win-0.1.110-2' => [
 			'name' => 'virtio-win-0.1.110-2.iso',
 			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.110-2/virtio-win-0.1.110.iso',
@@ -437,32 +443,46 @@
 	$cacheValidPCIDevices = null;
 	function getValidPCIDevices() {
 		global $cacheValidPCIDevices;
+		global $disks;
 
 		if (!is_null($cacheValidPCIDevices)) {
 			return $cacheValidPCIDevices;
 		}
 
-		$strOSUSBController = trim(shell_exec("udevadm info -q path -n /dev/disk/by-label/UNRAID 2>/dev/null | grep -Po '0000:\K\w{2}:\w{2}\.\w{1}'"));
-		$strOSNetworkDevice = trim(shell_exec("udevadm info -q path -p /sys/class/net/eth0 2>/dev/null | grep -Po '0000:\K\w{2}:\w{2}\.\w{1}'"));
+		$strOSNetworkDevice = trim(exec("udevadm info -q path -p /sys/class/net/eth0 2>/dev/null | grep -Po '0000:\K\w{2}:\w{2}\.\w{1}'"));
 
-		//TODO: add any drive controllers currently being used by unraid to the blacklist
+		$arrOSDiskControllers = [];
+		foreach ($disks as $strDisk => $arrDisk) {
+			if (!empty($arrDisk['device']) && file_exists('/dev/'.$arrDisk['device'])) {
+				$strOSDiskController = trim(exec("udevadm info -q path -n /dev/".$arrDisk['device']." | grep -Po '0000:\K\w{2}:\w{2}\.\w{1}'"));
+				if (!empty($strOSDiskController)) {
+					$arrOSDiskControllers[] = $strOSDiskController;
+				}
+			}
+		}
+		$arrOSDiskControllers = array_values(array_unique($arrOSDiskControllers));
 
-		$arrBlacklistIDs = array($strOSUSBController, $strOSNetworkDevice);
+		$arrBlacklistIDs = $arrOSDiskControllers;
+		if (!empty($strOSNetworkDevice)) {
+			$arrBlacklistIDs[] = $strOSNetworkDevice;
+		}
 		$arrBlacklistClassIDregex = '/^(05|06|08|0a|0b|0c05)/';
 		// Got Class IDs at the bottom of /usr/share/hwdata/pci.ids
 		$arrWhitelistGPUClassIDregex = '/^(0001|03)/';
 		$arrWhitelistAudioClassIDregex = '/^(0403)/';
 
-		$arrValidPCIDevices = array();
+		$arrValidPCIDevices = [];
 
 		exec("lspci -m -nn 2>/dev/null", $arrAllPCIDevices);
 
 		foreach ($arrAllPCIDevices as $strPCIDevice) {
 			// Example: 00:1f.0 "ISA bridge [0601]" "Intel Corporation [8086]" "Z77 Express Chipset LPC Controller [1e44]" -r04 "Micro-Star International Co., Ltd. [MSI] [1462]" "Device [7759]"
 			if (preg_match('/^(?P<id>\S+) \"(?P<type>[^"]+) \[(?P<typeid>[a-f0-9]{4})\]\" \"(?P<vendorname>[^"]+) \[(?P<vendorid>[a-f0-9]{4})\]\" \"(?P<productname>[^"]+) \[(?P<productid>[a-f0-9]{4})\]\"/', $strPCIDevice, $arrMatch)) {
+
+				$boolBlacklisted = false;
 				if (in_array($arrMatch['id'], $arrBlacklistIDs) || preg_match($arrBlacklistClassIDregex, $arrMatch['typeid'])) {
 					// Device blacklisted, skip device
-					continue;
+					$boolBlacklisted = true;
 				}
 
 				$strClass = 'other';
@@ -520,7 +540,8 @@
 					'productname' => $arrMatch['productname'],
 					'class' => $strClass,
 					'driver' => $strDriver,
-					'name' => $arrMatch['vendorname'] . ' ' . $arrMatch['productname']
+					'name' => $arrMatch['vendorname'] . ' ' . $arrMatch['productname'],
+					'blacklisted' => $boolBlacklisted
 				);
 			}
 		}
@@ -535,7 +556,7 @@
 		$arrValidPCIDevices = getValidPCIDevices();
 
 		$arrValidGPUDevices = array_filter($arrValidPCIDevices, function($arrDev) {
-			return ($arrDev['class'] == 'vga');
+			return ($arrDev['class'] == 'vga' && !$arrDev['blacklisted']);
 		});
 
 		return $arrValidGPUDevices;
@@ -546,7 +567,7 @@
 		$arrValidPCIDevices = getValidPCIDevices();
 
 		$arrValidAudioDevices = array_filter($arrValidPCIDevices, function($arrDev) {
-			return ($arrDev['class'] == 'audio');
+			return ($arrDev['class'] == 'audio' && !$arrDev['blacklisted']);
 		});
 
 		return $arrValidAudioDevices;
@@ -557,7 +578,7 @@
 		$arrValidPCIDevices = getValidPCIDevices();
 
 		$arrValidOtherDevices = array_filter($arrValidPCIDevices, function($arrDev) {
-			return ($arrDev['class'] == 'other');
+			return ($arrDev['class'] == 'other' && !$arrDev['blacklisted']);
 		});
 
 		return $arrValidOtherDevices;
@@ -568,7 +589,7 @@
 		$arrValidPCIDevices = getValidPCIDevices();
 
 		$arrValidOtherStubbedDevices = array_filter($arrValidPCIDevices, function($arrDev) {
-			return ($arrDev['class'] == 'other' && in_array($arrDev['driver'], ['pci-stub', 'vfio-pci']));
+			return ($arrDev['class'] == 'other' && !$arrDev['blacklisted'] && in_array($arrDev['driver'], ['pci-stub', 'vfio-pci']));
 		});
 
 		return $arrValidOtherStubbedDevices;
@@ -591,12 +612,12 @@
 		exec("lsusb 2>/dev/null", $arrAllUSBDevices);
 
 		foreach ($arrAllUSBDevices as $strUSBDevice) {
-			if (preg_match('/^.+ID (?P<id>\S+) (?P<name>.+)$/', $strUSBDevice, $arrMatch)) {
+			if (preg_match('/^.+ID (?P<id>\S+)(?P<name>.+)$/', $strUSBDevice, $arrMatch)) {
 				$arrMatch['name'] = trim($arrMatch['name']);
 
 				if (empty($arrMatch['name'])) {
 					// Device name is blank, replace using fallback default
-					$arrMatch['name'] = 'unnamed device ('.$arrMatch['id'].')';
+					$arrMatch['name'] = '<unnamed device>';
 				}
 
 				if (stripos($GLOBALS['var']['flashGUID'], str_replace(':', '-', $arrMatch['id'])) === 0) {

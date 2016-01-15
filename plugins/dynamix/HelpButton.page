@@ -17,12 +17,12 @@ Icon="help.png"
 <script>
 function HelpButton() {
   $('.inline_help').toggle('slow');
-  $('#nav-item.HelpButton').toggleClass('nav-button-active');
+  $('#nav-item.HelpButton').toggleClass('active');
   if ($.cookie('help')==null) {
     $.cookie('help','help',{path:'/'}); var help = 'on';
   } else {
     $.removeCookie('help',{path:'/'}); var help = 'off';
   }
-  swal({title:'Help is '+help.toUpperCase(),imageUrl:'/webGui/images/help-'+help+'.png',timer:1500,animation:'slide-from-top',showConfirmButton:false});
+  //swal({title:'Help is '+help.toUpperCase(),imageUrl:'/webGui/images/help-'+help+'.png',timer:1500,animation:'slide-from-top',showConfirmButton:false});
 }
 </script>

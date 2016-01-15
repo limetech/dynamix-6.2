@@ -274,7 +274,7 @@
 			$machine_type = (stripos($machine, 'q35') !== false ? 'q35' : 'pc');
 			$os_type = ((empty($template['os']) || stripos($template['os'], 'windows') === false) ? 'other' : 'windows');
 			//$emulator = $this->get_default_emulator();
-			$emulator = '/usr/local/emhttp/plugins/dynamix.vm.manager/scripts/qemu.sh';
+			$emulator = '/usr/local/sbin/qemu';
 			$arch = $domain['arch'];
 			$pae = ($arch == 'i686') ? '<pae/>' : '';
 

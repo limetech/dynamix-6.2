@@ -562,7 +562,7 @@
 
 	<table>
 		<tr>
-			<td>CPUs:</td>
+			<td>Logical CPUs:</td>
 			<td>
 				<div class="textarea four">
 				<?php
@@ -575,14 +575,15 @@
 							}
 						}
 					?>
-					<label for="vcpu<?=$i?>"><input type="checkbox" name="domain[vcpu][]" class="domain_vcpu" id="vcpu<?=$i?>" value="<?=$i?>" <?=$extra;?>/> Core <?=$i?></label>
+					<label for="vcpu<?=$i?>"><input type="checkbox" name="domain[vcpu][]" class="domain_vcpu" id="vcpu<?=$i?>" value="<?=$i?>" <?=$extra;?>/> CPU <?=$i?></label>
 				<?php } ?>
 				</div>
 			</td>
 		</tr>
 	</table>
 	<blockquote class="inline_help">
-		<p>By default, VMs created will be pinned to physical CPU cores to improve performance.  From this view, you can adjust which actual CPU cores a VM will be pinned (minimum 1).</p>
+		<p>The number of logical CPUs in your system is determined by multiplying the number of CPU cores on your processor(s) by the number of threads.</p>
+		<p>Select which logical CPUs you wish to allow your VM to use. (minimum 1).</p>
 	</blockquote>
 
 	<table>
@@ -622,7 +623,7 @@
 	</div>
 	<div class="advanced">
 		<blockquote class="inline_help">
-			<p>Select how much memory to allocate to the VM at boot (cannot be more than Max. Mem).</p>
+			<p>For VMs where no PCI devices are being passed through (GPUs, sound, etc.), you can set different values to initial and max memory to allow for memory ballooning.  If you are passing through a PCI device, only the initial memory value is used and the max memory value is ignored.  For more information on KVM memory ballooning, see <a href="http://www.linux-kvm.org/page/FAQ#Is_dynamic_memory_management_for_guests_supported.3F" target="_new">here</a>.</p>
 		</blockquote>
 	</div>
 
@@ -697,7 +698,7 @@
 						}
 
 						foreach($arrValidGPUDevices as $arrDev) {
-							echo mk_option($arrGPU['id'], $arrDev['id'], $arrDev['name']);
+							echo mk_option($arrGPU['id'], $arrDev['id'], $arrDev['name'].' ('.$arrDev['id'].')');
 						}
 					?>
 					</select>
@@ -726,7 +727,7 @@
 						echo mk_option('', '', 'None');
 
 						foreach($arrValidGPUDevices as $arrDev) {
-							echo mk_option('', $arrDev['id'], $arrDev['name']);
+							echo mk_option('', $arrDev['id'], $arrDev['name'].' ('.$arrDev['id'].')');
 						}
 					?>
 					</select>
@@ -748,7 +749,7 @@
 						echo mk_option($arrAudio['id'], '', 'None');
 
 						foreach($arrValidAudioDevices as $arrDev) {
-							echo mk_option($arrAudio['id'], $arrDev['id'], $arrDev['name']);
+							echo mk_option($arrAudio['id'], $arrDev['id'], $arrDev['name'].' ('.$arrDev['id'].')');
 						}
 					?>
 					</select>
@@ -772,7 +773,7 @@
 					<select name="audio[{{INDEX}}][id]" class="audio narrow">
 					<?php
 						foreach($arrValidAudioDevices as $arrDev) {
-							echo mk_option('', $arrDev['id'], $arrDev['name']);
+							echo mk_option('', $arrDev['id'], $arrDev['name'].' ('.$arrDev['id'].')');
 						}
 					?>
 					</select>
@@ -852,12 +853,12 @@
 		<tr>
 			<td>USB Devices:</td>
 			<td>
-				<div class="textarea">
+				<div class="textarea" style="width: 540px">
 				<?php
 					if (!empty($arrValidUSBDevices)) {
 						foreach($arrValidUSBDevices as $i => $arrDev) {
 						?>
-						<label for="usb<?=$i?>"><input type="checkbox" name="usb[]" id="usb<?=$i?>" value="<?=$arrDev['id']?>" <?php if (count(array_filter($arrConfig['usb'], function($arr) use ($arrDev) { return ($arr['id'] == $arrDev['id']); }))) echo 'checked="checked"'; ?>/> <?=$arrDev['name']?></label><br/>
+						<label for="usb<?=$i?>"><input type="checkbox" name="usb[]" id="usb<?=$i?>" value="<?=$arrDev['id']?>" <?php if (count(array_filter($arrConfig['usb'], function($arr) use ($arrDev) { return ($arr['id'] == $arrDev['id']); }))) echo 'checked="checked"'; ?>/> <?=$arrDev['name']?> (<?=$arrDev['id']?>)</label><br/>
 						<?php
 						}
 					} else {
@@ -914,7 +915,7 @@
 							}
 							$intAvailableOtherPCIDevices++;
 					?>
-						<label for="pci<?=$i?>"><input type="checkbox" name="pci[]" id="pci<?=$i?>" value="<?=$arrDev['id']?>" <?=$extra?>/> <?=$arrDev['name']?> | <?=$arrDev['type']?><span class="advanced"> | <?=$arrDev['id']?></span></label><br/>
+						<label for="pci<?=$i?>"><input type="checkbox" name="pci[]" id="pci<?=$i?>" value="<?=$arrDev['id']?>" <?=$extra?>/> <?=$arrDev['name']?> | <?=$arrDev['type']?> (<?=$arrDev['id']?>)</label><br/>
 					<?
 						}
 					}
