@@ -159,17 +159,36 @@ function download($URL, $name, &$error) {
         }
       }
     }
-    if (pclose($file) != -1) {
+    if (($perror = pclose($file)) == 0) {
       echo "plugin: downloading: $URL ... done\n";
       return true;
     } else {
-      echo "plugin: downloading: $URL ... failed\n";
-      $error = "wget: $URL download failure";
+      echo "plugin: downloading: $URL ... failed (".error_desc($perror).")\n";
+      $error = "wget: $URL download failure (".error_desc($perror).")";
       return false;
     }
   } else {
     $error = "wget: $URL failed to open";
     return false;
+  }
+}
+
+// Error code to description (wget)
+// ref: https://www.gnu.org/software/wget/manual/html_node/Exit-Status.html
+//
+function error_desc($code) {
+  switch($code) {
+    case 0: return 'No errors';
+    case -1: return 'Generic error';
+    case 1: return 'Generic error';
+    case 2: return 'Parse error';
+    case 3: return 'File I/O error';
+    case 4: return 'Network failure';
+    case 5: return 'SSL verification failure';
+    case 6: return 'Username/password authentication failure';
+    case 7: return 'Protocol errors';
+    case 8: return 'Invalid URL / Server error response';
+    default: return 'Error code '.$code;
   }
 }
 
