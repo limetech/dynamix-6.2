@@ -157,7 +157,7 @@ foreach ($sPorts as $port) {
     echo "$port: ".exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/bond0");
   } else {
     unset($info);
-    exec("ethtool $port|grep -Po '^\s+(Speed|Duplex): \K[^U]+'",$info);
+    exec("ethtool $port|grep -Po '^\s+(Speed|Duplex): \K[^U\\n]+'",$info);
     echo $info[0] ? "$port: {$info[0]} - {$info[1]} Duplex" : "$port: not connected";
   }
 }

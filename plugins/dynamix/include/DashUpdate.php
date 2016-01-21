@@ -163,7 +163,7 @@ case 'port':
       } else if ($port=='lo') {
         $ports[$i++] = str_replace('yes','loopback',exec("ethtool lo|grep -Pom1 '^\s+Link detected: \K.+'"));
       } else {
-        exec("ethtool $port|grep -Po '^\s+(Speed|Duplex): \K[^U]+'",$info);
+        exec("ethtool $port|grep -Po '^\s+(Speed|Duplex): \K[^U\\n]+'",$info);
         $ports[$i++] = $info[0] ? "{$info[0]} - ".strtolower($info[1])." duplex" : "not connected";
       }
     }
