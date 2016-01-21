@@ -434,6 +434,26 @@
 		return $abbreviation;
 	}
 
+	function sanitizeVendor($strVendor) {
+		// Specialized vendor name cleanup
+		// e.g.: Advanced Micro Devices, Inc. [AMD/ATI] --> Advanced Micro Devices, Inc.
+		if (preg_match('/(?P<gpuvendor>.+) \[.+\]/', $strVendor, $arrGPUMatch)) {
+			$strVendor = $arrGPUMatch['gpuvendor'];
+		}
+
+		$strVendor = str_replace('Advanced Micro Devices', 'AMD', $strVendor);
+		$strVendor = str_replace('Samsung Electronics Co.', 'Samsung', $strVendor);
+		$strVendor = str_replace([' Corporation', ' Semiconductor ', ' Technology Group Ltd.', ' System, Inc.', ' Systems, Inc.'], '', $strVendor);
+		$strVendor = str_replace([' Co., Ltd.', ', Ltd.', ', Ltd', ', Inc.'], '', $strVendor);
+		return $strVendor;
+	}
+
+	function sanitizeProduct($strProduct) {
+		$strProduct = str_replace(' PCI Express', ' PCIe', $strProduct);
+		$strProduct = str_replace(' High Definition ', ' HD ', $strProduct);
+		return $strProduct;
+	}
+
 	function getDiskImageInfo($strImgPath) {
 		$arrJSON = json_decode(shell_exec("qemu-img info --output json " . escapeshellarg($strImgPath) . " 2>/dev/null"), true);
 		return $arrJSON;
@@ -519,16 +539,9 @@
 					}
 				}
 
-				// Specialized vendor name cleanup
-				// e.g.: Advanced Micro Devices, Inc. [AMD/ATI] --> Advanced Micro Devices, Inc.
-				if (preg_match('/(?P<gpuvendor>.+) \[.+\]/', $arrMatch['vendorname'], $arrGPUMatch)) {
-					$arrMatch['vendorname'] = $arrGPUMatch['gpuvendor'];
-				}
-
 				// Clean up the vendor and product name
-				$arrMatch['vendorname'] = str_replace(['Advanced Micro Devices, Inc.'], 'AMD', $arrMatch['vendorname']);
-				$arrMatch['vendorname'] = str_replace([' Corporation', ' Semiconductor Co., Ltd.', ' Technology Group Ltd.', ' Electronics Systems Ltd.', ' Systems, Inc.'], '', $arrMatch['vendorname']);
-				$arrMatch['productname'] = str_replace([' PCI Express'], [' PCIe'], $arrMatch['productname']);
+				$arrMatch['vendorname'] = sanitizeVendor($arrMatch['vendorname']);
+				$arrMatch['productname'] = sanitizeProduct($arrMatch['productname']);
 
 				$arrValidPCIDevices[] = array(
 					'id' => $arrMatch['id'],
@@ -612,14 +625,7 @@
 		exec("lsusb 2>/dev/null", $arrAllUSBDevices);
 
 		foreach ($arrAllUSBDevices as $strUSBDevice) {
-			if (preg_match('/^.+ID (?P<id>\S+)(?P<name>.+)$/', $strUSBDevice, $arrMatch)) {
-				$arrMatch['name'] = trim($arrMatch['name']);
-
-				if (empty($arrMatch['name'])) {
-					// Device name is blank, replace using fallback default
-					$arrMatch['name'] = '<unnamed device>';
-				}
-
+			if (preg_match('/^.+ID (?P<id>\S+)(?P<name>.*)$/', $strUSBDevice, $arrMatch)) {
 				if (stripos($GLOBALS['var']['flashGUID'], str_replace(':', '-', $arrMatch['id'])) === 0) {
 					// Device id matches the unraid boot device, skip device
 					continue;
@@ -630,12 +636,32 @@
 					continue;
 				}
 
+				$arrMatch['name'] = trim($arrMatch['name']);
+
+				if (empty($arrMatch['name'])) {
+					// Device name is blank, attempt to lookup usb details
+					exec("lsusb -d ".$arrMatch['id']." -v 2>/dev/null | grep -Po '^\s+(iManufacturer|iProduct)\s+[1-9]+ \K[^\\n]+'", $arrAltName);
+					$arrMatch['name'] = trim(implode(' ', (array)$arrAltName));
+
+					if (empty($arrMatch['name'])) {
+						// Still blank, replace using fallback default
+						$arrMatch['name'] = '[unnamed device]';
+					}
+				}
+
+				// Clean up the name
+				$arrMatch['name'] = sanitizeVendor($arrMatch['name']);
+
 				$arrValidUSBDevices[] = array(
 					'id' => $arrMatch['id'],
 					'name' => $arrMatch['name'],
 				);
 			}
 		}
+
+		uasort($arrValidUSBDevices, function ($a, $b) {
+			return strcasecmp($a['id'], $b['id']);
+		});
 
 		$cacheValidUSBDevices = $arrValidUSBDevices;
 
