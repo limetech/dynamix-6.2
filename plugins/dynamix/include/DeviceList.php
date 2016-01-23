@@ -326,20 +326,13 @@ case 'parity':
     $data[] = $var['sbSyncErrs'];
     echo implode(';',$data);
   } else {
-    if ($var['sbSynced']==0) break;
+    if ($var['sbSynced']==0 || $var['sbSynced2']==0) break;
     $log = '/boot/config/parity-checks.log';
-    $timestamp = str_replace(['.0','.'],['  ',' '],date('M.d H:i:s',$var['sbSynced']));
+    $timestamp = str_replace(['.0','.'],['  ',' '],date('M.d H:i:s',$var['sbSynced2']));
     if (in_parity_log($log,$timestamp)) break;
-    exec("grep -Po '^$timestamp .*(sync done. \Ktime=\d+|sync completion \Kstatus: -?\d+)' /var/log/syslog", $rows);
-    $duration = 0; $speed = 0; $status = 0;
-    foreach ($rows as $row) {
-      if (strpos($row,'time=')!==false) {
-        $duration = substr($row,5);
-      } elseif (strpos($row,'status:')!==false) {
-        $status = substr($row,8);
-      }
-    }
-    if ($duration>0) $speed = isset($disks['parity']['sizeSb']) ? my_scale($disks['parity']['sizeSb']*1024/$duration,$unit,1)." $unit/s" : "Unknown";
+    $duration = $var['sbSynced2'] - $var['sbSynced'];
+    $status = $var['sbSyncExit'];
+    $speed = ($status==0) ? my_scale($var['mdResyncSize']*1024/$duration,$unit,1)." $unit/s" : "Unavailable";
     file_put_contents($log,"$timestamp|$duration|$speed|$status\n",FILE_APPEND);
   }
   break;

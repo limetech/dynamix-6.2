@@ -69,8 +69,7 @@ function my_check($time,$speed) {
   $secs = $hmss%60;
   return plus($days,'day',($hour|$mins|$secs)==0).plus($hour,'hour',($mins|$secs)==0).plus($mins,'minute',$secs==0).plus($secs,'second',true).". Average speed: $speed";
 }
-function read_write_parity_log($epoch) {
-  global $disks;
+function read_write_parity_log($epoch,$duration,$speed,$status) {
   $log = '/boot/config/parity-checks.log';
   $timestamp = str_replace(['.0','.'],['  ',' '],date('M.d H:i:s',$epoch));
   if (file_exists($log)) {
@@ -81,16 +80,6 @@ function read_write_parity_log($epoch) {
     fclose($handle);
   }
   if (empty($line)) {
-    exec("grep -Po '^$timestamp .*(sync done. \Ktime=\d+|sync completion \Kstatus: -?\d+)' /var/log/syslog", $rows);
-    $duration = 0; $speed = 0; $status = 0;
-    foreach ($rows as $row) {
-      if (strpos($row,'time=')!==false) {
-        $duration = substr($row,5);
-      } elseif (strpos($row,'status:')!==false) {
-        $status = substr($row,8);
-      }
-    }
-    if ($duration>0) $speed = isset($disks['parity']['sizeSb']) ? my_scale($disks['parity']['sizeSb']*1024/$duration,$unit,1)." $unit/s" : "Unknown";
     $line = "$timestamp|$duration|$speed|$status";
     file_put_contents($log,"$line\n",FILE_APPEND);
   }
@@ -291,15 +280,26 @@ $name = 'parity';
 $last = isset($saved[$item][$name]) ? $saved[$item][$name] : '';
 if ($var['mdResync']>0) {
   if (!$last) {
-    $last = $var['mdNumInvalid']==0 ? 'Parity check' : ($var['mdInvalidDisk']==0 ? 'Parity sync:' : 'Data rebuild:');
-    $info = isset($disks['parity']['sizeSb']) ? "Parity size: ".my_scale($disks['parity']['sizeSb']*1024, $unit)." $unit" : "No parity disk present";
+    if (strstr($var['mdResyncAction'],"recon")) {
+      $last = 'Parity sync / Data rebuild';
+    } elseif (strstr($var['mdResyncAction'],"clear")) {
+      $last = 'Disk clear';
+    } elseif ($var['mdResyncAction']=="check") {
+      $last = 'Read check';
+    } elseif (strstr($var['mdResyncAction'],"check")) {
+      $last = 'Parity check';
+    }
+    $info = "Size: ".my_scale($var['mdResyncSize']*1024, $unit)." $unit";
     exec("$notify -e \"unRAID $last\" -s \"Notice [$server] - $last started\" -d \"$info\" -i \"warning\"");
     $saved[$item][$name] = $last;
   }
 } else {
   if ($last) {
-    list($entry,$duration,$speed,$status) = explode('|', read_write_parity_log($var['sbSynced']));
-    $info = $status==0 ? "Duration: ".my_check($duration, $speed) : "Error code: $status";
+    $duration = $var['sbSynced2'] - $var['sbSynced'];
+    $status = $var['sbSyncExit'];
+    $speed = $status==0 ? my_scale($var['mdResyncSize']*1024/$duration,$unit,1)." $unit/s" : "Unavailable";
+    list($entry,$duration,$speed,$status) = explode('|', read_write_parity_log($var['sbSynced2'],$duration,$speed,$status));
+    $info = $status==0 ? "Duration: ".my_check($duration, $speed) : $status==-4 ? "Canceled" : "Error code: $status";
     $level = ($status==0 && $var['sbSyncErrs']==0) ? "normal" : "warning";
     exec("$notify -e \"unRAID $last\" -s \"Notice [$server] - $last finished ({$var['sbSyncErrs']} errors)\" -d \"$info\" -i \"$level\"");
     unset($saved[$item][$name]);
