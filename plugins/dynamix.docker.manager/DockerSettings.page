@@ -163,14 +163,15 @@ if (file_exists($realfile)) {
   <input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
   <input type="hidden" name="#arg[1]" value="start">
   <input type="hidden" name="#arg[2]" value="/var/lib/docker">
+  <input type="hidden" name="#arg[3]" value="-r">
 
   <dl>
     <dt>&nbsp;</dt>
-    <dd><input type="submit" value="Scrub"><label><input type="checkbox" name="#arg[3]" value="-r" checked> Don't fix file system errors</label></dd>
+    <dd><input type="submit" value="Scrub"><label><input type="checkbox" name="#arg[3]" value=""> Correct file system errors</label></dd>
   </dl>
   <blockquote class="inline_help">
     <p><b>Scrub</b> runs the <i>btrfs scrub</i> program to check file system integrity.</p>
-    <p>If repair is needed you should uncheck the <i>Don't fix file system errors</i> option and run a second Scrub pass; this will permit <i>btrfs scrub</i> to fix the file system.</p>
+    <p>If repair is needed you should check the *Correct file system errors* and run a second Scrub pass; this will permit <i>btrfs scrub</i> to fix the file system.</p>
   </blockquote>
 
   <?else:?>
