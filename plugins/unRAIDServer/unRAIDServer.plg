@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta15-wip">
+<!ENTITY version   "6.2-beta16">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -23,6 +23,23 @@
 <![CDATA[
 unRAID Server OS Change Log
 ===========================
+
+Version 6.2-beta16
+------------------
+- add 10Gb ethernet tuning in /etc/sysctl.conf
+- enable asynchronous I/O in /etc/samba/smb.conf
+- eudev: 3.1.5a: support NVMe
+- linux: 4.1.15
+- samba: enable async i/o for transfers 4K or larger
+- sync with 6.1.7
+- slack: stop md/unraid driver cleanly upon system poweroff/reset
+- webGui: reverse negative logic in docker image fsck confirmation
+- emhttp:
+  - Trial key now supports 6 devices, gets time from limetech keyserver
+  - support unlimited devices
+  - support nvme devices
+  - misc other improvements and bug fixes
+- shfs: do not reject object creation on cache-only share if no cache disk (just create on array)
 
 Version 6.2-beta15
 ------------------
