@@ -24,22 +24,24 @@
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.sweetalert.css">
 <link type="text/css" rel="stylesheet" href="<?autov("/webGui/styles/default-{$display['theme']}.css")?>">
 <link type="text/css" rel="stylesheet" href="<?autov("/webGui/styles/dynamix-{$display['theme']}.css")?>">
-<?if (file_exists("/boot/config/plugins/dynamix/banner.png")):?>
-<link type="text/css" rel="stylesheet" href="/webGui/styles/custom-banner.css">
-<?else:?>
-<link type="text/css" rel="stylesheet" href="/webGui/styles/default-banner.css">
-<?endif?>
 
 <style>
 .inline_help{display:none;}
+<?$banner = '/boot/config/plugins/dynamix/banner.png';?>
+<?if (file_exists($banner)):?>
+#header.image{background-image:url(<?=autov($banner)?>);}
+<?else:?>
+#header.image{background-image:url(/webGui/images/banner.png);}
+<?endif?>
 </style>
 
-<script src="<?autov("/webGui/javascript/dynamix.js")?>"></script>
+<script src="<?autov('/webGui/javascript/dynamix.js')?>"></script>
 <script>
 Shadowbox.init({skipSetup:true});
 
 // server uptime
 var uptime = <?=strtok(exec("cat /proc/uptime"),' ')?>;
+var expiretime = <?=($var['regTy']=='Trial')?$var['regTm2']:0?>;
 var before = new Date();
 
 // Page refresh timer
@@ -72,6 +74,17 @@ function updateTime() {
   $('#uptime').html(((days|hour|mins)?plus(days,'day',(hour|mins)==0)+plus(hour,'hour',mins==0)+plus(mins,'minute',true):'less than a minute'));
   uptime += Math.round((now.getTime() - before.getTime())/1000);
   before = now;
+  if (expiretime > 0) {
+    var remainingtime = expiretime - now.getTime()/1000;
+    if (remainingtime <= 0) {
+      $('#licenseexpire').html(' - Expired').addClass('warning');
+    } else {
+      days = parseInt(remainingtime/86400);
+      hour = parseInt(remainingtime/3600%24);
+      mins = parseInt(remainingtime/60%60);
+      $('#licenseexpire').html(' - '+((days|hour|mins)?plus(days,'day',(hour|mins)==0)+plus(hour,'hour',mins==0)+plus(mins,'minute',true):'less than a minute')+' remaining');
+    }
+  }
   setTimeout(updateTime,1000);
 }
 function refresh(top) {
@@ -202,7 +215,7 @@ for (var i=0,mobile; mobile=mobiles[i]; i++) {
   <div id="header" class="<?=$display['banner']?>">
    <div class="logo">
    <a href="#" onclick="openBox('/webGui/include/Feedback.php','Feedback',450,450,false);return false;"><img src="/webGui/images/limetech-logo-<?=$display['theme']?>.png" title="Feedback" border="0"/></a><br/>
-   <a href="/Tools/Registration"><strong>unRAID Server <em><?=$var['regTy']?></em></strong></a>
+   <a href="/Tools/Registration"><strong>unRAID Server <em><?=$var['regTy']?></em><span id="licenseexpire"></span></strong></a>
    </div>
    <div class="block">
     <span class="text-left">Server<br/>Description<br/>Version<br/>Uptime</span>
