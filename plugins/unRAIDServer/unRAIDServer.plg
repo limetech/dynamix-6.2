@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta16">
+<!ENTITY version   "6.2-beta17">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -23,6 +23,12 @@
 <![CDATA[
 unRAID Server OS Change Log
 ===========================
+
+Version 6.2-beta17
+------------------
+- fixed issue where NTP appears enabled in webGui but is not really enabled
+- linux: 4.4.1
+- lots of other changes
 
 Version 6.2-beta16
 ------------------
