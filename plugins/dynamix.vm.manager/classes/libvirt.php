@@ -993,7 +993,7 @@
 
 			$buses =  $this->get_xpath($dom, '//domain/devices/disk[@device="disk"]/target/@bus', false);
 			$disks =  $this->get_xpath($dom, '//domain/devices/disk[@device="disk"]/target/@dev', false);
-			$files =  $this->get_xpath($dom, '//domain/devices/disk[@device="disk"]/source/@file', false);
+			$files =  $this->get_xpath($dom, '//domain/devices/disk[@device="disk"]/source/@*', false);
 
 			$ret = array();
 			for ($i = 0; $i < $disks['num']; $i++) {
