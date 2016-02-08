@@ -22,8 +22,8 @@ if grep -q 'fsState="Started"' /var/local/emhttp/var.ini && grep -q 'startMode="
 	#copy seed loopback image and qemu hook, if needed, to flash drive
 	if [ -d /usr/local/emhttp/plugins/dynamix.vm.manager/dynamix.kvm.manager ]; then
 		mkdir -p /boot/config/plugins/dynamix.kvm.manager
-		tar --no-same-owner -xkf /usr/local/emhttp/plugins/dynamix.vm.manager/dynamix.kvm.manager/domain.tar.xz -C /boot/config/plugins/dynamix.kvm.manager/
-		cp -n /usr/local/emhttp/plugins/dynamix.vm.manager/dynamix.kvm.manager/qemu /boot/config/plugins/dynamix.kvm.manager/
+		[ ! -f /boot/config/plugins/dynamix.kvm.manager/domain.img ] && tar --no-same-owner -xkf /usr/local/emhttp/plugins/dynamix.vm.manager/dynamix.kvm.manager/domain.tar.xz -C /boot/config/plugins/dynamix.kvm.manager/
+		[ ! -f /boot/config/plugins/dynamix.kvm.manager/qemu ] && cp -n /usr/local/emhttp/plugins/dynamix.vm.manager/dynamix.kvm.manager/qemu /boot/config/plugins/dynamix.kvm.manager/
 	fi
 
 	if [ "$SERVICE" = "enable" ]; then
