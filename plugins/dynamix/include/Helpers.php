@@ -82,12 +82,12 @@ function usage_color(&$disk,$limit,$free) {
   $critical = !empty($disk['critical']) ? $disk['critical'] : $display['critical'];
   $warning = !empty($disk['warning']) ? $disk['warning'] : $display['warning'];
   if (!$free) {
-    if ($limit>=$critical) return 'redbar';
-    if ($limit>=$warning) return 'orangebar';
+    if ($limit>=$critical && $critical>0) return 'redbar';
+    if ($limit>=$warning && $warning>0) return 'orangebar';
     return 'greenbar';
   } else {
-    if ($limit<=100-$critical) return 'redbar';
-    if ($limit<=100-$warning) return 'orangebar';
+    if ($limit<=100-$critical && $critical>0) return 'redbar';
+    if ($limit<=100-$warning && $warning>0) return 'orangebar';
     return 'greenbar';
   }
 }

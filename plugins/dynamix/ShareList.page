@@ -16,7 +16,7 @@ Cond="$var['fsState']=="Started" && $var['shareUser']=='e'"
 ?>
 <script>
 function displayShares(all) {
-  $('#share_list').html("<tr><td colspan='8' style='text-align:center'><i class='fa fa-spinner fa-spin icon'></i>Please wait... computing user shares!</td></tr>");
+  if (all == 'yes') $('#share_list').html("<tr><td colspan='8' style='text-align:center'><i class='fa fa-spinner fa-spin icon'></i>Please wait... computing user shares!</td></tr>");
   $.get('/webGui/include/ShareList.php',{compute:all,path:'<?=$path?>',prev:'<?=$prev?>',scale:'<?=$display['scale']?>',number:'<?=$display['number']?>'},function(data){
     $('#share_list').html(data);
     $('#compute-shares').prop('disabled',!data || data.indexOf('colspan=')!=-1);

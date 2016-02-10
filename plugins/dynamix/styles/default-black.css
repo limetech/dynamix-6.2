@@ -24,6 +24,7 @@ input:focus[type=text],input:focus[type=password],input:focus[type=number],input
 input:hover[type=button],input:hover[type=reset],input:hover[type=submit],button:hover,a.button:hover{border-color:#6AB034;color:#FFFFFF;background:-webkit-radial-gradient(#5E9E2E,#8FD956);background:linear-gradient(#5E9E2E,#8FD956);}
 input:active[type=button],input:active[type=reset],input:active[type=submit],button:active{border-color:#6AB034;box-shadow:inset 0 0 8px 4px #548C29,0 1px 0 0 #101010;}
 input[disabled],button[disabled],input:hover[type=button][disabled],input:hover[type=reset][disabled],input:hover[type=submit][disabled],button:hover[disabled],input:active[type=button][disabled],input:active[type=reset][disabled],input:active[type=submit][disabled],button:active[disabled],textarea[disabled]{color:#505050;border-color:#181818;background:linear-gradient(#202020,#101010);background:-webkit-radial-gradient(#202020,#101010);cursor:default;}
+input::-webkit-input-placeholder{color:#486DBA;}
 select{min-width:150px;max-width:320px;font-family:arimo;font-size:11px;color:#A0A0A0;background:-webkit-radial-gradient(#505050,#303030);background:linear-gradient(#505050,#303030);padding:3px 6px;margin:0 10px 0 0;border:none;box-shadow:0 2px 0 #404040;border-radius:4px;outline:none;display:inline-block;cursor:pointer;}
 select[disabled]{color:#505050;background:-webkit-radial-gradient(#303030,#101010);background:linear-gradient(#303030,#101010);box-shadow:0 2px 0 #202020;cursor:default;}
 select[name=enter_view]{padding:0;float:right;}

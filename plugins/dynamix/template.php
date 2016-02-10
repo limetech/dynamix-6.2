@@ -42,12 +42,13 @@ $sec_afp = parse_ini_file('state/sec_afp.ini',true);
 // Merge SMART settings
 require_once 'include/CustomMerge.php';
 
+// Build webGui pages first, then plugins pages
 $site = [];
-$base = 'dynamix';
-// Build the webGui pages first
-build_pages("$base/*.page");
-// Build the plugins pages
-foreach (glob('plugins/*', GLOB_ONLYDIR+GLOB_NOSORT) as $plugin) if ($plugin != $base) build_pages("$plugin/*.page");
+build_pages('webGui/*.page');
+foreach (glob('plugins/*', GLOB_ONLYDIR) as $plugin) {
+  if ($plugin != 'plugins/dynamix') build_pages("$plugin/*.page");
+}
+
 // Here's the page we're rendering
 $myPage = $site[basename($path)];
 $pageroot = "{$docroot}/".dirname($myPage['file']);

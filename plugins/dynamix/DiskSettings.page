@@ -171,27 +171,35 @@ Tunable (md_write_method):
 >
 > *Auto* selects `read/modify/write`.
 
-Default warning disk utilization level (%):
-: <input type="number" min="0" max="99" name="display_warning" class="narrow" value="<?=$display['warning']?>">
+Default warning disk utilization threshold (%):
+: <input type="number" min="0" max="100" name="display_warning" class="narrow" value="<?=$display['warning']?>">
 
 > *Warning disk utilization* sets the default warning threshold for all hard disks utilization. Exceeding this threshold will result in a warning notification.
 >
-> When the warning level is set equal or greater than the critical level, there will be only critical notifications (warnings are not existing).
+> When the warning threshold is set equal or greater than the critical threshold, there will be only critical notifications (warnings are not existing).
+>
+> A value of zero will disable the warning threshold (including notifications).
 
-Default critical disk utilization level (%):
+Default critical disk utilization threshold (%):
 : <input type="number" min="0" max="100" name="display_critical" class="narrow" value="<?=$display['critical']?>">
 
 > *Critical disk utilization* sets the default critical threshold for all hard disks utilization. Exceeding this threshold will result in an alert notification.
+>
+> A value of zero will disable the critical threshold (including notifications).
 
 Default warning disk temperature threshold (&deg;<?=$display['unit']?>):
-: <input type="number" min="1" max="300" name="display_hot" class="narrow" value="<?=displayTemp($display['hot'])?>">
+: <input type="number" min="0" max="300" name="display_hot" class="narrow" value="<?=displayTemp($display['hot'])?>">
 
 > *Warning disk temperature* sets the default warning threshold for all hard disks temperature. Exceeding this threshold will result in a warning notification.
+>
+> A value of zero will disable the warning threshold (including notifications).
 
 Default critical disk temperature threshold (&deg;<?=$display['unit']?>):
-: <input type="number" min="1" max="300" name="display_max" class="narrow" value="<?=displayTemp($display['max'])?>">
+: <input type="number" min="0" max="300" name="display_max" class="narrow" value="<?=displayTemp($display['max'])?>">
 
 > *Critical disk temperature* sets the default critical threshold for all hard disks temperature. Exceeding this threshold will result in an alert notification.
+>
+> A value of zero will disable the critical threshold (including notifications).
 
 &nbsp;
 : <input type="submit" name="changeDisk" value="Apply"><input type="button" value="Done" onclick="done()">

@@ -12,13 +12,38 @@
  */
 ?>
 <?
-if ($argv[1]) {
-// script is called from GUI
-  $zip = $argv[1];
-  $diag = basename($zip, '.zip');
-  $split = explode('-', $diag);
-  $date = "{$split[2]}-{$split[3]}";
-} else {
+$opt = getopt('a',['all']);
+$all = isset($opt['a']) || isset($opt['all']);
+$zip = $all ? $argv[2] : $argv[1];
+$cli = empty($zip);
+
+function anonymize($text,$select) {
+  global $all;
+  if ($all) return $text;
+  switch ($select) {
+  case 1:
+    $rows = explode("\n", $text);
+    foreach ($rows as &$row) {
+      if (!preg_match("/\b(disk|cache|parity|flash)\d*\b/", $row)) {
+        $row = preg_replace("/^(\s*\[\S).*(\S\])( => Array)$/","$1..$2$3",$row);
+        $row = preg_replace("/^(\s*\[(name|nameOrig|comment|flashGUID|regGUID|regTo|readList|writeList)\] => \S).*(\S)$/","$1..$3",$row);
+      }
+    }
+    return implode("\n", $rows);
+  case 2:
+    $name = basename($text,'.cfg');
+    $len = strlen($name);
+    if ($len>2) {
+      $dash = str_repeat('-',$len-2);
+      $name = preg_replace("/^(\S).*(\S)/","$1$dash$2",$name);
+      $i = 1;
+      while (file_exists(dirname($text)."/$name.cfg")) {$name = substr($name,0,$len)." ($i)"; $i++;}
+    }
+    return dirname($text)."/$name.cfg";
+  }
+}
+
+if ($cli) {
 // script is called from CLI
   echo "Starting diagnostics collection... ";
   exec("mkdir -p /boot/logs");
@@ -27,17 +52,20 @@ if ($argv[1]) {
   $date = date('Ymd-Hi');
   $diag = "$server-diagnostics-$date";
   $zip = "/boot/logs/$diag.zip";
+} else {
+// script is called from GUI
+  $diag = basename($zip, '.zip');
+  $split = explode('-', $diag);
+  $date = "{$split[2]}-{$split[3]}";
 }
 // create folder structure
 exec("mkdir -p /$diag/system /$diag/config /$diag/logs /$diag/shares /$diag/smart /$diag/qemu");
 // copy ini variables
 foreach (glob("/var/local/emhttp/*.ini") as $file) {
   $ini = basename($file,".ini");
-  // skip users file
-  if ($ini != "users") file_put_contents("/$diag/system/vars.txt",preg_replace(array("/\n/","/^Array/"),array("\r\n",$ini),print_r(parse_ini_file($file,true),true)),FILE_APPEND);
+  // skip users file in anonymized mode
+  if ($all || $ini != "users") file_put_contents("/$diag/system/vars.txt",preg_replace(["/\n/","/^Array/"],["\r\n",$ini],anonymize(print_r(parse_ini_file($file,true),true),1)),FILE_APPEND);
 }
-// remove registration and flash info and anonymize user names
-exec("sed -r -i '/\[(reg|flash).*\]/d;s/(\[(read|write)List\] => )\S+/\\1xxx/' /$diag/system/vars.txt");
 // individual commands execution (suppress errors)
 exec("lsscsi -vgl 2>/dev/null|todos >/$diag/system/lsscsi.txt");
 exec("lspci -knn 2>/dev/null|todos >/$diag/system/lspci.txt");
@@ -58,17 +86,38 @@ exec("find /sys/kernel/iommu_groups/ -type l 2>/dev/null|todos >/$diag/system/io
 exec("todos </proc/cmdline >/$diag/system/cmdline.txt");
 // copy configuration files (suppress errors)
 exec("cp /boot/config/*.{cfg,conf,dat} /boot/config/go /$diag/config 2>/dev/null");
-if (is_dir("/boot/config/shares")) exec("cp /boot/config/shares/*.cfg /$diag/shares 2>/dev/null");
+// anonymize configuration files
+if (!$all) exec("sed -ri 's/^((disk|flash)(Read|Write)List.*=\")[^\"]+/\\1.../' /$diag/config/*.cfg 2>/dev/null");
+
+// copy share information (anonymize if applicable)
+$files = glob("/boot/config/shares/*.cfg");
+foreach ($files as $file) {
+  $dest = anonymize("/$diag/shares/".basename($file),2);
+  @copy($file, $dest);
+  if (!$all) exec("sed -ri 's/^(share(Comment|ReadList|WriteList)=\")[^\"]+/\\1.../' '$dest' 2>/dev/null");
+}
 // create default user shares information
 $ini = "/var/local/emhttp/shares.ini";
-$shares = file_exists($ini) ? parse_ini_file($ini, true) : array();
+$shares = file_exists($ini) ? parse_ini_file($ini, true) : [];
 foreach ($shares as $share) {
-  $file = "/$diag/shares/${share['name']}.cfg";
-  if (!file_exists($file)) file_put_contents($file,"# This share has default settings.\r\n");
+  $name = $share['name'];
+  if (!in_array("/boot/config/shares/$name.cfg",$files)) file_put_contents(anonymize("/$diag/shares/$name.cfg",2),"# This share has default settings.\r\n");
 }
-// copy syslog information
+// copy syslog information (anonymize if applicable)
 foreach (glob("/var/log/syslog*") as $file) {
-  exec("todos <$file >/$diag/logs/".basename($file).".txt");
+  $dest = "/$diag/logs/".basename($file).".txt";
+  exec("todos <$file >$dest");
+  if (!$all) {
+    unset($titles,$rows);
+    exec("grep -Po 'logger: moving \"\K[^\"]+' $dest 2>/dev/null|sort|uniq", $titles);
+    exec("sed -ri 's|\b\S+@\S+\.\S+\b|xxx@removed.com|;s|\b(username\|password)([=:])\S+\b|\\1\\2xxx|;s|(GUID: \S)\S+(\S) |\\1..\\2 |;s|(moving \"\S\|\"/mnt/user/\S).*(\S)\"|\\1..\\2\"|' $dest");
+    foreach ($titles as $mover) {
+      $title = "/{$mover[0]}..".substr($mover,-1)."/...";
+      exec("sed -ri 's|(logger: [.>cr].*)[ /]$mover/.*$|\\1 file: $title|' $dest 2>/dev/null");
+    }
+    exec("grep -n ' cache_dirs: -' $dest 2>/dev/null|cut -d: -f1", $rows);
+    for ($i = 0; $i < count($rows); $i += 2) for ($row = $rows[$i]+1; $row < $rows[$i+1]; $row++) exec("sed -ri '$row s|(cache_dirs: \S).*(\S)|\\1..\\2|' $dest 2>/dev/null");
+  }
 }
 // copy docker information (if existing)
 $docker = "/var/log/docker.log";
@@ -88,5 +137,5 @@ foreach ($devices as $device) {
 }
 // create resulting zip file and remove temp folder
 exec("zip -qmr $zip /$diag");
-if (!$argv[1]) echo "done.\nZIP file '$zip' created.\n";
+if ($cli) echo "done.\nZIP file '$zip' created.\n";
 ?>

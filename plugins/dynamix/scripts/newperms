@@ -18,7 +18,7 @@
 
 function process {
   echo "$1"
-  if [ -d $1 ] ; then
+  if [ -d "$1" ] ; then
     owner=nobody
     group=users
     if [ $# -ge 2 ]; then

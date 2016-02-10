@@ -151,28 +151,37 @@ Spin down delay:
   <?=mk_option($disk['spindownDelay'], "9",  "9 hours")?>
   </select><span id="smart_selftest" class='orange-text'></span>
 
-Warning disk utilization level (%):
-: <input type="number" min="0" max="99" name="<?=$name?>_warning" class="narrow" value="<?=!empty($disk['warning'])?$disk['warning']:''?>" placeholder="<?=$display['warning']?>">
+<?if ($disk['type'] != 'Parity'):?>
+Warning disk utilization threshold (%):
+: <input type="number" min="0" max="100" name="<?=$name?>_warning" class="narrow" value="<?=strlen($disk['warning'])?$disk['warning']:''?>" placeholder="<?=$display['warning']?>">
 
 > *Warning disk utilization* sets the warning threshold for this hard disk utilization. Exceeding this threshold will result in a warning notification.
 >
-> When the warning level is set equal or greater than the critical level, there will be only critical notifications (warnings are not existing).
+> When the warning threshold is set equal or greater than the critical threshold, there will be only critical notifications (warnings are not existing).
+>
+> A value of zero will disable the warning threshold (including notifications).
 
-Critical disk utilization level (%):
-: <input type="number" min="0" max="100" name="<?=$name?>_critical" class="narrow" value="<?=!empty($disk['critical'])?$disk['critical']:''?>" placeholder="<?=$display['critical']?>")>
+Critical disk utilization threshold (%):
+: <input type="number" min="0" max="100" name="<?=$name?>_critical" class="narrow" value="<?=strlen($disk['critical'])?$disk['critical']:''?>" placeholder="<?=$display['critical']?>")>
 
 > *Critical disk utilization* sets the critical threshold for this hard disk utilization. Exceeding this threshold will result in an alert notification.
+>
+> A value of zero will disable the critical threshold (including notifications).
 
+<?endif;?>
 Warning disk temperature threshold (&deg;<?=$display['unit']?>):
-: <input type="number" min="1" max="300" name="<?=$name?>_hotTemp" class="narrow" value="<?=!empty($disk['hotTemp'])?displayTemp($disk['hotTemp']):''?>" placeholder="<?=displayTemp($display['hot'])?>">
+: <input type="number" min="0" max="300" name="<?=$name?>_hotTemp" class="narrow" value="<?=strlen($disk['hotTemp'])?displayTemp($disk['hotTemp']):''?>" placeholder="<?=displayTemp($display['hot'])?>">
 
 > *Warning disk temperature* sets the warning threshold for this hard disk temperature. Exceeding this threshold will result in a warning notification.
+>
+> A value of zero will disable the warning threshold (including notifications).
 
 Critical disk temperature threshold (&deg;<?=$display['unit']?>):
-: <input type="number" min="1" max="300" name="<?=$name?>_maxTemp" class="narrow" value="<?=!empty($disk['maxTemp'])?displayTemp($disk['maxTemp']):''?>" placeholder="<?=displayTemp($display['max'])?>">
+: <input type="number" min="0" max="300" name="<?=$name?>_maxTemp" class="narrow" value="<?=strlen($disk['maxTemp'])?displayTemp($disk['maxTemp']):''?>" placeholder="<?=displayTemp($display['max'])?>">
 
 > *Critical disk temperature* sets the critical threshold for this hard disk temperature. Exceeding this threshold will result in an alert notification.
-
+>
+> A value of zero will disable the critical threshold (including notifications).
 
 <?if (($var['spinupGroups']=="yes")&&($disk['name']!="cache")):?>
 

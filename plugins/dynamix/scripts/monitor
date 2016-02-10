@@ -88,15 +88,15 @@ function read_write_parity_log($epoch,$duration,$speed,$status) {
 function check_temp($name,$temp,$text,$info) {
   global $notify,$disks,$saved,$unraid,$server;
   $disk = &$disks[$name];
-  $hot  = !empty($disk['hotTemp']) ? $disk['hotTemp'] : $unraid['display']['hot'];
-  $max  = !empty($disk['maxTemp']) ? $disk['maxTemp'] : $unraid['display']['max'];
-  $warn = $temp>=$max ? 'alert' : ($temp>=$hot ? 'warning' : '');
+  $hot  = strlen($disk['hotTemp']) ? $disk['hotTemp'] : $unraid['display']['hot'];
+  $max  = strlen($disk['maxTemp']) ? $disk['maxTemp'] : $unraid['display']['max'];
+  $warn = $temp>=$max && $max>0 ? 'alert' : ($temp>=$hot && $hot>0 ? 'warning' : '');
   $item = 'temp';
   $last = isset($saved[$item][$name]) ? $saved[$item][$name] : 0;
   if ($warn) {
     if ($temp>$last) {
       exec("$notify -e \"unRAID $text temperature\" -s \"".ucfirst($warn)." [$server] - $text ".($warn=='alert'?'overheated (':'is hot (').my_temp($temp).")\" -d \"$info\" -i \"$warn\"");
-      $saved[$item][$name] = $temp;
+      $saved[$item][$name] = $max>0 && $temp<=$max ? $max : $temp;
     }
   } else {
     if ($last) {
@@ -177,15 +177,15 @@ function check_usage($name,$used,$text,$info) {
   global $notify,$disks,$saved,$unraid,$server;
   if ($used == -1) return;
   $disk = &$disks[$name];
-  $warning  = !empty($disk['warning']) ? $disk['warning'] : $unraid['display']['warning'];
-  $critical = !empty($disk['critical']) ? $disk['critical'] : $unraid['display']['critical'];
-  $warn = $used>=$critical ? 'alert' : ($used>=$warning ? 'warning' : '');
+  $warning  = strlen($disk['warning']) ? $disk['warning'] : $unraid['display']['warning'];
+  $critical = strlen($disk['critical']) ? $disk['critical'] : $unraid['display']['critical'];
+  $warn = $used>=$critical && $critical>0 ? 'alert' : ($used>=$warning && $warning>0 ? 'warning' : '');
   $item = 'used';
   $last = isset($saved[$item][$name]) ? $saved[$item][$name] : 0;
   if ($warn) {
     if ($used>$last) {
       exec("$notify -e \"unRAID $text disk utilization\" -s \"".ucfirst($warn)." [$server] - $text is ".($warn=='alert'?'low on space':'high on usage')." (${used}%)\" -d \"$info\" -i \"$warn\"");
-      $saved[$item][$name] = $used;
+      $saved[$item][$name] = $critical>0 && $used<=$critical ? $critical : $used;
     }
   } else {
     if ($last) {
@@ -336,12 +336,12 @@ if ($retval===0) {
   } else
     $info = "Docker image file not specified";
 
-  if ($warn>=$high1) {
+  if ($warn>=$high1 && $high1>0) {
     if ($warn>$last) {
       exec("$notify -e \"Docker critical image disk utilization\" -s \"Alert [$server] - Docker image disk utilization of ${warn}%\" -d \"$info\" -i \"alert\"");
       $saved[$item][$name] = $warn;
     }
-  } else if ($warn>=$high2) {
+  } else if ($warn>=$high2 && $high2>0) {
     if ($warn>$last) {
       exec("$notify -e \"Docker high image disk utilization\" -s \"Warning [$server] - Docker image disk utilization of ${warn}%\" -d \"$info\" -i \"warning\"");
       $saved[$item][$name] = $warn;

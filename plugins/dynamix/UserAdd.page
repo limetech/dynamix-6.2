@@ -39,12 +39,6 @@ function restore() {
   filename = '';
 }
 
-function upload() {
-  // gets invoked when the user clicks APPLY, at this point image will be saved
-  var username = document.user_edit.userName.value.trim();
-  if (username && filename) $.post("/webGui/include/FileUpload.php",{cmd:'save',filename:filename,path:path,output:username});
-}
-
 function checkUsername(form) {
   var username = form.userName.value.trim();
   if (username.length==0) {
@@ -58,6 +52,9 @@ function checkUsername(form) {
   if (username.match('^(disk[0-9]+|cache[0-9]*|flash)$')) {
     swal({title:"Invalid user name",text:"Do not use reserved names",type:"error"});
     return false;
+  }
+  if (filename) {
+    $.post("/webGui/include/FileUpload.php",{cmd:'save',path:path,filename:filename,output:username+'.png'});
   }
   return true;
 }
@@ -98,7 +95,7 @@ $(function(){
       reader.readAsDataURL(file);
     },
     uploadFinished:function(i,file,response) {
-      if (response == '200 OK') {
+      if (response == 'OK 200') {
         if (!filename) $(dropbox).append("<?=$icon?>");
         $('input[name="userDesc"]').trigger('change');
         filename = file.name;
@@ -122,7 +119,7 @@ User name:
 > Usernames may be up to 32 characters long and must start with a **lower case letter** or an underscore,
 > followed by **lower case letters**, digits, underscores, or dashes. They can end with a dollar sign.
 > In regular expression terms: `[a-z_][a-z0-9_-]*[$]?`
-  
+
 Description:
 : <input type="text" name="userDesc" maxlength="64">
 
@@ -142,5 +139,5 @@ Retype password:
 : <input type="password" name="userPasswordConf" maxlength="40" onKeyUp="this.form.cmdUserEdit.disabled=(this.form.userPassword.value!=this.form.userPasswordConf.value);">
 
 &nbsp;
-: <input type="submit" name="cmdUserEdit" value="Add" onclick="upload()"><input type="button" value="Done" onclick="done()">
+: <input type="submit" name="cmdUserEdit" value="Add"><input type="button" value="Done" onclick="done()">
 </form>

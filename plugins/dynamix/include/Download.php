@@ -23,14 +23,14 @@ case 'save':
     copy($source, $tmp);
     exec("zip -qlj $docroot/$file $tmp");
     @unlink($tmp);
-  }    
+  }
   echo "/$file";
   break;
 case 'delete':
   @unlink("$docroot/$file");
   break;
 case 'diag':
-  exec("$docroot/webGui/scripts/diagnostics $docroot/$file");
+  exec("$docroot/webGui/scripts/diagnostics {$_POST['anonymize']} $docroot/$file");
   echo "/$file";
   break;
 }

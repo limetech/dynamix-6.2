@@ -109,123 +109,6 @@ function export_settings($protocol,$share) {
 ?>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/context.standalone.css">
 <script src="/webGui/javascript/context.js"></script>
-<script>
-var timer2,timer30;
-
-function changeMode(item) {
-  $.cookie('shareMode',item,{path:'/',expires:3650});
-<?if ($var['shareSMBEnabled']=='yes'):?>
-  if (item==0) $('.smb').show(); else $('.smb').hide();
-<?endif;?>
-<?if ($var['shareAFPEnabled']=='yes'):?>
-  if (item==1) $('.afp').show(); else $('.afp').hide();
-<?endif;?>
-<?if ($var['shareNFSEnabled']=='yes'):?>
-  if (item==2) $('.nfs').show(); else $('.nfs').hide();
-<?endif;?>
-}
-function changeView(item) {
-  $.cookie('viewMode',item,{path:'/',expires:3650});
-  if (item==0) $('.view1').show(); else $('.view1').hide();
-  if (item==1) $('.view2').show(); else $('.view2').hide();
-  if (item==2) $('.view3').show(); else $('.view3').hide();
-  clearTimeout(timer30);
-  update30();
-}
-function update3() {
-  var tag = $('.smb').is(':visible') ? 'smb' : $('.afp').is(':visible') ? 'afp' : $('.nfs').is(':visible') ? 'nfs' : '';
-<?if ($var['fsState']=='Started'):?>
-  $.post('<?=$url?>',{cmd:'shares',com:tag,names:'<?=addslashes($names)?>'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#share'+(k+1)).html(v);});
-  });
-<?endif;?>
-  $.post('<?=$url?>',{cmd:'sys'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css("overflow","visible");}}).text(v);});
-  });
-<?if ($fans>0):?>
-  $.post('<?=$url?>',{cmd:'fan'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#fan'+k).html(v);});
-  });
-<?endif;?>
-  $.post('<?=$url?>',{cmd:'cpu'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#cpu'+k).html(v);});
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
-    setTimeout(update3,<?=max(abs($display['refresh']),3000)?>);
-<?endif;?>
-  });
-}
-function update30() {
-  var tag = $('.view1').is(':visible') ? 'main' : $('.view2').is(':visible') ? 'port' : $('.view3').is(':visible') ? 'link' : '';
-  $.post('<?=$url?>',{cmd:'port',view:tag,ports:'<?=implode(',',$ports)?>'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#'+tag+k).html(v);});
-  });
-  $.post('<?=$url?>',{cmd:'disk',hot:'<?=$display['hot']?>',max:'<?=$display['max']?>',unit:'<?=$display['unit']?>'},function(data) {
-    if (data) $('#dash1').html(data);
-    clearTimeout(timer2);
-    timer2 = setTimeout(heatAlarm,2000);
-    $('[id^="smart-"]').each(function() {
-      var opts = [];
-      var id = '#'+$(this).attr('id');
-      var page = $(this).attr('name');
-      var view = $(this).attr('class');
-      var disk = id.substr(id.indexOf('-')+1);
-      opts.push({text:'Attributes',icon:'fa-sitemap',action:function(e){e.preventDefault();attributes(page,disk);}});
-      opts.push({text:'Capabilities',icon:'fa-user',action:function(e){e.preventDefault();capabilities(page,disk);}});
-      opts.push({text:'Identity',icon:'fa-home',action:function(e){e.preventDefault();identity(page,disk);}});
-      if (view == 'alert') opts.push({text:'Acknowledge',icon:'fa-check-square-o',action:function(e){e.preventDefault();acknowledge(disk);}});
-      context.attach(id,opts);
-    });
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
-    timer30 = setTimeout(update30,<?=max(abs($display['refresh']),30000)?>);
-<?endif;?>
-  });
-}
-function update60() {
-<?if ((strstr($var['mdResyncAction'],"clear") || strstr($var['mdResyncAction'],"check")) && $var['mdResync']>0):?>
-  $.post('<?=$url?>',{cmd:'parity'},function(data) {
-    if (data) $('#parity').html(data);
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
-    setTimeout(update60,<?=max(abs($display['refresh']),60000)?>);
-<?endif;?>
-  });
-<?endif;?>
-}
-function heatAlarm() {
-  if ($('.heat-img').length) {
-    if ($('.heat-text').is(':visible')) {$('.heat-text').hide(); $('.heat-img').show();} else {$('.heat-img').hide(); $('.heat-text').show();}
-  }
-  timer2 = setTimeout(heatAlarm,2000);
-}
-function attributes(page,disk) {
-  var tab = page=='New' ? 'tab2' : 'tab3';
-  $.cookie('one',tab,{path:'/'});
-  location.replace('/Dashboard/'+page+'?name='+disk);
-}
-function capabilities(page,disk) {
-  var tab = page=='New' ? 'tab3' : 'tab4';
-  $.cookie('one',tab,{path:'/'});
-  location.replace('/Dashboard/'+page+'?name='+disk);
-}
-function identity(page,disk) {
-  var tab = page=='New' ? 'tab4' : 'tab5';
-  $.cookie('one',tab,{path:'/'});
-  location.replace('/Dashboard/'+page+'?name='+disk);
-}
-function acknowledge(disk) {
-  $.post('/webGui/include/Acknowledge.php',{disk:disk},function(data){clearTimeout(timer30);update30();});
-}
-$(function() {
-  if ($.cookie('shareMode')!=null) { $('select[name="enter_share"] option')[$.cookie('shareMode')].selected = true; $('select[name="enter_share"]').change(); }
-  if ($.cookie('viewMode')!=null) { $('select[name="enter_view"] option')[$.cookie('viewMode')].selected = true; $('select[name="enter_view"]').change(); }
-  update3();
-  update60();
-  update30();
-<?if ($display['refresh']==0 || ($display['refresh']<0 && $var['mdResync']>0)):?>
-  $('.tabs').append("<span class='status vhshift'><input type='button' value='Refresh' onclick='refresh()'></span>");
-<?endif;?>
-  context.init({preventDoubleContext:false});
-});
-</script>
 
 <table class='share_status fixed'>
 <thead><tr>
@@ -464,3 +347,127 @@ if (!count($shares)) echo "<tr><td colspan='4'><center>No shares present</center
 </tbody>
 <?endif;?>
 </table>
+
+<script>
+var timer2,timer30;
+
+function changeMode(item) {
+  if (item==0) $.removeCookie('enter_share',{path:'/'}); else $.cookie('enter_share',item,{path:'/',expires:3650});
+<?if ($var['shareSMBEnabled']=='yes'):?>
+  if (item==0) $('.smb').show(); else $('.smb').hide();
+<?endif;?>
+<?if ($var['shareAFPEnabled']=='yes'):?>
+  if (item==1) $('.afp').show(); else $('.afp').hide();
+<?endif;?>
+<?if ($var['shareNFSEnabled']=='yes'):?>
+  if (item==2) $('.nfs').show(); else $('.nfs').hide();
+<?endif;?>
+}
+function changeView(item) {
+  if (item==0) $.removeCookie('enter_view',{path:'/'}); else $.cookie('enter_view',item,{path:'/',expires:3650});
+  if (item==0) $('.view1').show(); else $('.view1').hide();
+  if (item==1) $('.view2').show(); else $('.view2').hide();
+  if (item==2) $('.view3').show(); else $('.view3').hide();
+  clearTimeout(timer30);
+  update30();
+}
+function update3() {
+  var tag = $('.smb').is(':visible') ? 'smb' : $('.afp').is(':visible') ? 'afp' : $('.nfs').is(':visible') ? 'nfs' : '';
+<?if ($var['fsState']=='Started'):?>
+  $.post('<?=$url?>',{cmd:'shares',com:tag,names:'<?=addslashes($names)?>'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#share'+(k+1)).html(v);});
+  });
+<?endif;?>
+  $.post('<?=$url?>',{cmd:'sys'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css("overflow","visible");}}).text(v);});
+  });
+<?if ($fans>0):?>
+  $.post('<?=$url?>',{cmd:'fan'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#fan'+k).html(v);});
+  });
+<?endif;?>
+  $.post('<?=$url?>',{cmd:'cpu'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#cpu'+k).html(v);});
+<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+    setTimeout(update3,<?=max(abs($display['refresh']),3000)?>);
+<?endif;?>
+  });
+}
+function update30() {
+  var tag = $('.view1').is(':visible') ? 'main' : $('.view2').is(':visible') ? 'port' : $('.view3').is(':visible') ? 'link' : '';
+  $.post('<?=$url?>',{cmd:'port',view:tag,ports:'<?=implode(',',$ports)?>'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#'+tag+k).html(v);});
+  });
+  $.post('<?=$url?>',{cmd:'disk',hot:'<?=$display['hot']?>',max:'<?=$display['max']?>',unit:'<?=$display['unit']?>'},function(data) {
+    if (data) $('#dash1').html(data);
+    clearTimeout(timer2);
+    timer2 = setTimeout(heatAlarm,2000);
+    $('[id^="smart-"]').each(function() {
+      var opts = [];
+      var id = '#'+$(this).attr('id');
+      var page = $(this).attr('name');
+      var view = $(this).attr('class');
+      var disk = id.substr(id.indexOf('-')+1);
+      opts.push({text:'Attributes',icon:'fa-sitemap',action:function(e){e.preventDefault();attributes(page,disk);}});
+      opts.push({text:'Capabilities',icon:'fa-user',action:function(e){e.preventDefault();capabilities(page,disk);}});
+      opts.push({text:'Identity',icon:'fa-home',action:function(e){e.preventDefault();identity(page,disk);}});
+      if (view == 'alert') opts.push({text:'Acknowledge',icon:'fa-check-square-o',action:function(e){e.preventDefault();acknowledge(disk);}});
+      context.attach(id,opts);
+    });
+<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+    timer30 = setTimeout(update30,<?=max(abs($display['refresh']),30000)?>);
+<?endif;?>
+  });
+}
+function update60() {
+<?if ($var['mdNumInvalid']==0 && $var['mdResync']>0):?>
+  $.post('<?=$url?>',{cmd:'parity'},function(data) {
+    if (data) $('#parity').html(data);
+<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+    setTimeout(update60,<?=max(abs($display['refresh']),60000)?>);
+<?endif;?>
+  });
+<?endif;?>
+}
+function heatAlarm() {
+  if ($('.heat-img').length) {
+    if ($('.heat-text').is(':visible')) {$('.heat-text').hide(); $('.heat-img').show();} else {$('.heat-img').hide(); $('.heat-text').show();}
+  }
+  timer2 = setTimeout(heatAlarm,2000);
+}
+function attributes(page,disk) {
+  var tab = page=='New' ? 'tab2' : 'tab3';
+  $.cookie('one',tab,{path:'/'});
+  location.replace('/Dashboard/'+page+'?name='+disk);
+}
+function capabilities(page,disk) {
+  var tab = page=='New' ? 'tab3' : 'tab4';
+  $.cookie('one',tab,{path:'/'});
+  location.replace('/Dashboard/'+page+'?name='+disk);
+}
+function identity(page,disk) {
+  var tab = page=='New' ? 'tab4' : 'tab5';
+  $.cookie('one',tab,{path:'/'});
+  location.replace('/Dashboard/'+page+'?name='+disk);
+}
+function acknowledge(disk) {
+  $.post('/webGui/include/Acknowledge.php',{disk:disk},function(data){clearTimeout(timer30);update30();});
+}
+function dropdown(menu) {
+  var select = 'select[name="'+menu+'"]';
+  if ($.cookie(menu) == null || $.cookie(menu) >= $(select+' option').length) return;
+  $(select+' option')[$.cookie(menu)].selected = true;
+  $(select).change();
+}
+$(function() {
+  dropdown('enter_share');
+  dropdown('enter_view');
+  update3();
+  update60();
+  update30();
+<?if ($display['refresh']==0 || ($display['refresh']<0 && $var['mdResync']>0)):?>
+  $('.tabs').append("<span class='status vhshift'><input type='button' value='Refresh' onclick='refresh()'></span>");
+<?endif;?>
+  context.init({preventDoubleContext:false});
+});
+</script>

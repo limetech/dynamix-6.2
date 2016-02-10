@@ -21,7 +21,7 @@ Title="Edit User"
 <?endif;?>
 
 <?
-$file = "/boot/config/plugins/dynamix/users/$name.png";
+$user = "/boot/config/plugins/dynamix/users/$name.png";
 $void = "<img src='/webGui/images/user.png' width='48' height='48' id='image' onclick='$(&quot;#drop&quot;).click()' style='cursor:pointer' title='Click to select PNG file'>";
 $icon = "<i class='fa fa-trash top' title='Restore default image' onclick='restore()'></i>";
 ?>
@@ -47,23 +47,16 @@ function restore() {
   filename = 'reset';
 }
 
-function forceReload() {
-  window.onload = parent.location.reload(true);
-}
-
 function upload(remove) {
-  // gets invoked when the user clicks APPLY, at this point image will be saved or deleted
+  // save or delete upload when APPLY is pressed
   if (remove || filename=='reset') {
-    $.post("/webGui/include/FileUpload.php",{cmd:'delete',filename:filename,path:path,output:"<?=$name?>"});
+    $.post("/webGui/include/FileUpload.php",{cmd:'delete',path:path,filename:'<?=$name?>.png'});
   } else if (filename) {
-    $.post("/webGui/include/FileUpload.php",{cmd:'save',filename:filename,path:path,output:"<?=$name?>"});
-    window.onload = forceReload();
+    $.post("/webGui/include/FileUpload.php",{cmd:'save',path:path,filename:filename,output:'<?=$name?>.png'});
   }
 }
 
 $(function(){
-  // appending a time dummy will make the browser think/realize the image has changed
-  $('#image').attr('src', $('#image').attr('src')+'?t='+new Date().getTime());
   var dropbox = $('#dropbox');
   // attach the drag-n-drop feature to the 'dropbox' element
   dropbox.filedrop({
@@ -98,7 +91,7 @@ $(function(){
       reader.readAsDataURL(file);
     },
     uploadFinished:function(i,file,response) {
-      if (response == '200 OK') {
+      if (response == 'OK 200') {
         if (!filename || filename=='reset') $(dropbox).append("<?=$icon?>");
         $('input[name="userDesc"]').trigger('change');
         filename = file.name;
@@ -115,7 +108,7 @@ $(function(){
 });
 </script>
 
-<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame" onsubmit="upload(<?=$name=="root" ? 'false' : 'this.confirmDelete.checked'?>)">
 <input type="hidden" name="userName" value="<?=$name?>">
 User name:
 : <?=$name?>
@@ -125,8 +118,8 @@ Description:
 
 Custom image:
 : <span id="dropbox">
-<?if (file_exists($file)):?>
-  <img src="<?=$file?>" id="image" width="48" height="48" onclick="$('#drop').click()" style="cursor:pointer" title="Click to select PNG file"><?=$icon?>
+<?if (file_exists($user)):?>
+  <img src="<?=autov($user)?>" id="image" width="48" height="48" onclick="$('#drop').click()" style="cursor:pointer" title="Click to select PNG file"><?=$icon?>
 <?else:?>
   <?=$void?>
 <?endif;?>
@@ -139,7 +132,7 @@ Custom image:
 <?else:?>
 Delete<input type="checkbox" name="confirmDelete" onChange="chkDelete(this.form, this.form.cmdUserEdit)">
 <?endif;?>
-: <input type="submit" name="cmdUserEdit" value="Apply" onclick="upload(<?=$name=="root" ? 'false' : 'this.form.confirmDelete.checked'?>)"><input type="button" value="Done" onclick="done()">
+: <input type="submit" name="cmdUserEdit" value="Apply"><input type="button" value="Done" onclick="done()">
 </form>
 <br><br>
 <form markdown="1" method="POST" action="/update.htm" target="progressFrame">

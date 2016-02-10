@@ -107,7 +107,10 @@ case 'disk':
           my_insert($row4[$n],"<img src=$path/$state.png>");
       break;}
       $temp = $disk['temp'];
-      if ($temp>=$_POST['hot']) my_insert($row5[$n],"<span class='heat-img'><img src='$path/".($temp>=$_POST['max']?'max':'hot').".png'></span><span class='heat-text' style='display:none'>".my_temp($temp,$_POST['unit'])."</span>");
+      $hot  = strlen($disk['hotTemp']) ? $disk['hotTemp'] : $_POST['hot'];
+      $max  = strlen($disk['maxTemp']) ? $disk['maxTemp'] : $_POST['max'];
+      $beep = $temp>=$max && $max>0 ? 'max' : ($temp>=$hot && $hot>0 ? 'hot' : '');
+      if ($beep) my_insert($row5[$n],"<span class='heat-img'><img src='$path/$beep.png'></span><span class='heat-text' style='display:none'>".my_temp($temp,$_POST['unit'])."</span>");
       if ($disk['device'] && !strpos($state,'blink')) my_smart($row6[$n],$disk['name'],'Device');
       my_usage($row7[$n],($disk['type']!='Parity' && $disk['fsStatus']=='Mounted')?(round((1-$disk['fsFree']/$disk['fsSize'])*100).'%'):'');
     }

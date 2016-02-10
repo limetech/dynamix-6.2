@@ -31,7 +31,8 @@ function cleanUp() {
 function diagnostics() {
   $('input[value="Download"]').val('Downloading...').prop('disabled',true);
   $('#pleaseWait').show('slow');
-  $.post('/webGui/include/Download.php',{cmd:'diag',file:'<?=$zip?>'},function(zip) {
+  var anonymize = $('#anonymize').is(':checked') ? '' : '-a';
+  $.post('/webGui/include/Download.php',{cmd:'diag',file:'<?=$zip?>',anonymize:anonymize},function(zip) {
     location = zip;
     setTimeout(cleanUp,4000);
   });
@@ -65,10 +66,13 @@ and configuration files are collected:
 Clicking **Download** will start the collection process and then instruct your browser to save the zip file locally.
 
 *No personal information such as user names, passwords, or any other file contents not specified above is included
-by unRAID Server OS; however, your server name, IP address, and user share names* **will** *be included.*  
+by unRAID Server OS; however, your server name, IP address, and user share names* **will** *be included.*
+
 *Note that 3rd-party plugins **may** or may not store personal information in plugin-specific configuration files and/or output
 to the system log.*
 
-<input type="button" value="Download" onclick="diagnostics()"><input type="button" value="Done" onclick="done()">
+*Use* **Anonymize diagnostics** *when publishing the diagnostics file in the public forum. In private communication with Limetech it is recommended to uncheck this setting and capture all information unaltered.*
+
+<input type="button" value="Download" onclick="diagnostics()"><input type="button" value="Done" onclick="done()"><input type="checkbox" id="anonymize" checked>Anonymize diagnostics
 
 <br><div id="pleaseWait" style="display:none;font-weight:bold;color:red;text-align:center">Please wait, collecting diagnostic information...</div>

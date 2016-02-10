@@ -16,7 +16,6 @@ Icon="display-settings.png"
 ?>
 
 <?
-$file = "/boot/config/plugins/dynamix/banner.png";
 $void = "<img src='/webGui/images/banner.png' id='image' width='330' height='30' onclick='$(&quot;#drop&quot;).click()' style='cursor:pointer' title='Click to select PNG file'>";
 $icon = "<i class='fa fa-trash top' title='Restore default image' onclick='restore()'></i>";
 ?>
@@ -37,16 +36,12 @@ function restore() {
   $('select[name="banner"]').trigger('change');
   filename = 'reset';
 }
-function forceReload() {
-  window.onload = parent.location.reload(true);
-}
-function upload(remove) {
-  // gets invoked when the user clicks APPLY, at this point image will be saved or deleted
-  if (remove || filename=='reset') {
-    $.post("/webGui/include/FileUpload.php",{cmd:'delete',filename:filename,path:path,output:"banner"});
+function upload() {
+  // save or delete upload when APPLY is pressed
+  if (filename=='reset') {
+    $.post("/webGui/include/FileUpload.php",{cmd:'delete',path:path,filename:'banner.png'});
   } else if (filename) {
-    $.post("/webGui/include/FileUpload.php",{cmd:'save',filename:filename,path:path,output:"banner"});
-    window.onload = forceReload();
+    $.post("/webGui/include/FileUpload.php",{cmd:'save',path:path,filename:filename,output:'banner.png'});
   }
 }
 function presetTime(form) {
@@ -64,8 +59,6 @@ function presetPassive(index) {
   if (index==0) $('#passive').hide(); else $('#passive').show();
 }
 $(function() {
-  // appending a time dummy will make the browser think/realize the image has changed
-  $('#image').attr('src', $('#image').attr('src')+'?t='+new Date().getTime());
   var dropbox = $('#dropbox');
   // attach the drag-n-drop feature to the 'dropbox' element
   dropbox.filedrop({
@@ -100,7 +93,7 @@ $(function() {
       reader.readAsDataURL(file);
     },
     uploadFinished:function(i,file,response) {
-      if (response == '200 OK') {
+      if (response == 'OK 200') {
         if (!filename || filename=='reset') $(dropbox).append("<?=$icon?>");
         $('select[name="banner"]').trigger('change');
         filename = file.name;
@@ -123,7 +116,7 @@ $(function() {
 >
 > You can experiment with these settings as desired, they only affect visual properties.
 
-<form markdown="1" name="display_settings" method="POST" action="/update.php" target="progressFrame">
+<form markdown="1" name="display_settings" method="POST" action="/update.php" target="progressFrame" onsubmit="upload()">
 <input type="hidden" name="#file" value="dynamix/dynamix.cfg">
 <input type="hidden" name="#section" value="display">
 Date format:
@@ -217,10 +210,10 @@ Show banner:
 
 <div id="custom" markdown="1" style="display:none">
 Custom banner:
-<input type="hidden" name="custom" value="custom">
+<input type="hidden" name="#custom" value="">
 : <span id="dropbox">
-<?if (file_exists($file)):?>
-  <img src="<?=$file?>" width="330" height="30" onclick="$('#drop').click()" style="cursor:pointer" title="Click to select PNG file"><?=$icon?>
+<?if (file_exists($banner)):?>
+  <img src="<?=autov($banner)?>" width="330" height="30" onclick="$('#drop').click()" style="cursor:pointer" title="Click to select PNG file"><?=$icon?>
 <?else:?>
   <?=$void?>
 <?endif;?>
@@ -279,6 +272,6 @@ Page update frequency:
 >
 > A special option exists to disable screen updates while a parity operation is in progress. Use this option when degradation of the parity operation is observed.
 
-<input type="submit" name="#default" value="Default" onclick="filename='reset';upload()">
-: <input type="submit" name="#apply" value="Apply" onclick="upload()"><input type="button" value="Done" onclick="done()">
+<input type="submit" name="#default" value="Default" onclick="filename='reset'">
+: <input type="submit" name="#apply" value="Apply"><input type="button" value="Done" onclick="done()">
 </form>

@@ -15,7 +15,8 @@ Title="Users"
 ?>
 
 <?foreach ($users as $user):?>
-  <div class="user-list"><center><a class="<?=(!empty($user['desc']) ? 'info' : '')?>" href="<?=$path?>/UserEdit?name=<?=$user['name'];?>"><img src="<?=(is_file($img='/boot/config/plugins/dynamix/users/'.$user['name'].'.png') ? $img : '/webGui/images/user.png')?>" class="picture" border="0" width="48" height="48"><br><?=$user['name']?><span><?=$user['desc']?></span></a></center></div>
+<?$img = "/boot/config/plugins/dynamix/users/{$user['name']}.png"?>
+  <div class="user-list"><center><a class="<?=(!empty($user['desc']) ? 'info' : '')?>" href="<?=$path?>/UserEdit?name=<?=$user['name'];?>"><img src="<?=(file_exists($img) ? autov($img) : '/webGui/images/user.png')?>" class="picture" border="0" width="48" height="48"><br><?=$user['name']?><span><?=$user['desc']?></span></a></center></div>
 <?endforeach;?>
 <div style='clear:both'></div>
 <form method="GET" action="<?=$path?>/UserAdd">
