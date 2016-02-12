@@ -11,35 +11,51 @@
  */
 ?>
 <?
-require_once("/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php");
+require_once '/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php';
 $DockerClient = new DockerClient();
 
 $_REQUEST = array_merge($_GET, $_POST);
 
 $action = array_key_exists('action', $_REQUEST) ? $_REQUEST['action'] : '';
 $container = array_key_exists('container', $_REQUEST) ? $_REQUEST['container'] : '';
+$image = array_key_exists('image', $_REQUEST) ? $_REQUEST['image'] : '';
+
+$arrResponse = ['error' => 'Missing parameters'];
 
 switch ($action) {
 
 	case 'start':
-		if ($container) echo json_encode(array('success' => $DockerClient->startContainer($container) ));
+		if ($container) $arrResponse = ['success' => $DockerClient->startContainer($container)];
 		break;
 
 	case 'stop':
-		if ($container) echo json_encode(array('success' => $DockerClient->stopContainer($container) ));
+		if ($container) $arrResponse = ['success' => $DockerClient->stopContainer($container)];
 		break;
 
 	case 'restart':
-		if ($container) echo json_encode(array('success' => $DockerClient->restartContainer($container) ));
+		if ($container) $arrResponse = ['success' => $DockerClient->restartContainer($container)];
 		break;
 
 	case 'remove_container':
-		if ($container) echo json_encode(array('success' => $DockerClient->removeContainer($container) ));
+		if ($container) $arrResponse = ['success' => $DockerClient->removeContainer($container)];
 		break;
 
 	case 'remove_image':
-		$image = array_key_exists('image', $_REQUEST) ? $_REQUEST['image'] : '';
-		if ($image) echo json_encode([ 'success' => $DockerClient->removeImage($image) ]);
+		if ($image) $arrResponse = ['success' => $DockerClient->removeImage($image)];
+		break;
+
+	case 'remove_all':
+		if ($container && $image) {
+			// first: try to remove container
+			$ret = $DockerClient->removeContainer($container);
+			if ($ret === true) {
+				// next: try to remove image
+				$arrResponse = ['success' => $DockerClient->removeImage($image)];
+			} else {
+				// error: container failed to remove
+				$arrResponse = ['success' => $ret];
+			}
+		}
 		break;
 
 	case 'log':
@@ -53,11 +69,22 @@ switch ($action) {
 			} else {
 				$tail = null;
 			}
-			$echo = function($s){$s=addslashes(substr(trim($s),8));echo "<script>addLog('".$s."');</script>";@flush();};
+			$echo = function($s) {
+				$s = addslashes(substr(trim($s), 8));
+				echo "<script>addLog('".$s."');</script>";
+				@flush();
+			};
 			$DockerClient->getContainerLog($container, $echo, $tail, $since);
-			echo "<script>setTimeout(\"loadLog('".addslashes($container)."','".time()."')\",2000);</script>";
+			echo '<script>setTimeout("loadLog(\''.addslashes($container).'\',\''.time().'\')", 2000);</script>';
 			@flush();
+			exit;
 		}
 		break;
 
+	default:
+		$arrResponse = ['error' => 'Unknown action \'' . $action . '\''];
+		break;
 }
+
+header('Content-Type: application/json');
+die(json_encode($arrResponse));

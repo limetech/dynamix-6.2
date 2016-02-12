@@ -12,10 +12,10 @@
  */
 ?>
 <?
-exec("pgrep docker",$pid);
-if (count($pid)==1) exit(0);
+exec("pgrep docker", $pid);
+if (count($pid) == 1) exit(0);
 
-require_once("/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php");
+require_once '/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php';
 $DockerClient = new DockerClient();
 $DockerTemplates = new DockerTemplates();
 
@@ -32,15 +32,14 @@ if (!isset($check)) {
   $DockerTemplates->getAllInfo(true);
   echo " Done.";
 } else {
-  require_once("/usr/local/emhttp/webGui/include/Wrappers.php");
+  require_once '/usr/local/emhttp/webGui/include/Wrappers.php';
   $notify = "/usr/local/emhttp/webGui/scripts/notify";
   $unraid = parse_plugin_cfg("dynamix",true);
   $server = strtoupper($var['NAME']);
   $output = $unraid['notify']['docker_notify'];
 
-  $list = $DockerClient->getDockerContainers();
   $info = $DockerTemplates->getAllInfo(true);
-  foreach ($list as $ct) {
+  foreach ($DockerClient->getDockerContainers() as $ct) {
     $name = $ct['Name'];
     $image = $ct['Image'];
     if ($info[$name]['updated'] == "false") {

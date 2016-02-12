@@ -12,7 +12,7 @@
 ?>
 <?
 ignore_user_abort(true);
-require_once("/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php");
+require_once '/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php';
 $DockerClient = new DockerClient();
 $DockerUpdate = new DockerUpdate();
 $DockerTemplates = new DockerTemplates();
@@ -24,73 +24,127 @@ $DockerTemplates = new DockerTemplates();
 #   ██║     ╚██████╔╝██║ ╚████║╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║███████║
 #   ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝
 
-$echo = function($m){echo "<pre>".print_r($m,true)."</pre>";};
+$echo = function($m){ echo "<pre>".print_r($m, true)."</pre>"; };
 
-function ContainerExist($container){
+function stopContainer($name) {
   global $DockerClient;
-  $all_containers = $DockerClient->getDockerContainers();
-  if ( ! $all_containers) { return FALSE; }
-  foreach ($all_containers as $ct) {
-    if ($ct['Name'] == $container){
-      return True;
-    }
-  }
-  return False;
+  $waitID = mt_rand();
+
+  echo "<p class=\"logLine\" id=\"logBody\"></p>";
+  echo "<script>addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Stopping container: ".addslashes($name)."</legend><p class=\"logLine\" id=\"logBody\"></p><span id=\"wait{$waitID}\">Please wait </span></fieldset>');show_Wait($waitID);</script>\n";
+  @flush();
+
+  $retval = $DockerClient->stopContainer($name);
+  $out = ($retval === true) ? "Successfully stopped container '$name'" : "Error: ".$retval;
+
+  echo "<script>stop_Wait($waitID);addLog('<b>".addslashes($out)."</b>');</script>\n";
+  @flush();
 }
 
-function ImageExist($image){
+function removeContainer($name) {
   global $DockerClient;
-  $all_images = $DockerClient->getDockerImages();
-  if ( ! $all_images) { return FALSE; }
-  foreach ($all_images as $img) {
-    if ( ! is_bool(strpos($img['Tags'][0], $image)) ){
-      return True;
-    }
-  }
-  return False;
+  $waitID = mt_rand();
+
+  echo "<p class=\"logLine\" id=\"logBody\"></p>";
+  echo "<script>addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Removing container: ".addslashes($name)."</legend><p class=\"logLine\" id=\"logBody\"></p><span id=\"wait{$waitID}\">Please wait </span></fieldset>');show_Wait($waitID);</script>\n";
+  @flush();
+
+  $retval = $DockerClient->removeContainer($name);
+  $out = ($retval === true) ? "Successfully removed container '$name'" : "Error: ".$retval;
+
+  echo "<script>stop_Wait($waitID);addLog('<b>".addslashes($out)."</b>');</script>\n";
+  @flush();
 }
 
-function trimLine($text){
-  return preg_replace("/([\n^])[\s]+/", '$1', $text);
+function removeImage($image) {
+  global $DockerClient;
+  $waitID = mt_rand();
+
+  echo "<p class=\"logLine\" id=\"logBody\"></p>";
+  echo "<script>addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Removing orphan image: ".addslashes($image)."</legend><p class=\"logLine\" id=\"logBody\"></p><span id=\"wait{$waitID}\">Please wait </span></fieldset>');show_Wait($waitID);</script>\n";
+  @flush();
+
+  $retval = $DockerClient->removeImage($image);
+  $out = ($retval === true) ? "Successfully removed image '$image'" : "Error: ".$retval;
+
+  echo "<script>stop_Wait($waitID);addLog('<b>".addslashes($out)."</b>');</script>\n";
+  @flush();
 }
 
 function pullImage($name, $image) {
   global $DockerClient, $DockerTemplates, $DockerUpdate;
-  if (! preg_match("/:[\w]*$/i", $image)) $image .= ":latest";
+  $waitID = mt_rand();
+  if (!preg_match("/:[\w]*$/i", $image)) $image .= ":latest";
 
-  echo "<script>addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Pulling image: ${image}</legend><p class=\"logLine\" id=\"logBody\"></p></fieldset>');</script>\n";
+  echo "<p class=\"logLine\" id=\"logBody\"></p>";
+  echo "<script>addLog('<fieldset style=\"margin-top:1px;\" class=\"CMD\"><legend>Pulling image: ".addslashes($image)."</legend><p class=\"logLine\" id=\"logBody\"></p><span id=\"wait{$waitID}\">Please wait </span></fieldset>');show_Wait($waitID);</script>\n";
   @flush();
 
-  $alltotals = array();
+  $alltotals = [];
+  $laststatus = [];
 
   // Force information reload
   $DockerTemplates->removeInfo($name, $image);
 
-  $DockerClient->pullImage($image, function ($line) use (&$alltotals, $DockerUpdate, $image) {
-    $cnt = json_decode( $line, TRUE );
-    $id = ( isset( $cnt['id'] )) ? $cnt['id'] : "";
-    $status = ( isset( $cnt['status'] )) ? $cnt['status'] : "";
-    if (strlen(trim($status)) && strlen(trim($id))) {
-      if (!empty($cnt['progressDetail']) && !empty($cnt['progressDetail']['total'])) {
-        $alltotals[$cnt['id']] = $cnt['progressDetail']['total'];
-      }
-      echo "<script>addToID('${id}','${status}');</script>\n";
+  $DockerClient->pullImage($image, function ($line) use (&$alltotals, &$laststatus, &$waitID, $image, $DockerClient, $DockerUpdate) {
+    $cnt = json_decode($line, true);
+    $id = (isset($cnt['id'])) ? trim($cnt['id']) : '';
+    $status = (isset($cnt['status'])) ? trim($cnt['status']) : '';
+
+    if ($waitID !== false) {
+      echo "<script>stop_Wait($waitID);</script>\n";
+      @flush();
+      $waitID = false;
     }
-    if ($status == "Downloading") {
-      $total = $cnt['progressDetail']['total'];
-      $current = $cnt['progressDetail']['current'];
-      $alltotals[$cnt['id']] = $cnt['progressDetail']['current'];
-      if ($total > 0) {
-        $percentage = round(($current/$total) * 100);
-        echo "<script>progress('${id}',' ". $percentage ."% of " . sizeToHuman($total) . "');</script>\n";
-      } else {
-        // Docker must not know the total download size (http-chunked or something?)
-        //  just show the current download progress without the percentage
-        echo "<script>progress('${id}',' " . sizeToHuman($current) . "');</script>\n";
+
+    if (empty($status)) return;
+
+    if (!empty($id)) {
+      if (!empty($cnt['progressDetail']) && !empty($cnt['progressDetail']['total'])) {
+        $alltotals[$id] = $cnt['progressDetail']['total'];
       }
-    } else if (!empty($status) && empty($id)) {
+      if (empty($laststatus[$id])) {
+        $laststatus[$id] = '';
+      }
+
+      switch ($status) {
+
+        case 'Waiting':
+          // Omit
+          break;
+
+        case 'Downloading':
+          if ($laststatus[$id] != $status) {
+            echo "<script>addToID('${id}','".addslashes($status)."');</script>\n";
+          }
+          $total = $cnt['progressDetail']['total'];
+          $current = $cnt['progressDetail']['current'];
+          if ($total > 0) {
+            $percentage = round(($current / $total) * 100);
+            echo "<script>progress('${id}',' ".$percentage."% of ".$DockerClient->formatBytes($total)."');</script>\n";
+          } else {
+            // Docker must not know the total download size (http-chunked or something?)
+            //  just show the current download progress without the percentage
+            $alltotals[$id] = $current;
+            echo "<script>progress('${id}',' ".$DockerClient->formatBytes($current)."');</script>\n";
+          }
+          break;
+
+        default:
+          if ($laststatus[$id] == "Downloading") {
+            echo "<script>progress('${id}',' 100% of ".$DockerClient->formatBytes($alltotals[$id])."');</script>\n";
+          }
+          if ($laststatus[$id] != $status) {
+            echo "<script>addToID('${id}','".addslashes($status)."');</script>\n";
+          }
+          break;
+      }
+
+      $laststatus[$id] = $status;
+
+    } else {
       if (strpos($status, 'Status: ') === 0) {
-        echo "<script>addLog('${status}');</script>\n";
+        echo "<script>addLog('".addslashes($status)."');</script>\n";
       }
       if (strpos($status, 'Digest: ') === 0) {
         $DockerUpdate->setUpdateStatus($image, substr($status, 8));
@@ -99,18 +153,8 @@ function pullImage($name, $image) {
     @flush();
   });
 
-  echo "<script>addLog('<br><b>TOTAL DATA PULLED:</b> " . sizeToHuman(array_sum($alltotals)) . "<span class=\"progress\"></span>');</script>\n";
+  echo "<script>addLog('<br><b>TOTAL DATA PULLED:</b> " . $DockerClient->formatBytes(array_sum($alltotals)) . "');</script>\n";
   @flush();
-}
-
-function sizeToHuman($size) {
-  $units = ['B','KB','MB','GB'];
-  $unitsIndex = 0;
-  while ($size > 1024 && (($unitsIndex+1) < count($units))) {
-    $size /= 1024;
-    $unitsIndex++;
-  }
-  return ceil($size) . " " . $units[$unitsIndex];
 }
 
 function xml_encode($string) {
@@ -120,10 +164,10 @@ function xml_decode($string) {
   return strval(html_entity_decode($string, ENT_XML1, 'UTF-8'));
 }
 
-function postToXML($post, $setOwnership = FALSE){
+function postToXML($post, $setOwnership = false) {
   $dom = new domDocument;
-  $dom->appendChild($dom->createElement( "Container" ));
-  $xml = simplexml_import_dom( $dom );
+  $dom->appendChild($dom->createElement("Container"));
+  $xml = simplexml_import_dom($dom);
   $xml["version"]          = 2;
   $xml->Name               = xml_encode($post['contName']);
   $xml->Repository         = xml_encode($post['contRepository']);
@@ -144,7 +188,6 @@ function postToXML($post, $setOwnership = FALSE){
   $xml->addChild("Data");
   $xml->addChild("Environment");
 
-
   for ($i = 0; $i < count($post["confName"]); $i++) {
     $Type                  = $post['confType'][$i];
     $config                = $xml->addChild('Config');
@@ -159,17 +202,17 @@ function postToXML($post, $setOwnership = FALSE){
     $config['Required']    = xml_encode($post['confRequired'][$i]);
     $config['Mask']        = xml_encode($post['confMask'][$i]);
     # V1 compatibility
-    if ($Type == "Port"){
+    if ($Type == "Port") {
       $port                = $xml->Networking->Publish->addChild("Port");
       $port->HostPort      = $post['confValue'][$i];
       $port->ContainerPort = $post['confTarget'][$i];
       $port->Protocol      = $post['confMode'][$i];
-    } else if ($Type == "Path"){
+    } else if ($Type == "Path") {
       $path               = $xml->Data->addChild("Volume");
       $path->HostDir      = $post['confValue'][$i];
       $path->ContainerDir = $post['confTarget'][$i];
       $path->Mode         = $post['confMode'][$i];
-    } else if ($Type == "Variable"){
+    } else if ($Type == "Variable") {
       $variable        = $xml->Environment->addChild("Variable");
       $variable->Value = $post['confValue'][$i];
       $variable->Name  = $post['confTarget'][$i];
@@ -185,9 +228,9 @@ function postToXML($post, $setOwnership = FALSE){
 
 function xmlToVar($xml) {
   global $var;
-  $out           = array();
   $xml           = (is_file($xml)) ? simplexml_load_file($xml) : simplexml_load_string($xml);
 
+  $out                = [];
   $out['Name']        = xml_decode($xml->Name);
   $out['Repository']  = xml_decode($xml->Repository);
   $out['Registry']    = xml_decode($xml->Registry);
@@ -200,19 +243,19 @@ function xmlToVar($xml) {
   $out['Icon']        = xml_decode($xml->Icon);
   $out['ExtraParams'] = xml_decode($xml->ExtraParams);
 
-  $out['Config'] = array();
+  $out['Config'] = [];
   if (isset($xml->Config)) {
     foreach ($xml->Config as $config) {
-      $c = array();
-      $c['Value'] = strlen(xml_decode($config)) ? xml_decode($config) : xml_decode($config['Default']) ;
+      $c = [];
+      $c['Value'] = strlen(xml_decode($config)) ? xml_decode($config) : xml_decode($config['Default']);
       foreach ($config->attributes() as $key => $value) $c[$key] = xml_decode(xml_decode($value));
       $out['Config'][] = $c;
     }
   }
 
   # V1 compatibility
-  if ($xml["version"] != "2"){
-    if (isset($xml->Networking->Mode)){
+  if ($xml["version"] != "2") {
+    if (isset($xml->Networking->Mode)) {
       $out['Network'] = xml_decode($xml->Networking->Mode);
     }
     if (isset($xml->Description)) {
@@ -224,17 +267,18 @@ function xmlToVar($xml) {
       foreach ($xml->Networking->Publish->Port as $port) {
         if (empty(xml_decode($port->ContainerPort))) continue;
         $portNum += 1;
-        $out['Config'][] = array('Name'       => "Port ${portNum}",
-                                 'Target'      => xml_decode($port->ContainerPort),
-                                 'Default'     => xml_decode($port->HostPort),
-                                 'Value'       => xml_decode($port->HostPort),
-                                 'Mode'        => xml_decode($port->Protocol),
-                                 'Description' => '',
-                                 'Type'        => 'Port',
-                                 'Display'     => 'always',
-                                 'Required'    => 'true',
-                                 'Mask'        => 'false',
-                                 );
+        $out['Config'][] = [
+          'Name'        => "Port ${portNum}",
+          'Target'      => xml_decode($port->ContainerPort),
+          'Default'     => xml_decode($port->HostPort),
+          'Value'       => xml_decode($port->HostPort),
+          'Mode'        => xml_decode($port->Protocol),
+          'Description' => '',
+          'Type'        => 'Port',
+          'Display'     => 'always',
+          'Required'    => 'true',
+          'Mask'        => 'false'
+        ];
       }
     }
 
@@ -243,17 +287,18 @@ function xmlToVar($xml) {
       foreach ($xml->Data->Volume as $vol) {
         if (empty(xml_decode($vol->ContainerDir))) continue;
         $volNum += 1;
-        $out['Config'][] = array('Name'       => "Path ${volNum}",
-                                 'Target'      => xml_decode($vol->ContainerDir),
-                                 'Default'     => xml_decode($vol->HostDir),
-                                 'Value'       => xml_decode($vol->HostDir),
-                                 'Mode'        => xml_decode($vol->Mode),
-                                 'Description' => '',
-                                 'Type'        => 'Path',
-                                 'Display'     => 'always',
-                                 'Required'    => 'true',
-                                 'Mask'        => 'false',
-                                 );
+        $out['Config'][] = [
+          'Name'        => "Path ${volNum}",
+          'Target'      => xml_decode($vol->ContainerDir),
+          'Default'     => xml_decode($vol->HostDir),
+          'Value'       => xml_decode($vol->HostDir),
+          'Mode'        => xml_decode($vol->Mode),
+          'Description' => '',
+          'Type'        => 'Path',
+          'Display'     => 'always',
+          'Required'    => 'true',
+          'Mask'        => 'false'
+        ];
       }
     }
 
@@ -262,17 +307,18 @@ function xmlToVar($xml) {
       foreach ($xml->Environment->Variable as $var) {
         if (empty(xml_decode($var->Name))) continue;
         $varNum += 1;
-        $out['Config'][] = array('Name'       => "Variable ${varNum}",
-                                 'Target'      => xml_decode($var->Name),
-                                 'Default'     => xml_decode($var->Value),
-                                 'Value'       => xml_decode($var->Value),
-                                 'Mode'        => '',
-                                 'Description' => '',
-                                 'Type'        => 'Variable',
-                                 'Display'     => 'always',
-                                 'Required'    => 'false',
-                                 'Mask'        => 'false',
-                                 );
+        $out['Config'][] = [
+          'Name'        => "Variable ${varNum}",
+          'Target'      => xml_decode($var->Name),
+          'Default'     => xml_decode($var->Value),
+          'Value'       => xml_decode($var->Value),
+          'Mode'        => '',
+          'Description' => '',
+          'Type'        => 'Variable',
+          'Display'     => 'always',
+          'Required'    => 'false',
+          'Mask'        => 'false'
+        ];
       }
     }
   }
@@ -283,13 +329,13 @@ function xmlToVar($xml) {
 function xmlToCommand($xml) {
   global $var;
   $xml           = xmlToVar($xml);
-  $cmdName       = (strlen($xml['Name'])) ? '--name="' . $xml['Name'] . '"' : "";
-  $cmdPrivileged = (strtolower($xml['Privileged']) == 'true') ?  '--privileged="true"' : "";
+  $cmdName       = (strlen($xml['Name'])) ? '--name="'.$xml['Name'].'"' : "";
+  $cmdPrivileged = (strtolower($xml['Privileged']) == 'true') ? '--privileged="true"' : "";
   $cmdNetwork    = '--net="'.strtolower($xml['Network']).'"';
-  $Volumes       = array('');
-  $Ports         = array('');
-  $Variables     = array('');
-  $Devices       = array('');
+  $Volumes       = [''];
+  $Ports         = [''];
+  $Variables     = [''];
+  $Devices       = [''];
   # Bind Time
   $Variables[]   = 'TZ="' . $var['timeZone'] . '"';
   # Add HOST_OS variable
@@ -300,9 +346,9 @@ function xmlToCommand($xml) {
     $hostConfig      = strlen($config['Value']) ? $config['Value'] : $config['Default'];
     $containerConfig = strval($config['Target']);
     $Mode            = strval($config['Mode']);
-    if (! strlen($containerConfig)) continue;
+    if (!strlen($containerConfig)) continue;
     if ($confType == "path") {
-      $Volumes[] = sprintf( '"%s":"%s":%s', $hostConfig, $containerConfig, $Mode);
+      $Volumes[] = sprintf('"%s":"%s":%s', $hostConfig, $containerConfig, $Mode);
     } elseif ($confType == 'port') {
       $Ports[] = sprintf("%s:%s/%s", $hostConfig, $containerConfig, $Mode);
     } elseif ($confType == "variable") {
@@ -311,7 +357,7 @@ function xmlToCommand($xml) {
       $Devices[] = '"'.$containerConfig.'"';
     }
   }
-  $cmd = sprintf('/plugins/dynamix.docker.manager/scripts/docker run -d %s %s %s %s %s %s %s %s %s',
+  $cmd = sprintf('/plugins/dynamix.docker.manager/scripts/docker create %s %s %s %s %s %s %s %s %s',
                  $cmdName,
                  $cmdNetwork,
                  $cmdPrivileged,
@@ -323,20 +369,20 @@ function xmlToCommand($xml) {
                  $xml['Repository']);
 
   $cmd = preg_replace('/\s+/', ' ', $cmd);
-  return array($cmd, $xml['Name'], $xml['Repository']);
+  return [$cmd, $xml['Name'], $xml['Repository']];
 }
 
-function getXmlVal($xml, $element, $attr=null, $pos=0) {
+function getXmlVal($xml, $element, $attr = null, $pos = 0) {
   $xml = (is_file($xml)) ? simplexml_load_file($xml) : simplexml_load_string($xml);
   $element = $xml->xpath("//$element")[$pos];
   return isset($element) ? (isset($element[$attr]) ? strval($element[$attr]) : strval($element)) : "";
 }
 
-function setXmlVal(&$xml, $value, $el, $attr=null, $pos=0) {
+function setXmlVal(&$xml, $value, $el, $attr = null, $pos = 0) {
   global $echo;
   $xml = (is_file($xml)) ? simplexml_load_file($xml) : simplexml_load_string($xml);
   $element = $xml->xpath("//$el")[$pos];
-  if (! isset($element)) $element = $xml->addChild($el);
+  if (!isset($element)) $element = $xml->addChild($el);
   if ($attr) {
     $element[$attr] = $value;
   } else {
@@ -363,7 +409,7 @@ function setXmlVal(&$xml, $value, $el, $attr=null, $pos=0) {
 
 if (isset($_POST['contName'])) {
 
-  $postXML = postToXML($_POST, TRUE);
+  $postXML = postToXML($_POST, true);
 
   // Get the command line
   list($cmd, $Name, $Repository) = xmlToCommand($postXML);
@@ -382,7 +428,7 @@ if (isset($_POST['contName'])) {
   @flush();
 
   // Will only pull image if it's absent
-  if (! ImageExist($Repository)) {
+  if (!$DockerClient->doesImageExist($Repository)) {
     // Pull image
     pullImage($Name, $Repository);
   }
@@ -397,27 +443,40 @@ if (isset($_POST['contName'])) {
     file_put_contents($filename, $postXML);
   }
 
+  $startContainer = true;
+
   // Remove existing container
-  if (ContainerExist($Name)) {
+  if ($DockerClient->doesContainerExist($Name)) {
     // attempt graceful stop of container first
-    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $Name";
-    include($dockerManPaths['plugin'] . "/include/Exec.php");
+    $oldContainerDetails = $DockerClient->getContainerDetails($Name);
+    if (!empty($oldContainerDetails) && !empty($oldContainerDetails['State']) && !empty($oldContainerDetails['State']['Running'])) {
+      // attempt graceful stop of container first
+      stopContainer($Name);
+    }
 
     // force kill container if still running after 10 seconds
-    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $Name";
-    include($dockerManPaths['plugin'] . "/include/Exec.php");
+    removeContainer($Name);
   }
 
   // Remove old container if renamed
-  $existing = isset($_POST['existingContainer']) ? $_POST['existingContainer'] : FALSE;
-  if ($existing && ContainerExist($existing)) {
-    // attempt graceful stop of container first
-    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $existing";
-    include($dockerManPaths['plugin'] . "/include/Exec.php");
+  $existing = isset($_POST['existingContainer']) ? $_POST['existingContainer'] : false;
+  if ($existing && $DockerClient->doesContainerExist($existing)) {
+    // determine if the container is still running
+    $oldContainerDetails = $DockerClient->getContainerDetails($existing);
+    if (!empty($oldContainerDetails) && !empty($oldContainerDetails['State']) && !empty($oldContainerDetails['State']['Running'])) {
+      // attempt graceful stop of container first
+      stopContainer($existing);
+    } else {
+      // old container was stopped already, ensure newly created container doesn't start up automatically
+      $startContainer = false;
+    }
 
     // force kill container if still running after 10 seconds
-    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $existing";
-    include($dockerManPaths['plugin'] . "/include/Exec.php");
+    removeContainer($existing);
+  }
+
+  if ($startContainer) {
+    $cmd = str_replace('/plugins/dynamix.docker.manager/scripts/docker create ', '/plugins/dynamix.docker.manager/scripts/docker run -d ', $cmd);
   }
 
   // Injecting the command in $_GET variable and executing.
@@ -436,10 +495,8 @@ if ($_GET['updateContainer']){
   @flush();
 
   foreach ($_GET['ct'] as $value) {
-    $Name = urldecode($value);
-    $tmpl = $DockerTemplates->getUserTemplate($Name);
-
-    if (! $tmpl){
+    $tmpl = $DockerTemplates->getUserTemplate(urldecode($value));
+    if (!$tmpl) {
       echo "<script>addLog('<p>Configuration not found. Was this container created using this plugin?</p>');</script>";
       @flush();
       continue;
@@ -449,29 +506,34 @@ if ($_GET['updateContainer']){
     list($cmd, $Name, $Repository) = xmlToCommand($tmpl);
     $Registry = getXmlVal($xml, "Registry");
 
-    echo "<script>addLog('<p>Preparing to update: " . $Repository . "</p>');</script>";
-    @flush();
-
-    $oldContainerID = $DockerClient->getImageID($Repository);
+    $oldImageID = $DockerClient->getImageID($Repository);
 
     // Pull image
     pullImage($Name, $Repository);
 
-    // attempt graceful stop of container first
-    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker stop $Name";
-    include($dockerManPaths['plugin'] . "/include/Exec.php");
+    $oldContainerDetails = $DockerClient->getContainerDetails($Name);
+
+    // determine if the container is still running
+    if (!empty($oldContainerDetails) && !empty($oldContainerDetails['State']) && !empty($oldContainerDetails['State']['Running'])) {
+      // since container was already running, put it back it to a running state after update
+      $cmd = str_replace('/plugins/dynamix.docker.manager/scripts/docker create ', '/plugins/dynamix.docker.manager/scripts/docker run -d ', $cmd);
+
+      // attempt graceful stop of container first
+      stopContainer($Name);
+    }
 
     // force kill container if still running after 10 seconds
-    $_GET['cmd'] = "/plugins/dynamix.docker.manager/scripts/docker rm -f $Name";
-    include($dockerManPaths['plugin'] . "/include/Exec.php");
+    removeContainer($Name);
 
     $_GET['cmd'] = $cmd;
     include($dockerManPaths['plugin'] . "/include/Exec.php");
 
-    $newContainerID = $DockerClient->getImageID($Repository);
-    if ( $oldContainerID and $oldContainerID != $newContainerID){
-      $_GET['cmd'] = sprintf("/plugins/dynamix.docker.manager/scripts/docker rmi %s", $oldContainerID);
-      include($dockerManPaths['plugin'] . "/include/Exec.php");
+    $DockerClient->flushCaches();
+
+    $newImageID = $DockerClient->getImageID($Repository);
+    if ($oldImageID && $oldImageID != $newImageID) {
+      // remove old orphan image since it's no longer used by this container
+      removeImage($oldImageID);
     }
   }
 
@@ -483,7 +545,7 @@ if ($_GET['updateContainer']){
 ##   REMOVE TEMPLATE
 ##
 
-if($_GET['rmTemplate']){
+if ($_GET['rmTemplate']) {
   unlink($_GET['rmTemplate']);
 }
 
@@ -493,7 +555,7 @@ if($_GET['rmTemplate']){
 
 if ($_GET['xmlTemplate']) {
   list($xmlType, $xmlTemplate) = split(':', urldecode($_GET['xmlTemplate']));
-  if(is_file($xmlTemplate)){
+  if (is_file($xmlTemplate)) {
     $xml = xmlToVar($xmlTemplate);
     $templateName = $xml["Name"];
     if ($xmlType == "default") {
@@ -519,21 +581,22 @@ if ($_GET['xmlTemplate']) {
           }
         }
         if (!$boolFound) {
-          $xml['Config'][] = array('Name'        => 'unRAID Share Path',
-                                   'Target'      => '/unraid',
-                                   'Default'     => realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]),
-                                   'Value'       => realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]),
-                                   'Mode'        => 'rw',
-                                   'Description' => '',
-                                   'Type'        => 'Path',
-                                   'Display'     => 'hidden',
-                                   'Required'    => 'false',
-                                   'Mask'        => 'false',
-                                  );
+          $xml['Config'][] = [
+            'Name'        => 'unRAID Share Path',
+            'Target'      => '/unraid',
+            'Default'     => realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]),
+            'Value'       => realpath($dockercfg["DOCKER_APP_UNRAID_PATH"]),
+            'Mode'        => 'rw',
+            'Description' => '',
+            'Type'        => 'Path',
+            'Display'     => 'hidden',
+            'Required'    => 'false',
+            'Mask'        => 'false'
+          ];
         }
       }
     }
-    $xml['Description'] = str_replace(array('[', ']'), array('<', '>'), $xml['Overview']);
+    $xml['Description'] = str_replace(['[', ']'], ['<', '>'], $xml['Overview']);
     echo "<script>var Settings=".json_encode($xml).";</script>";
   }
 }
@@ -542,7 +605,7 @@ $showAdditionalInfo = '';
 ?>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.ui.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
-<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css" >
+<link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
 <style>
   body{-webkit-overflow-scrolling:touch;}
   .fileTree{width:240px;height:150px;overflow:scroll;position:absolute;z-index:100;display:none;margin-bottom: 100px;}
@@ -629,34 +692,18 @@ $showAdditionalInfo = '';
     $('#tab'+this_tab).bind({click:function(){$('#'+elementId).show();}});
     for (var x=1; x<=last; x++) if(x != this_tab) $('#tab'+x).bind({click:function(){$('#'+elementId).hide();}});
       <?endif;?>
-    // $('.advanced-switch').switchButton({ labels_placement: "left", on_label: 'Advanced', off_label: 'Basic', checked: $.cookie('docker-advanced-view') != 'false'});
     $('.advanced-switch').switchButton({ labels_placement: "left", on_label: 'Advanced View', off_label: 'Basic View'});
     $('.advanced-switch').change(function () {
       var status = $(this).is(':checked');
       toggleRows('advanced,.hidden', status, 'basic');
-      //$('.basic').toggle(!status);
-      //$('.advanced').toggle(status);
-      //$('.hidden').toggle(status);
-      // $.cookie('docker-advanced-view', status ? 'true' : 'false', { expires: 3650 });
     });
-
-    /*
-    $("#app_config_tab").html("<div class='switch-wrapper'><input type='checkbox' class='hidden-switch'></div>");
-    // $('.hidden-switch').switchButton({ labels_placement: "left", on_label: 'Show Hidden', off_label: 'Show Hidden', checked: $.cookie('docker-hidden-view') != 'false'});
-    $('.hidden-switch').switchButton({ labels_placement: "left", on_label: 'Show Hidden', off_label: 'Show Hidden'});
-    $('.hidden-switch').change(function () {
-      status = $(this).is(':checked');
-      $('.hidden').toggle(status);
-      // $.cookie('docker-hidden-view', status ? 'true' : 'false', { expires: 3650 });
-    });
-    */
   });
 
   var confNum = 0;
 
-  if ( !Array.prototype.forEach ) {
+  if (!Array.prototype.forEach) {
     Array.prototype.forEach = function(fn, scope) {
-      for(var i = 0, len = this.length; i < len; ++i) {
+      for (var i = 0, len = this.length; i < len; ++i) {
         fn.call(scope, this[i], i, this);
       }
     };
@@ -721,7 +768,7 @@ $showAdditionalInfo = '';
     }
   }
 
-  function addConfigPopup(){
+  function addConfigPopup() {
     var title = 'Add Configuration';
     var popup = $( "#dialogAddConfig" );
 
@@ -745,7 +792,7 @@ $showAdditionalInfo = '';
       hide : {effect: 'fade' , duration: 250},
       buttons: {
         "Add": function() {
-          $( this ).dialog( "close" );
+          $(this).dialog("close");
           confNum += 1;
           var Opts = Object;
           var Element = this;
@@ -766,7 +813,7 @@ $showAdditionalInfo = '';
           reloadTriggers();
         },
         Cancel: function() {
-          $( this ).dialog( "close" );
+          $(this).dialog("close");
         }
       }
     });
@@ -776,7 +823,7 @@ $showAdditionalInfo = '';
     $(".ui-button-text").css('padding','0px 5px');
   }
 
-  function editConfigPopup(num){
+  function editConfigPopup(num) {
     var title = 'Edit Configuration';
     var popup = $("#dialogAddConfig");
 
@@ -784,10 +831,10 @@ $showAdditionalInfo = '';
     popup.html($("#templatePopupConfig").html());
 
     // Load existing config info
-    var config = $( "#ConfigNum" + num );
+    var config = $("#ConfigNum" + num);
     config.find("input").each(function(){
-      var name = $(this).attr( "name" ).replace("conf", "").replace("[]", "");
-      popup.find("*[name='"+name+"']").val( $(this).val() );
+      var name = $(this).attr("name").replace("conf", "").replace("[]", "");
+      popup.find("*[name='"+name+"']").val($(this).val());
     });
 
     // Hide passwords if needed
@@ -814,7 +861,7 @@ $showAdditionalInfo = '';
       hide : {effect: 'fade' , duration: 250},
       buttons: {
         "Save": function() {
-          $( this ).dialog( "close" );
+          $(this).dialog("close");
           var Opts = Object;
           var Element = this;
           ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
@@ -835,7 +882,7 @@ $showAdditionalInfo = '';
           reloadTriggers();
         },
         Cancel: function() {
-          $( this ).dialog( "close" );
+          $(this).dialog("close");
         }
       }
     });
@@ -868,20 +915,20 @@ $showAdditionalInfo = '';
     mode.html('');
 
     var index = $(el)[0].selectedIndex;
-    if(index == 0){
+    if (index == 0) {
       // Path
       mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='rw'>Read/Write</option><option value='ro'>Read Only</option></select></dd>");
-      value.bind("click",function(){openFileBrowser(this,$(this).val(),'sh',true,false);});
-    } else if(index == 1){
+      value.bind("click", function(){openFileBrowser(this,$(this).val(), 'sh', true, false);});
+    } else if (index == 1) {
       // Port
       mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='tcp'>TCP</option><option value='udp'>UDP</option></select></dd>");
       value.addClass("numbersOnly");
       target.addClass("numbersOnly");
-    } else if(index == 3){
+    } else if (index == 3) {
       // Device
       targetDiv.css('display', 'none');
       defaultDiv.css('display', 'none');
-      value.bind("click",function(){openFileBrowser(this,$(this).val(),'',true,true);});
+      value.bind("click", function(){openFileBrowser(this,$(this).val(), '', true, true);});
     }
     reloadTriggers();
   }
@@ -889,7 +936,7 @@ $showAdditionalInfo = '';
   function loadTemplate(el) {
     var template = $(el).val();
     if (template.length) {
-      $('#formTemplate').find( "input[name='xmlTemplate']" ).val(template);
+      $('#formTemplate').find("input[name='xmlTemplate']").val(template);
       $('#formTemplate').submit();
     }
   }
@@ -902,11 +949,11 @@ $showAdditionalInfo = '';
   function openFileBrowser(el, root, filter, on_folders, on_files, close_on_select) {
     if (on_folders === undefined) on_folders = true;
     if (on_files   === undefined) on_files = true;
-    if (! filter && ! on_files)   filter = 'HIDE_FILES_FILTER';
-    if (! root.trim() ) root = "/mnt/user/";
+    if (!filter && !on_files) filter = 'HIDE_FILES_FILTER';
+    if (!root.trim()) root = "/mnt/user/";
     p = $(el);
     // Skip is fileTree is already open
-    if ( p.next().hasClass('fileTree') ){return null;}
+    if (p.next().hasClass('fileTree')) return null;
     // create a random id
     var r = Math.floor((Math.random()*1000)+1);
     // Add a new span and load fileTree
@@ -915,7 +962,7 @@ $showAdditionalInfo = '';
     ft.fileTree({
       root: root,
       filter: filter,
-      allowBrowsing : true
+      allowBrowsing: true
     },
     function(file){if(on_files){p.val(file);if(close_on_select){ft.slideUp('fast',function (){ft.remove();});}}},
     function(folder){if(on_folders){p.val(folder);if(close_on_select){$(ft).slideUp('fast',function (){$(ft).remove();});}}}
@@ -925,7 +972,7 @@ $showAdditionalInfo = '';
     // close if click elsewhere
     $(document).mouseup(function(e){if(!ft.is(e.target) && ft.has(e.target).length === 0){ft.slideUp('fast',function (){$(ft).remove();});}});
     // close if parent changed
-    p.bind("keydown",function(){ft.slideUp('fast',function (){$(ft).remove();});});
+    p.bind("keydown", function(){ft.slideUp('fast', function (){$(ft).remove();});});
     // Open fileTree
     ft.slideDown('fast');
   }
@@ -948,8 +995,8 @@ $showAdditionalInfo = '';
 <div id="canvas" style="z-index:1;margin-top:-21px;">
   <form method="POST" autocomplete="off">
     <table>
-      <? if($xmlType == "edit"):
-      if (ContainerExist($templateName)): echo "<input type='hidden' name='existingContainer' value='${templateName}'>\n"; endif;
+      <? if ($xmlType == "edit"):
+      if ($DockerClient->doesContainerExist($templateName)): echo "<input type='hidden' name='existingContainer' value='${templateName}'>\n"; endif;
       else:?>
       <tr>
         <td>Template:</td>
@@ -958,7 +1005,7 @@ $showAdditionalInfo = '';
             <option value="">Select a template</option>
             <?
             $rmadd = '';
-            $all_templates = array();
+            $all_templates = [];
             $all_templates['user'] = $DockerTemplates->getTemplates("user");
             $all_templates['default'] = $DockerTemplates->getTemplates("default");
             foreach ($all_templates as $key => $templates) {
@@ -985,7 +1032,7 @@ $showAdditionalInfo = '';
             ?>
           </select>
           <? if (!empty($rmadd)) {
-            echo "<a onclick=\"rmTemplate('" . addslashes($rmadd) . "');\" style=\"cursor:pointer;\"><img src=\"/plugins/dynamix.docker.manager/images/remove.png\" title=\"" . htmlspecialchars($rmadd) . "\" width=\"30px\"></a>";
+            echo "<a onclick=\"rmTemplate('".addslashes($rmadd)."');\" style=\"cursor:pointer;\"><img src=\"/plugins/dynamix.docker.manager/images/remove.png\" title=\"".htmlspecialchars($rmadd)."\" width=\"30px\"></a>";
           }?>
         </td>
       </tr>
@@ -1134,8 +1181,6 @@ $showAdditionalInfo = '';
         </td>
       </tr>
     </table>
-    <!--div id="title"><span class="left"><img src="/plugins/dynamix.docker.manager/icons/addcontainer.png" class="icon">App Configuration:</span></div>
-    <div style='display: inline; float: right; margin: -47px -5px;' id='app_config_tab'></div-->
     <div id="configLocation"></div>
     <table class="advanced">
       <tr>
@@ -1149,7 +1194,7 @@ $showAdditionalInfo = '';
         <td>&nbsp;</td>
         <td>
           <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save' ?>">
-          <button class="advanced" type="submit" name="dryRun" value="true" onclick="$('*[required]').prop( 'required', null );">Dry Run</button>
+          <button class="advanced" type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Dry Run</button>
           <input type="button" value="Cancel" onclick="done()">
         </td>
       </tr>
@@ -1265,10 +1310,9 @@ $showAdditionalInfo = '';
     $(".basic").toggle(!$(".advanced-switch:first").is(":checked"));
     $(".advanced").toggle($(".advanced-switch:first").is(":checked"));
     $(".hidden").toggle($(".advanced-switch:first").is(":checked"));
-    //$(".hidden").toggle($(".hidden-switch:first").is(":checked"));
     $(".numbersOnly").keypress(function(e){if(e.which != 45 && e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)){return false;}});
   }
-  $(function(){
+  $(function() {
     // Load container info on page load
     if (typeof Settings != 'undefined') {
       for (var key in Settings) {
@@ -1277,8 +1321,8 @@ $showAdditionalInfo = '';
           if (target.length) {
             var value = Settings[key];
             if (target.attr("type") == 'checkbox') {
-              target.prop('checked', (value == 'true') ? true : false );
-            } else if ($(target).prop('nodeName') == 'DIV'){
+              target.prop('checked', (value == 'true'));
+            } else if ($(target).prop('nodeName') == 'DIV') {
               target.html(value);
             } else {
               target.val(value);
@@ -1288,7 +1332,7 @@ $showAdditionalInfo = '';
       }
 
       // Remove empty description
-      if (! Settings.Description.length) {
+      if (!Settings.Description.length) {
         $('#canvas').find('#Overview:first').hide();
       }
 
@@ -1315,7 +1359,6 @@ $showAdditionalInfo = '';
 
     // Add switchButton
     $('.switch-on-off').each(function(){var checked = $(this).is(":checked");$(this).switchButton({labels_placement: "right", checked:checked});});
-
   });
 </script>
 <?END:?>
