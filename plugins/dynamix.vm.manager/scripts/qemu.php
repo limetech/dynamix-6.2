@@ -16,12 +16,15 @@ function detect_user_share(&$arg) {
 			// resolve the actual disk or cache backing device for this user share path
 			$realdisk = trim(shell_exec("getfattr --absolute-names -n user.LOCATIONS ".escapeshellarg($match[0])." 2>/dev/null|grep -Po '^user.LOCATIONS=\"\K[^\\\"]+'"));
 
-			// replace 'user' with say 'cache' or 'disk1' etc
-			$replacement = str_replace('/mnt/user/', '/mnt/'.$realdisk.'/', $match[0]);
+			if (!empty($realdisk)) {
+				// there may be several disks participating in this path (e.g. disk1,2,3) so
+				// only return the first disk and replace 'user' with say 'cache' or 'disk1'
+				$replacement = str_replace('/mnt/user/', '/mnt/'.strtok($realdisk.',', ',').'/', $match[0]);
 
-			if (!empty($realdisk) && is_file($replacement)) {
-				// the replacement path (e.g. /mnt/disk1/domains/vmname/vdisk1.img) checks out so use it
-				return $replacement;
+				if (is_file($replacement)) {
+					// the replacement path (e.g. /mnt/disk1/domains/vmname/vdisk1.img) checks out so use it
+					return $replacement;
+				}
 			}
 		}
 
