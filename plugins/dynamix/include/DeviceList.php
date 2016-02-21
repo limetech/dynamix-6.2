@@ -35,6 +35,7 @@ function in_parity_log($log,$timestamp) {
 function device_info(&$disk) {
   global $path, $var;
   $name = $disk['name'];
+  $fancyname = $disk['type']=='New' ? $name : my_disk($name);
   $type = $disk['type']=='Flash' || $disk['type']=='New' ? $disk['type'] : 'Device';
   $action = strpos($disk['color'],'blink')===false ? 'down' : 'up';
   if ($var['fsState']=='Started' && $type!='Flash') {
@@ -54,7 +55,7 @@ function device_info(&$disk) {
     case 'grey-off': $help = 'Device not present'; break;
   }
   $status = "$ctrl<a class='info nohand' onclick='return false'><img src='/webGui/images/{$disk['color']}.png' class='icon'><span>$help</span></a>";
-  $link = strpos($disk['status'], 'DISK_NP')===false ? "<a href='$path/$type?name=$name' title='".my_disk($name)." Settings'>".my_disk($name)."</a>" : my_disk($name);
+  $link = strpos($disk['status'], 'DISK_NP')===false ? "<a href='$path/$type?name=$name' title='".$fancyname." Settings'>".$fancyname."</a>" : $fancyname;
   return $status.$link;
 }
 function device_browse(&$disk) {
