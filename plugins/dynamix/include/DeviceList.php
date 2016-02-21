@@ -237,13 +237,12 @@ function array_slots() {
   global $var;
   $min = max($var['sbNumDisks'], 3);
   $max = $var['MAX_ARRAYSZ'];
-  $noparity2 = ($var['regTy']=='Pro')?0:1;
   $out = "<form method='POST' action='/update.htm' target='progressFrame'>";
   $out .= "<input type='hidden' name='changeSlots' value='Apply'>";
   $out .= "<select style='min-width:auto' name='SYS_ARRAY_SLOTS' onChange='this.form.submit()'>";
   for ($n=$min; $n<=$max; $n++) {
     $selected = ($n == $var['SYS_ARRAY_SLOTS'])? ' selected' : '';
-    $out .= "<option value='$n'{$selected}>".($n-$noparity2)."</option>";
+    $out .= "<option value='$n'{$selected}>$n</option>";
   }
   $out .= "</select></form>";
   return $out;
