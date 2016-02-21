@@ -1,0 +1,20 @@
+#!/bin/sh
+
+OLD_IMAGE=/boot/config/plugins/dynamix.kvm.manager/domain.img
+if [ ! -f $OLD_IMAGE ]; then
+  OLD_IMAGE=/boot/config/plugins/virtMan/virtMan.img
+  if [ ! -f $OLD_IMAGE ]; then
+    OLD_IMAGE=
+  fi
+fi
+if [ "$OLD_IMAGE" != "" ]; then
+  mount $OLD_IMAGE /etc/libvirt-
+  cp -rp /etc/libvirt-/* /etc/libvirt
+  umount /etc/libvirt-
+  if [ ! -f /etc/libvirt/hooks/qemu ]; then
+    mkdir -p /etc/libvirt/hooks
+    cp -p /etc/libvirt-/hooks/qemu /etc/libvirt/hooks/qemu 
+  fi
+else
+  cp -rp /etc/libvirt-/* /etc/libvirt
+fi

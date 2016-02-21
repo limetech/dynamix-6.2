@@ -51,7 +51,6 @@ if (file_exists($realfile)) {
 <span class="status" style="margin-top: -44px;"><input type="checkbox" class="advancedview"></span>
 <form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$docker_cfgfile;?>" />
-<input type="hidden" id="command" name="#command" value="" />
 
 <dl>
   <dt>Enable Docker:</dt>
@@ -203,8 +202,6 @@ $(function() {
       $("#settingsForm").submit();
       return;
     }
-
-    $("#command").val("/plugins/dynamix.docker.manager/event/" + ($("#DOCKER_ENABLED").val()=="yes" ? "started" : "stopping_svcs"));
 
     if ($("#DOCKER_IMAGE_SIZE").length && $("#DOCKER_IMAGE_FILE").length) {
       var isError = false;
