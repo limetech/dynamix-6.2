@@ -160,14 +160,15 @@ case 'port':
   case 'main':
     $ports = explode(',',$_POST['ports']); $i = 0;
     foreach ($ports as $port) {
-      unset($info);
+      $mtu = file_get_contents("/sys/class/net/$port/mtu");
       if ($port=='bond0') {
-        $ports[$i++] = exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/bond0");
+        $ports[$i++] = exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/bond0").", mtu $mtu";
       } else if ($port=='lo') {
         $ports[$i++] = str_replace('yes','loopback',exec("ethtool lo|grep -Pom1 '^\s+Link detected: \K.+'"));
       } else {
-        exec("ethtool $port|grep -Po '^\s+(Speed|Duplex): \K[^U\\n]+'",$info);
-        $ports[$i++] = $info[0] ? "{$info[0]} - ".strtolower($info[1])." duplex" : "not connected";
+        unset($info);
+        exec("ethtool $port|grep -Po '^\s+(Speed|Duplex|Link\sdetected): \K[^U\\n]+'",$info);
+        $ports[$i++] = (array_pop($info)=='yes' && $info[0]) ? "{$info[0]}, ".strtolower($info[1])." duplex, mtu $mtu" : "not connected";
       }
     }
   break;

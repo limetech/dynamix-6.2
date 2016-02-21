@@ -34,6 +34,7 @@ function checkNetworkSettings() {
   form.DNS_SERVER1.disabled = (form.DHCP_KEEPRESOLV.value != "yes") || disabled;
   form.DNS_SERVER2.disabled = (form.DHCP_KEEPRESOLV.value != "yes") || disabled;
   form.DNS_SERVER3.disabled = (form.DHCP_KEEPRESOLV.value != "yes") || disabled;
+  form.MTU.disabled = disabled;
 }
 function checkBondingSettings() {
   var form = document.network_settings;
@@ -86,7 +87,7 @@ Setup bridge:
 > (most consumer switches **do not**).
 >
 > Doing so will cause an "ARP broadcast storm" and can bring down your
-> entire network (unplugging all sever ethernet ports except one
+> entire network (unplugging all server ethernet ports except one
 > typically will restore your network).
 
 Bridge name:
@@ -165,6 +166,12 @@ DNS server 3:
 : <input type="text" name="DNS_SERVER3" maxlength="80" value="<?=$var['DNS_SERVER3'];?>" class="narrow" onchange="checkNetworkSettings()">
 
 > This is the DNS server to use when DNS Servers 1 and 2 are both down.
+
+Desired MTU:
+: <input type="text" name="MTU" maxlength="5" value="<?=$var['MTU'];?>" class="narrow" onchange="checkNetworkSettings()">
+
+> This is the MTU size to use on all physical Ethernet interfaces participating in the network stack.
+> If left blank, the MTU will automatically be determined (most likely 1500).
 
 &nbsp;
 : <input type="submit" name="changeNetwork" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?=$disabled ? "Array must be <strong>Stopped</strong> to change" : ""?>

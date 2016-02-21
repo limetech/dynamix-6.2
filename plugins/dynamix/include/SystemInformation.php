@@ -152,13 +152,14 @@ echo "$memory_installed  MB (max. installable capacity $memory_maximum GB)".$sta
 exec("ifconfig -s|grep -Po '^(bond|eth)\d+'",$sPorts);
 $i = 0;
 foreach ($sPorts as $port) {
+  $mtu = file_get_contents("/sys/class/net/$port/mtu");
   if ($i++) echo "<br><span style='width:94px; display:inline-block'>&nbsp;</span>";
   if ($port=='bond0') {
-    echo "$port: ".exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/bond0");
+    echo "$port: ".exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/bond0").", mtu $mtu";
   } else {
     unset($info);
-    exec("ethtool $port|grep -Po '^\s+(Speed|Duplex): \K[^U\\n]+'",$info);
-    echo $info[0] ? "$port: {$info[0]} - {$info[1]} Duplex" : "$port: not connected";
+    exec("ethtool $port|grep -Po '^\s+(Speed|Duplex|Link\sdetected): \K[^U\\n]+'",$info);
+    echo (array_pop($info)=='yes' && $info[0]) ? "$port: {$info[0]}, {$info[1]} Duplex, mtu $mtu" : "$port: not connected";
   }
 }
 ?>
