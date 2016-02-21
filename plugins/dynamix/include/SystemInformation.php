@@ -69,11 +69,16 @@ if (strpos($cpumodel,'@')===false) {
 <div><span style="width:90px; display:inline-block"><strong>HVM:</strong></span>
 <?
   // Check for Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support
-  // Attempt to load either of the kvm modules to see if virtualzation hw is supported
-  exec('modprobe -a kvm_intel kvm_amd 2>/dev/null');
-
   // If either kvm_intel or kvm_amd are loaded then Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support was found
   $strLoadedModules = shell_exec("lsmod | grep '^kvm_\(amd\|intel\)'");
+  if (empty($strLoadedModules)) {
+      // Attempt to load either of the kvm modules to see if virtualzation hw is supported
+      exec('modprobe -a kvm_intel kvm_amd 2>/dev/null');
+      $strLoadedModules = shell_exec("lsmod | grep '^kvm_\(amd\|intel\)'");
+      if (!empty($strLoadedModules)) {
+          exec('modprobe -r kvm_intel kvm_amd 2>/dev/null');
+      }
+  }
 
   // Check for Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support
   $strCPUInfo = file_get_contents('/proc/cpuinfo');
