@@ -64,14 +64,14 @@ function resumeEvents(){
   });
 }
 function plus(value, label, last) {
-  return value>0 ? (value+' '+label+(value!=1?'s':'')+(last?'':', ')) : '';
+  return value>0 ? (value+label+(label.length>1&&value!=1?'s':'')+(last?'':', ')) : '';
 }
 function updateTime() {
   var now = new Date();
   days = parseInt(uptime/86400);
   hour = parseInt(uptime/3600%24);
   mins = parseInt(uptime/60%60);
-  $('#uptime').html(((days|hour|mins)?plus(days,'day',(hour|mins)==0)+plus(hour,'hour',mins==0)+plus(mins,'minute',true):'less than a minute'));
+  $('#uptime').html(((days|hour|mins)?plus(days,' day',(hour|mins)==0)+plus(hour,' hour',mins==0)+plus(mins,' minute',true):'less than a minute'));
   uptime += Math.round((now.getTime() - before.getTime())/1000);
   before = now;
   if (expiretime > 0) {
@@ -82,7 +82,7 @@ function updateTime() {
       days = parseInt(remainingtime/86400);
       hour = parseInt(remainingtime/3600%24);
       mins = parseInt(remainingtime/60%60);
-      $('#licenseexpire').html(' - '+((days|hour|mins)?plus(days,'day',(hour|mins)==0)+plus(hour,'hour',mins==0)+plus(mins,'minute',true):'less than a minute')+' remaining');
+      $('#licenseexpire').html(' - '+((days|hour|mins)?plus(days,'d',(hour|mins)==0)+plus(hour,'h',mins==0)+plus(mins,'m',true):'less than a minute')+' remaining');
     }
   }
   setTimeout(updateTime,1000);
