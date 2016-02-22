@@ -3,7 +3,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "unRAIDServer">
 <!ENTITY author    "LimeTech">
-<!ENTITY version   "6.2-beta17">
+<!ENTITY version   "6.2-beta18">
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/&name;.plg">
 
 <!ENTITY category  "beta">
@@ -23,6 +23,12 @@
 <![CDATA[
 unRAID Server OS Change Log
 ===========================
+
+Version 6.2-beta18
+------------------
+- system shares handling
+- libvirt image file handling
+- other stuff
 
 Version 6.2-beta17
 ------------------
