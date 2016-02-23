@@ -119,7 +119,7 @@ function rmContainer(container, image, id) {
     if ($("#removeimagechk").prop('checked')) {
       eventControl({action: "remove_all", container: id, image: image});
     } else {
-      eventControl({action: "remove_image", image: image});
+      eventControl({action: "remove_container", container: id});
     }
   });
 }

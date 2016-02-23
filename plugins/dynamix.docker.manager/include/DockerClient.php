@@ -493,7 +493,6 @@ class DockerUpdate{
 
 	public function setUpdateStatus($image, $version) {
 		global $dockerManPaths;
-		$DockerClient = new DockerClient();
 		$update_file  = $dockerManPaths['update-status'];
 		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), true) : [];
 		$updateStatus[$image] = [
