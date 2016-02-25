@@ -16,7 +16,7 @@ $keyfile = trim(base64_encode(@file_get_contents($var['regFILE'])));
 
 if (array_key_exists('getdiagnostics', $_GET)) {
     $diag_file = '/tmp/feedback_diagnostics_'.time().'.zip';
-    exec("/usr/local/emhttp/plugins/dynamix/scripts/diagnostics $diag_file");
+    exec("/usr/local/emhttp/plugins/dynamix/scripts/diagnostics -a $diag_file");
     echo base64_encode(@file_get_contents($diag_file));
     @unlink($diag_file);
     exit;
