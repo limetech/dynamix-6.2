@@ -332,7 +332,8 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
         <td><?=status_indicator()?><strong>Stopped</strong>. Configuration valid.</td>
         <td><input type="submit" name="cmdStart" value="Start"></td>
         <td><strong>Start</strong> will record all disk information, bring the array on-line, and start Parity-Sync.
-          <br>The array will be immediately available, but <strong>unprotected</strong> until Parity-Sync completes.</td>
+          <br>The array will be immediately available, but <strong>unprotected</strong> until Parity-Sync completes.
+          <br><input type="checkbox" name="md_invalidslot" value="99">Parity is already valid.</td>
         </tr>
 <?    endif;
       maintenance_mode();
