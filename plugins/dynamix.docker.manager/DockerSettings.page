@@ -16,11 +16,6 @@ Markdown="false"
  */
 ?>
 <?
-if ($var['fsState'] != "Started") {
-  echo "<p class='notice'>Array must be Started to manage Docker.</p>";
-  return;
-}
-
 // Add the Docker JSON client
 require_once('/usr/local/emhttp/plugins/dynamix.docker.manager/include/DockerClient.php');
 $docker          = new DockerClient();
@@ -46,9 +41,8 @@ if (file_exists($realfile)) {
   .fileTree{width:305px;max-height:150px;overflow:scroll;position:absolute;z-index:100;display:none;}
   .basic{display: block;}
   .advanced{display:none;white-space: nowrap;}
-  .switch-button-label.off{color: inherit;}
 </style>
-<span class="status" style="margin-top: -44px;"><input type="checkbox" class="advancedview"></span>
+<span class="status" style="margin-top: -10px;"><input type="checkbox" class="advancedview"></span>
 <form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$docker_cfgfile;?>" />
 
@@ -58,7 +52,7 @@ if (file_exists($realfile)) {
     <select id="DOCKER_ENABLED" name="DOCKER_ENABLED" class="narrow">
     <?= mk_option($dockercfg['DOCKER_ENABLED'], 'no', 'No'); ?>
     <?= mk_option($dockercfg['DOCKER_ENABLED'], 'yes', 'Yes'); ?>
-    </select>
+    </select> <?if ($var['fsState'] != "Started"):?><span id="arraystopped"><i class="fa fa-warning icon warning"></i> <?=($dockercfg['DOCKER_ENABLED']=='yes')?'Docker will be available after Array is Started':'Apply to activate Docker after Array is Started'?></span><?endif;?>
   </dd>
 </dl>
 <blockquote class="inline_help">
@@ -71,7 +65,7 @@ if (file_exists($realfile)) {
 
 <dl>
   <dt>Docker vdisk size:</dt>
-  <dd><input id="DOCKER_IMAGE_SIZE" type="number" name="DOCKER_IMAGE_SIZE" value="<?=$dockercfg['DOCKER_IMAGE_SIZE'];?>" class="narrow" required="required" />GB <span id="SIZE_ERROR" class="errortext"></span></dd>
+  <dd><input id="DOCKER_IMAGE_SIZE" type="number" name="DOCKER_IMAGE_SIZE" value="<?=$dockercfg['DOCKER_IMAGE_SIZE'];?>" style="width:50px;" required="required" />GB <span id="SIZE_ERROR" class="errortext"></span></dd>
 </dl>
 <blockquote class="inline_help">
   <p>If the system needs to create a new docker image file, this is the default size to use specified in GB.</p>
@@ -120,7 +114,7 @@ if (file_exists($realfile)) {
     <p>Only used when adding new Docker apps.  Editing existing Docker apps will not be affected by this setting.</p>
   </blockquote>
 
-  <dl>
+  <!--dl>
     <dt>Auto-map user shares to containers as /unraid:</dt>
     <dd>
       <select id="DOCKER_APP_UNRAID_PATH" name="DOCKER_APP_UNRAID_PATH" class="narrow">
@@ -132,7 +126,7 @@ if (file_exists($realfile)) {
   <blockquote class="inline_help">
     <p>You can expose all of your user shares (/mnt/user) to a folder named /unraid within Docker containers.</p>
     <p>Only used when adding new Docker apps.  Editing existing Docker apps will not be affected by this setting.</p>
-  </blockquote>
+  </blockquote-->
 </div>
 
 <dl>
@@ -232,6 +226,15 @@ $(function() {
     $("#settingsForm").submit();
   });
 
+  $("#DOCKER_ENABLED").change(function changeService() {
+    if ($(this).val()=='yes') {
+      $('#arraystopped').fadeIn('slow');
+    } else {
+      $('#arraystopped').fadeOut('fast');
+    }
+  });
+  if ($("#DOCKER_ENABLED").val()!='yes') $('#arraystopped').hide();
+
   if ($("#DOCKER_IMAGE_FILE").length) {
     $("#DOCKER_IMAGE_FILE").on("input change", function(){
       $("#IMAGE_ERROR").fadeOut();
@@ -247,9 +250,11 @@ $(function() {
       <? } ?>
     });
 
+<?if ($var['fsState'] == "Started"):?>
     $("#DOCKER_IMAGE_FILE").fileTreeAttach(null, null, function(folder) {
       $("#DOCKER_IMAGE_FILE").val(folder + 'docker.img').change();
     });
+<?endif;?>
 
     $("#deleteCheckbox").change(function(){
       var checked = $(this).is(":checked");
@@ -261,8 +266,6 @@ $(function() {
       $("#applyBtn").val(checked ? "Delete" : "Apply").removeAttr('disabled');
     });
   }
-
-  $("#DOCKER_APP_CONFIG_PATH").fileTreeAttach();
 
   if ($.cookie('dockersettings_view_mode') == 'advanced') {
     $('.advanced').show();
@@ -279,5 +282,11 @@ $(function() {
     $('.basic').toggle('slow');
     $.cookie('dockersettings_view_mode', $('.advancedview').is(':checked') ? 'advanced' : 'basic', { expires: 3650 });
   });
+
+  showStatus('pid','docker');
+
+  <?if ($var['fsState'] == "Started"):?>
+    $("#DOCKER_APP_CONFIG_PATH").fileTreeAttach();
+  <?endif;?>
 });
 </script>

@@ -16,6 +16,16 @@ require_once('/usr/local/emhttp/webGui/include/Helpers.php');
 require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt.php');
 require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt_helpers.php');
 
+function requireLibvirt() {
+	global $lv;
+
+	// Make sure libvirt is connected to qemu
+	if (!isset($lv) || !$lv->enabled()) {
+		header('Content-Type: application/json');
+		die(json_encode(['error' => 'failed to connect to the hypervisor']));
+	}
+}
+
 $arrSizePrefix = [
 	0 => '',
 	1 => 'K',
@@ -30,13 +40,8 @@ $_REQUEST = array_merge($_GET, $_POST);
 $action = array_key_exists('action', $_REQUEST) ? $_REQUEST['action'] : '';
 $uuid = array_key_exists('uuid', $_REQUEST) ? $_REQUEST['uuid'] : '';
 
-// Make sure libvirt is connected to qemu
-if (!isset($lv) || !$lv->enabled()) {
-	header('Content-Type: application/json');
-	die(json_encode(['error' => 'failed to connect to the hypervisor']));
-}
-
 if ($uuid) {
+	requireLibvirt();
 	$domName = $lv->domain_get_name_by_uuid($uuid);
 	if (!$domName) {
 		header('Content-Type: application/json');
@@ -50,30 +55,35 @@ $arrResponse = [];
 switch ($action) {
 
 	case 'domain-autostart':
+		requireLibvirt();
 		$arrResponse = $lv->domain_set_autostart($domName, ($_REQUEST['autostart'] != "false")) ?
 						['success' => true, 'autostart' => (bool)$lv->domain_get_autostart($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-start':
+		requireLibvirt();
 		$arrResponse = $lv->domain_start($domName) ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-pause':
+		requireLibvirt();
 		$arrResponse = $lv->domain_suspend($domName) ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-resume':
+		requireLibvirt();
 		$arrResponse = $lv->domain_resume($domName) ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-pmwakeup':
+		requireLibvirt();
 		// No support in libvirt-php to do a dompmwakeup, use virsh tool instead
 		exec("virsh dompmwakeup " . escapeshellarg($uuid) . " 2>&1", $arrOutput, $intReturnCode);
 		$arrResponse = ($intReturnCode == 0) ?
@@ -82,42 +92,49 @@ switch ($action) {
 		break;
 
 	case 'domain-restart':
+		requireLibvirt();
 		$arrResponse = $lv->domain_reboot($domName) ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-save':
+		requireLibvirt();
 		$arrResponse = $lv->domain_save($domName) ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-stop':
+		requireLibvirt();
 		$arrResponse = $lv->domain_shutdown($domName) ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-destroy':
+		requireLibvirt();
 		$arrResponse = $lv->domain_destroy($domName) ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-delete':
+		requireLibvirt();
 		$arrResponse = $lv->domain_delete($domName) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-undefine':
+		requireLibvirt();
 		$arrResponse = $lv->domain_undefine($domName) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'domain-define':
+		requireLibvirt();
 		$domName = $lv->domain_define($_REQUEST['xml']);
 		$arrResponse =  $domName ?
 						['success' => true, 'state' => $lv->domain_get_state($domName)] :
@@ -125,6 +142,7 @@ switch ($action) {
 		break;
 
 	case 'domain-state':
+		requireLibvirt();
 		$state = $lv->domain_get_state($domName);
 		$arrResponse = ($state) ?
 						['success' => true, 'state' => $state] :
@@ -132,60 +150,70 @@ switch ($action) {
 		break;
 
 	case 'domain-diskdev':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_set_disk_dev($domName, $_REQUEST['olddev'], $_REQUEST['diskdev'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'cdrom-change':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_change_cdrom($domName, $_REQUEST['cdrom'], $_REQUEST['dev'], $_REQUEST['bus'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'memory-change':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_set_memory($domName, $_REQUEST['memory']*1024)) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'vcpu-change':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_set_vcpu($domName, $_REQUEST['vcpu'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'bootdev-change':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_set_boot_device($domName, $_REQUEST['bootdev'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'disk-remove':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_disk_remove($domName, $_REQUEST['dev'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'snap-create':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_snapshot_create($domName)) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'snap-delete':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_snapshot_delete($domName, $_REQUEST['snap'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'snap-revert':
+		requireLibvirt();
 		$arrResponse = ($lv->domain_snapshot_revert($domName, $_REQUEST['snap'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
 		break;
 
 	case 'snap-desc':
+		requireLibvirt();
 		$arrResponse = ($lv->snapshot_set_metadata($domName, $_REQUEST['snap'], $_REQUEST['snapdesc'])) ?
 						['success' => true] :
 						['error' => $lv->get_last_error()];
@@ -194,7 +222,7 @@ switch ($action) {
 	case 'disk-create':
 		$disk = $_REQUEST['disk'];
 		$driver = $_REQUEST['driver'];
-		$size = str_replace(array("KB","MB","GB","TB","PB", " ", ","), array("K","M","G","T","P", "", ""), strtoupper($_REQUEST['size']));
+		$size = str_replace(["KB","MB","GB","TB","PB", " ", ","], ["K","M","G","T","P", "", ""], strtoupper($_REQUEST['size']));
 
 		$dir = dirname($disk);
 
@@ -218,8 +246,8 @@ switch ($action) {
 
 	case 'disk-resize':
 		$disk = $_REQUEST['disk'];
-		$capacity = str_replace(array("KB","MB","GB","TB","PB", " ", ","), array("K","M","G","T","P", "", ""), strtoupper($_REQUEST['cap']));
-		$old_capacity = str_replace(array("KB","MB","GB","TB","PB", " ", ","), array("K","M","G","T","P", "", ""), strtoupper($_REQUEST['oldcap']));
+		$capacity = str_replace(["KB","MB","GB","TB","PB", " ", ","], ["K","M","G","T","P", "", ""], strtoupper($_REQUEST['cap']));
+		$old_capacity = str_replace(["KB","MB","GB","TB","PB", " ", ","], ["K","M","G","T","P", "", ""], strtoupper($_REQUEST['oldcap']));
 
 		if (substr($old_capacity,0,-1) < substr($capacity,0,-1)){
 			$strLastLine = exec("qemu-img resize -q " . escapeshellarg($disk) . " " . escapeshellarg($capacity) . " 2>&1", $out, $status);
@@ -287,6 +315,7 @@ switch ($action) {
 		break;
 
 	case 'generate-mac':
+		requireLibvirt();
 		$arrResponse = [
 			'mac' => $lv->generate_random_mac_addr()
 		];
