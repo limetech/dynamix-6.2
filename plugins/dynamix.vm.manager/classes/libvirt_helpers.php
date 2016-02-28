@@ -361,7 +361,9 @@
 		"MEDIADIR" => "/mnt/user/isos/",
 		"VIRTIOISO" => "",
 		"BRNAME" => "",
-		"VMSTORAGEMODE" => "auto"
+		"VMSTORAGEMODE" => "auto",
+		"IMAGE_FILE" => "/mnt/user/system/libvirt/libvirt.img",
+		"IMAGE_SIZE" => "1"
 	];
 	$domain_cfg = $domain_cfg_defaults;
 

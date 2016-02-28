@@ -1,6 +1,7 @@
 Menu="OtherSettings"
 Title="VM Manager"
 Icon="dynamix.vm.manager.png"
+Markdown="false"
 ---
 <?PHP
 /* Copyright 2015, Lime Technology
@@ -70,6 +71,7 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
 <style>
 	body { -webkit-overflow-scrolling: touch;}
+	.errortext{color:#EF3D47;display:none;}
 	.fileTree {
 		width: 305px;
 		max-height: 150px;
@@ -108,113 +110,160 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 <form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$domain_cfgfile;?>" />
 
-Enable VMs:
-: <select id="SERVICE" name="SERVICE" class="narrow">
-<?= mk_option($libvirt_service, 'disable', 'No'); ?>
-<?= mk_option($libvirt_service, 'enable', 'Yes'); ?>
-</select> <?if ($var['fsState'] != "Started"):?><span id="arraystopped"><i class="fa fa-warning icon warning"></i> <?=($libvirt_service=='enable')?'VMs will be available after Array is Started':'Apply to activate VMs after Array is Started'?></span><?endif;?>
+<dl>
+	<dt>Enable VMs:</dt>
+	<dd>
+		<select id="SERVICE" name="SERVICE" class="narrow">
+			<?= mk_option($libvirt_service, 'disable', 'No'); ?>
+			<?= mk_option($libvirt_service, 'enable', 'Yes'); ?>
+		</select> <?if ($var['fsState'] != "Started"):?><span id="arraystopped"><i class="fa fa-warning icon warning"></i> <?=($libvirt_service=='enable')?'VMs will be available after Array is Started':'Apply to activate VMs after Array is Started'?></span><?endif;?>
+	</dd>
+</dl>
+<blockquote class="inline_help">
+	<p>Stopping the VM Manager will first attempt to shutdown all running VMs.  After 40 seconds, any remaining VM instances will be terminated.</p>
+</blockquote>
 
-> Stopping the VM Manager will first attempt to shutdown all running VMs.  After 40 seconds, any remaining VM instances will be terminated.
+<?if ($libvirt_running == 'yes'):?>
 
-<div class="advanced" markdown="1">
-<? if ($libvirt_running == 'yes') {
-	$libvirt_info = libvirt_version('libvirt');
-	$qemu_info = $lv->get_connect_information(); ?>
-Libvirt version:
-: <?= $libvirt_info['libvirt.major'] . '.' .  $libvirt_info['libvirt.minor'] . '.' .  $libvirt_info['libvirt.release']; ?>
+<div class="advanced">
+	<dl>
+		<dt>Libvirt version:</dt>
+		<dd><? $libvirt_info = libvirt_version('libvirt'); echo $libvirt_info['libvirt.major'].'.'.$libvirt_info['libvirt.minor'].'.'.$libvirt_info['libvirt.release']; ?></dd>
+	</dl>
 
-QEMU version:
-: <?= $qemu_info['hypervisor_major'] . '.' .  $qemu_info['hypervisor_minor'] . '.' .  $qemu_info['hypervisor_release']; ?>
-<? } ?>
+	<dl>
+		<dt>QEMU version:</dt>
+		<dd><? $qemu_info = $lv->get_connect_information(); echo $qemu_info['hypervisor_major'].'.'.$qemu_info['hypervisor_minor'].'.'.$qemu_info['hypervisor_release']; ?></dd>
+	</dl>
 
-Default VM storage path:
-: <input type="text" id="domaindir" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="DOMAINDIR" value="<?=$domain_cfg['DOMAINDIR']?>" placeholder="Click to Select">
-
-> Specify a user share that contains all your VM subdirectories with vdisks
-
-Default ISO storage path:
-: <input type="text" id="mediadir" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="MEDIADIR" value="<?=$domain_cfg['MEDIADIR']?>" placeholder="Click to Select">
-
-> Specify a user share that contains all your installation media for operating systems
-</div>
-
-<div markdown="1">
-Default Windows VirtIO driver ISO <span style="font-weight: normal">(optional)</span>:
-: <select id="winvirtio_select" class="narrow">
-<?
-	$iso_dir = $domain_cfg['MEDIADIR'];
-	if (empty($iso_dir) || !is_dir($iso_dir)) {
-		$iso_dir = '/mnt/user/isos/';
-	} else {
-		$iso_dir = str_replace('//', '/', $iso_dir.'/');
-	}
-
-	$strManual = '';
-	if (!empty($domain_cfg['MEDIADIR']) &&
-		!empty($domain_cfg['VIRTIOISO']) &&
-		dirname($domain_cfg['VIRTIOISO']) != '.' &&
-		strpos($iso_dir, dirname($domain_cfg['VIRTIOISO'])) !== 0) {
-		$strManual = 'manual';
-	}
-
-	$strMatch = $strManual;
-	foreach ($virtio_isos as $key => $value) {
-		if (empty($strMatch) &&
-			(basename($domain_cfg['VIRTIOISO']) == $value['name']) &&
-			is_file($iso_dir.$value['name'])
-			) {
-			$strMatch = $value['name'];
-		}
-		echo mk_option($strMatch, $value['name'], $value['name']);
-	}
-
-	echo mk_option($strManual, 'manual', 'Manual');
-?>
-</select><input type="text" id="winvirtio" name="VIRTIOISO" data-pickfilter="iso" data-pickcloseonfile="true" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" value="<?=$domain_cfg['VIRTIOISO']?>"<?if ($var['fsState'] == "Started"):?> placeholder="Click to Select"><i class="fa fa-download" id="download_button" title="Download Windows VirtIO driver ISO"> <span>Download</span></i><span id="download_status"></span<?endif;?>>
-
-> Specify the virtual CD-ROM (ISO) that contains the VirtIO Windows drivers as provided by the Fedora Project.
-> Download the latest ISO from here: <a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download</a>
->
-> When installing Windows, you will reach a step where no disk devices will be found.
-> There is an option to browse for drivers on that screen.  Click browse and locate the additional CD-ROM in the menu.
-> Inside there will be various folders for the different versions of Windows.  Open the folder for the version of Windows
-> you are installing and then select the AMD64 subfolder inside (even if you are on an Intel system, select AMD64).
-> Three drivers will be found.  Select them all, click next, and the vDisks you have assigned will appear.
-</div>
+	<dl>
+		<dt>Libvirt storage location:</dt>
+		<dd><?=$domain_cfg['IMAGE_FILE'];?></dd>
+	</dl>
+	<blockquote class="inline_help">
+		<p>This is the libvirt volume.</p>
+	</blockquote>
+<?else: /* Libvirt is stopped */ ?>
+<dl>
+	<dt>Libvirt vdisk size:</dt>
+	<dd><input id="IMAGE_SIZE" type="number" min="1" name="IMAGE_SIZE" value="<?=$domain_cfg['IMAGE_SIZE'];?>" style="width:50px;" required="required" />GB <span id="SIZE_ERROR" class="errortext"></span></dd>
+</dl>
+<blockquote class="inline_help">
+	<p>If the system needs to create a new libvirt image file, this is the default size to use specified in GB.</p>
+	<p>To resize an existing image file, specify the new size here.  Next time the Libvirt service is started the file (and file system) will increased to the new size (but never decreased).</p>
+</blockquote>
 
 <div class="advanced" markdown="1">
-Default network bridge:
-: <select id="bridge" name="BRNAME">
-<?
-	foreach ($arrValidBridges as $strBridge) {
-		echo mk_option($domain_cfg['BRNAME'], $strBridge, $strBridge);
-	}
-?>
-</select>
+	<dl>
+		<dt>Libvirt storage location:</dt>
+		<dd><input id="IMAGE_FILE" type="text" name="IMAGE_FILE" value="<?=$domain_cfg['IMAGE_FILE'];?>" placeholder="e.g. /mnt/user/system/libvirt/libvirt.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <span id="IMAGE_ERROR" class="errortext"></span></dd>
+	</dl>
+	<blockquote class="inline_help">
+		<p>You must specify an image file for Libvirt.  The system will automatically create this file when the Libvirt service is first started.</p>
+	</blockquote>
+<?endif;?>
 
-> Enter the name of the network bridge you wish to use for your VMs here, otherwise leave the field blank and
-> libvirt will create a bridge that will utilize NAT (network address translation) and act as a DHCP server to hand out
-> IP addresses to virtual machines directly.
->
-> NOTE:  You can also specify an network bridge on a per-VM basis.
+	<dl>
+		<dt>Default VM storage path:</dt>
+		<dd><input type="text" id="domaindir" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="DOMAINDIR" value="<?=$domain_cfg['DOMAINDIR']?>" placeholder="Click to Select"></dd>
+	</dl>
+	<blockquote class="inline_help">
+		<p>Specify a user share that contains all your VM subdirectories with vdisks</p>
+	</blockquote>
 
-Enable PCIe ACS Override:
-: <select id="pcie_acs_override" class="narrow">
-<?= mk_option(($boolACSInSyslinux ? '1' : '0'), '0', 'No'); ?>
-<?= mk_option(($boolACSInSyslinux ? '1' : '0'), '1', 'Yes'); ?>
-</select>
-
-> Warning:  Use of this setting could cause possible data corruption with certain hardware configurations.  Please visit the Lime Technology forums for more information.
->
-> A reboot will be required for changes to this setting to take affect.
+	<dl>
+		<dt>Default ISO storage path:</dt>
+		<dd><input type="text" id="mediadir" data-pickfolders="true" data-pickfilter="NO_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" name="MEDIADIR" value="<?=$domain_cfg['MEDIADIR']?>" placeholder="Click to Select"></dd>
+	</dl>
+	<blockquote class="inline_help">
+		<p>Specify a user share that contains all your installation media for operating systems</p>
+	</blockquote>
 </div>
 
-<?if (file_exists("/var/log/libvirt/libvirtd.log")):?><input type="button" class="advanced" onclick="openWindow('/webGui/scripts/tail_log&amp;arg1=libvirt/libvirtd.log','Log Information',600,900);" value="View libvirt log"/><?endif;?>&nbsp;
-: <input type="button" id="applyBtn" value="Apply"/><input type="button" value="Done" onclick="done()">
+<dl>
+	<dt>Default Windows VirtIO driver ISO <span style="font-weight: normal">(optional)</span>:</dt>
+	<dd>
+		<select id="winvirtio_select" class="narrow">
+		<?
+			$iso_dir = $domain_cfg['MEDIADIR'];
+			if (empty($iso_dir) || !is_dir($iso_dir)) {
+				$iso_dir = '/mnt/user/isos/';
+			} else {
+				$iso_dir = str_replace('//', '/', $iso_dir.'/');
+			}
+
+			$strManual = '';
+			if (!empty($domain_cfg['MEDIADIR']) &&
+				!empty($domain_cfg['VIRTIOISO']) &&
+				dirname($domain_cfg['VIRTIOISO']) != '.' &&
+				strpos($iso_dir, dirname($domain_cfg['VIRTIOISO'])) !== 0) {
+				$strManual = 'manual';
+			}
+
+			$strMatch = $strManual;
+			foreach ($virtio_isos as $key => $value) {
+				if (empty($strMatch) &&
+					(basename($domain_cfg['VIRTIOISO']) == $value['name']) &&
+					is_file($iso_dir.$value['name'])
+					) {
+					$strMatch = $value['name'];
+				}
+				echo mk_option($strMatch, $value['name'], $value['name']);
+			}
+
+			echo mk_option($strManual, 'manual', 'Manual');
+		?>
+		</select><input type="text" id="winvirtio" name="VIRTIOISO" data-pickfilter="iso" data-pickcloseonfile="true" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" value="<?=$domain_cfg['VIRTIOISO']?>"<?if ($var['fsState'] == "Started"):?> placeholder="Click to Select"><i class="fa fa-download" id="download_button" title="Download Windows VirtIO driver ISO"> <span>Download</span></i><span id="download_status"></span<?endif;?>>
+	</dd>
+</dl>
+<blockquote class="inline_help">
+	<p>Specify the virtual CD-ROM (ISO) that contains the VirtIO Windows drivers as provided by the Fedora Project. Download the latest ISO from here: <a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download</a></p>
+	<p>When installing Windows, you will reach a step where no disk devices will be found. There is an option to browse for drivers on that screen.  Click browse and locate the additional CD-ROM in the menu. Inside there will be various folders for the different versions of Windows.  Open the folder for the version of Windows you are installing and then select the AMD64 subfolder inside (even if you are on an Intel system, select AMD64). Three drivers will be found.  Select them all, click next, and the vDisks you have assigned will appear.</p>
+</blockquote>
+
+<div class="advanced">
+	<dl>
+		<dt>Default network bridge:</dt>
+		<dd>
+			<select id="bridge" name="BRNAME">
+			<?
+				foreach ($arrValidBridges as $strBridge) {
+					echo mk_option($domain_cfg['BRNAME'], $strBridge, $strBridge);
+				}
+			?>
+			</select>
+		</dd>
+	</dl>
+	<blockquote class="inline_help">
+		<p>Enter the name of the network bridge you wish to use for your VMs here, otherwise leave the field blank and libvirt will create a bridge that will utilize NAT (network address translation) and act as a DHCP server to hand out IP addresses to virtual machines directly.</p>
+		<p>NOTE:  You can also specify an network bridge on a per-VM basis.</p>
+	</blockquote>
+
+	<dl>
+		<dt>Enable PCIe ACS Override:</dt>
+		<dd>
+			<select id="pcie_acs_override" class="narrow">
+			<?= mk_option(($boolACSInSyslinux ? '1' : '0'), '0', 'No'); ?>
+			<?= mk_option(($boolACSInSyslinux ? '1' : '0'), '1', 'Yes'); ?>
+			</select>
+		</dd>
+	</dl>
+	<blockquote class="inline_help">
+		<p>Warning:  Use of this setting could cause possible data corruption with certain hardware configurations.  Please visit the Lime Technology forums for more information.</p>
+		<p>A reboot will be required for changes to this setting to take affect.</p>
+	</blockquote>
+</div>
+
+<dl>
+	<dt><?if (file_exists("/var/log/libvirt/libvirtd.log")):?><input type="button" class="advanced" onclick="openWindow('/webGui/scripts/tail_log&amp;arg1=libvirt/libvirtd.log','Log Information',600,900);" value="View libvirt log"/><?endif;?>&nbsp;</dt>
+	<dd><input type="button" id="applyBtn" value="Apply"/><input type="button" value="Done" onclick="done()"></dd>
+</dl>
 </form>
 
 <?if (file_exists("/var/log/libvirt/libvirtd.log")):?>
-> View the log for libvirt: <a id="openlog" title="/var/log/libvirt/libvirtd.log" href="#" onclick="openWindow('/webGui/scripts/tail_log&amp;arg1=libvirt/libvirtd.log','Log Information',600,900);">/var/log/libvirt/libvirtd.log</a>
+<blockquote class="inline_help">
+	<p>View the log for libvirt: <a id="openlog" title="/var/log/libvirt/libvirtd.log" href="#" onclick="openWindow('/webGui/scripts/tail_log&amp;arg1=libvirt/libvirtd.log','Log Information',600,900);">/var/log/libvirt/libvirtd.log</a></p>
+</blockquote>
 <?endif;?>
 
 <script src="/webGui/javascript/jquery.filetree.js"></script>
@@ -224,13 +273,13 @@ Enable PCIe ACS Override:
 $(function(){
 	$("#applyBtn").click(function(){
 		if ($('#pcie_acs_override').val() == '1') {
-			$.get("/plugins/dynamix.vm.manager/VMajax.php?action=acs-override-enable", function( data ) {
+			$.getJSON("/plugins/dynamix.vm.manager/VMajax.php", {action: "acs-override-enable"}, function(data) {
 				$("#settingsForm").submit();
-			}, "json");
+			});
 		} else {
-			$.get("/plugins/dynamix.vm.manager/VMajax.php?action=acs-override-disable", function( data ) {
+			$.getJSON("/plugins/dynamix.vm.manager/VMajax.php", {action: "acs-override-disable"}, function(data) {
 				$("#settingsForm").submit();
-			}, "json");
+			});
 		}
 	});
 
