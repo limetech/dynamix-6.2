@@ -266,6 +266,56 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 </blockquote>
 <?endif;?>
 
+<?if ($libvirt_running == 'yes' && trim(shell_exec('stat -c %T -f /etc/libvirt')) == 'btrfs'):?>
+<div class="advanced">
+  <div id="title"><span class="left"><img src="/plugins/dynamix.docker.manager/icons/vcard.png" class="icon">Libvirt volume info</span></div>
+
+  <dl>
+    <dt>btrfs filesystem show:</dt>
+    <dd><?="<pre>".shell_exec("btrfs filesystem show /etc/libvirt")."</pre>"?></dd>
+  </dl>
+
+  <form markdown="1" method="POST" action="/update.php" target="progressFrame">
+  <?exec("/usr/local/emhttp/webGui/scripts/btrfs_scrub status /etc/libvirt", $scrub_status, $retval);?>
+
+  <dl>
+    <dt>btrfs scrub status:</dt>
+    <dd><?="<pre>".implode("\n", $scrub_status)."</pre>"?></dd>
+  </dl>
+
+  <?if ($retval != 0):?>
+  <input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
+  <input type="hidden" name="#arg[1]" value="start">
+  <input type="hidden" name="#arg[2]" value="/etc/libvirt">
+  <input type="hidden" name="#arg[3]" value="-r">
+
+  <dl>
+    <dt>&nbsp;</dt>
+    <dd><input type="submit" value="Scrub"><label><input type="checkbox" name="#arg[3]" value=""> Correct file system errors</label></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p><b>Scrub</b> runs the <i>btrfs scrub</i> program to check file system integrity.</p>
+    <p>If repair is needed you should check the <i>Correct file system errors</i> and run a second Scrub pass; this will permit <i>btrfs scrub</i> to fix the file system.</p>
+  </blockquote>
+
+  <?else:?>
+  <input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
+  <input type="hidden" name="#arg[1]" value="cancel">
+  <input type="hidden" name="#arg[2]" value="/etc/libvirt">
+
+  <dl>
+    <dt>&nbsp;</dt>
+    <dd><input type="button" value="Refresh" onclick="refresh()"><input type="submit" value="Cancel"> <i>Running</i></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p><b>Cancel</b> will cancel the Scrub operation in progress.</p>
+  </blockquote>
+
+  </form>
+  <?endif;?>
+</div>
+<?endif;?>
+
 <script src="/webGui/javascript/jquery.filetree.js"></script>
 <script src="/webGui/javascript/jquery.switchbutton.js"></script>
 <script src="/plugins/dynamix.vm.manager/scripts/dynamix.vm.manager.js"></script>
