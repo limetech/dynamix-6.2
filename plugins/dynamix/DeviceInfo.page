@@ -264,14 +264,14 @@ btrfs scrub status:
 <input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
 <input type="hidden" name="#arg[1]" value="start">
 <input type="hidden" name="#arg[2]" value="/mnt/<?=$disk['name']?>">
+<input type="hidden" name="#arg[3]" value="-r">
 
 &nbsp;
-: <input type="submit" value="Scrub"><input type="text" name="#arg[3]" maxlength="256" value="-r"> Options (see Help)
+: <input type="submit" value="Scrub"><label><input type="checkbox" name="#arg[3]" value=""> Correct file system errors</label>
 
 > **Scrub** runs the *btrfs scrub* program to check file system integrity.
 >
-> The *Options* field is initialized to include *-r* which specifies read-only.  If repair is needed, you should run
-> a second Scrub pass, removing the *-r* option; this will permit *btrfs scrub* to fix the file system.
+> If repair is needed you should check the *Correct file system errors* and run a second Scrub pass; this will permit *btrfs scrub* to fix the file system.
 
 <?else:?>
 <input type="hidden" name="#command" value="/webGui/scripts/btrfs_scrub">
