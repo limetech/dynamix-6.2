@@ -164,7 +164,7 @@ if (file_exists($realfile)) {
   </dl>
   <blockquote class="inline_help">
     <p><b>Scrub</b> runs the <i>btrfs scrub</i> program to check file system integrity.</p>
-    <p>If repair is needed you should check the *Correct file system errors* and run a second Scrub pass; this will permit <i>btrfs scrub</i> to fix the file system.</p>
+    <p>If repair is needed you should check the <i>Correct file system errors</i> and run a second Scrub pass; this will permit <i>btrfs scrub</i> to fix the file system.</p>
   </blockquote>
 
   <?else:?>
