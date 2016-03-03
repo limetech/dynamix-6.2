@@ -53,7 +53,7 @@ function generate_email($event, $subject, $description, $importance, $message) {
 
   $subj = "{$ssmtp['Subject']}$subject";
 
-  $headers   = array();
+  $headers   = [];
   $headers[] = "MIME-Version: 1.0";
   $headers[] = "X-Mailer: PHP/".phpversion();
   $headers[] = "Content-type: text/plain; charset=iso-8859-1";
@@ -65,7 +65,7 @@ function generate_email($event, $subject, $description, $importance, $message) {
   }
   $headers[] = "";
 
-  $body      = array();
+  $body      = [];
   $body[]    = "Event: $event";
   $body[]    = "Subject: $subject";
   $body[]    = "Description: $description";
@@ -81,7 +81,7 @@ function generate_email($event, $subject, $description, $importance, $message) {
 }
 
 function safe_filename($string) {
-  $special_chars = array("?", "[", "]", "/", "\\", "=", "<", ">", ":", ";", ",", "'", "\"", "&", "$", "#", "*", "(", ")", "|", "~", "`", "!", "{", "}");
+  $special_chars = ["?", "[", "]", "/", "\\", "=", "<", ">", ":", ";", ",", "'", "\"", "&", "$", "#", "*", "(", ")", "|", "~", "`", "!", "{", "}"];
   $string = trim(str_replace($special_chars, "", $string));
   $string = preg_replace('~[^0-9a-z -_]~i', '', $string);
   $string = preg_replace('~[- ]~i', '_', $string);
@@ -96,8 +96,8 @@ $unread  = "{$notify['path']}/unread";
 $archive = "{$notify['path']}/archive";
 $agents_dir = "/boot/config/plugins/dynamix/notifications/agents";
 if (is_dir($agents_dir)) {
-  $agents = array();
-  foreach (array_diff(scandir($agents_dir), array('.','..')) as $p) {
+  $agents = [];
+  foreach (array_diff(scandir($agents_dir), ['.','..']) as $p) {
     if (is_executable("${agents_dir}/${p}")) $agents[] = "${agents_dir}/${p}";
   }
 } else {
@@ -113,7 +113,7 @@ case 'init':
 case 'smtp-init':
   @mkdir($unread,0755,true);
   @mkdir($archive,0755,true);
-  $conf   = $array;
+  $conf   = [];
   $conf[] = "# Generated";
   $conf[] = "Root={$ssmtp['root']}";
   $domain = strtok($ssmtp['root'],'@');
@@ -194,8 +194,8 @@ case 'add':
   break;
 
 case 'get':
-  $output = array();
-  $json = array();
+  $output = [];
+  $json = [];
   $files = glob("$unread/*.notify", GLOB_NOSORT);
   usort($files, create_function('$a,$b', 'return filemtime($a)-filemtime($b);'));
   $i = 0;

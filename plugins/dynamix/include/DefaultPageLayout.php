@@ -116,10 +116,10 @@ function settab(tab) {
   $.cookie(($.cookie('one')==null?'tab':'one'),tab,{path:'/'});
 <?endswitch;?>
 }
-function done(r) {
-  var path = location.pathname;
-  var x = path.indexOf("/",1);
-  if (x!=-1) path = path.substring(0,x);
+function done(key) {
+  var url = location.pathname.split('/');
+  var path = '/'+url[1];
+  if (key) for (var i=2; i<url.length; i++) if (url[i]==key) break; else path += '/'+url[i];
   $.removeCookie('one',{path:'/'});
   location.replace(path);
 }

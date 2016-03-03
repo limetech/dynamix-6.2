@@ -50,9 +50,9 @@ foreach (glob("/var/log/plugins/*.plg", GLOB_NOSORT) as $plugin_link) {
     $filename = "/tmp/plugins/".basename($URL);
     if (file_exists($filename)) {
       $latest = plugin("version", $filename);
-      if ($latest && strcmp($latest, $version) > 0) {
+      if (strcmp($latest, $version) > 0) {
         $unRAID = plugin("unRAID", $filename);
-        if (empty($unRAID) || strcmp($current['version'], $unRAID) >= 0) {
+        if ($unRAID === false || version_compare($current['version'], $unRAID, '>=')) {
           $version_info .= "<br><span class='red-text'>{$latest}</span>";
           $status_info = make_link("update", basename($plugin_file));
           $changes_file = $filename;

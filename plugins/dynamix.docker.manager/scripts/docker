@@ -1,3 +1,29 @@
-#!/bin/bash
-# Just a wrapper.
-exec /usr/bin/docker "$@"
+#!/usr/bin/php -q
+<?PHP
+/* Copyright 2015-2016, Bergware International.
+ * Copyright 2015-2016, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+echo "<p style='text-align:center'><span class='error label'>Error</span><span class='warn label'>Warning</span><span class='system label'>System</span><span class='array label'>Array</span><span class='login label'>Login</span></p>\n";
+
+require_once '/usr/local/emhttp/webGui/include/ColorCoding.php';
+
+unset($argv[0]);
+$handle = popen('/usr/bin/docker '.implode(' ',$argv),'r');
+while (!feof($handle)) {
+  $line = fgets($handle);
+  $span = "span";
+  foreach ($match as $type) foreach ($type['text'] as $text) if (preg_match("/$text/i",$line)) {$span = "span class='{$type['class']}'"; break 2;}
+  echo "<$span>".htmlentities($line)."</span>";
+  flush();
+}
+pclose($handle);
+?>

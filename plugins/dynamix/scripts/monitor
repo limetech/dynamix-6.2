@@ -12,7 +12,7 @@
  */
 ?>
 <?
-exec("wget -qO /dev/null 127.0.0.1:$(lsof -lbnPi4 -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K[\d]+')/update.htm?cmdStatus=apply");
+exec("wget -qO /dev/null 127.0.0.1:$(lsof -iTCP -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K\d+')/update.htm?cmdStatus=apply");
 
 $disks = parse_ini_file("/var/local/emhttp/disks.ini",true);
 $var   = parse_ini_file("/var/local/emhttp/var.ini");
@@ -329,13 +329,13 @@ if ($retval===0) {
   $item = 'system';
   $name = 'docker';
   $last = isset($saved[$item][$name]) ? $saved[$item][$name] : '';
-  $warn = str_replace("%", "", exec("df /var/lib/docker|grep -Pom1 '\d+%'"));
   if (file_exists("/boot/config/docker.cfg")) {
     $cfg  = parse_ini_file("/boot/config/docker.cfg");
     $info = "Docker utilization of image file {$cfg['DOCKER_IMAGE_FILE']}";
   } else
     $info = "Docker image file not specified";
 
+  $warn = exec("df /var/lib/docker|awk '/^\//{print $5*1}'");
   if ($warn>=$high1 && $high1>0) {
     if ($warn>$last) {
       exec("$notify -e \"Docker critical image disk utilization\" -s \"Alert [$server] - Docker image disk utilization of ${warn}%\" -d \"$info\" -i \"alert\"");

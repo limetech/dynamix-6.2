@@ -145,3 +145,4 @@ $disk_order=($column=='disk'?$order:'A');
   <td colspan=<?=$show_disk?4:3?>><span><?=$objtext?>: <?=$dirtext?>, <?=$filetext?> <?=$totaltext?></span></td>
   </tr>
 </table>
+<input type="button" value="Done" onclick="done('Browse')">
