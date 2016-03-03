@@ -17,7 +17,7 @@ Title="System Devices"
 
 > This displays the output of the `lspci` command.  The numeric identifiers are used to configure PCI pass-through.
 
-<pre><?=shell_exec("lspci")?></pre>
+<pre><?=shell_exec("lspci -nn")?></pre>
 
 **IOMMU Groups**
 
