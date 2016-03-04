@@ -12,17 +12,22 @@
  */
 ?>
 <?
-echo "<p style='text-align:center'><span class='error label'>Error</span><span class='warn label'>Warning</span><span class='system label'>System</span><span class='array label'>Array</span><span class='login label'>Login</span></p>\n";
-
 require_once '/usr/local/emhttp/webGui/include/ColorCoding.php';
 
-unset($argv[0]);
+array_shift($argv);
+$colorize = ($argv[0] == 'logs');
+
+if ($colorize) echo "<p style='text-align:center'><span class='error label'>Error</span><span class='warn label'>Warning</span><span class='system label'>System</span><span class='array label'>Array</span><span class='login label'>Login</span></p>\n";
 $handle = popen('/usr/bin/docker '.implode(' ',$argv),'r');
 while (!feof($handle)) {
   $line = fgets($handle);
-  $span = "span";
-  foreach ($match as $type) foreach ($type['text'] as $text) if (preg_match("/$text/i",$line)) {$span = "span class='{$type['class']}'"; break 2;}
-  echo "<$span>".htmlentities($line)."</span>";
+  if ($colorize) {
+    $span = "span";
+    foreach ($match as $type) foreach ($type['text'] as $text) if (preg_match("/$text/i",$line)) {$span = "span class='{$type['class']}'"; break 2;}
+    echo "<$span>".htmlentities($line)."</span>";
+  } else {
+    echo $line;
+  }
   flush();
 }
 pclose($handle);
