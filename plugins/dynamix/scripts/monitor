@@ -12,7 +12,7 @@
  */
 ?>
 <?
-exec("wget -qO /dev/null 127.0.0.1:$(lsof -iTCP -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K\d+')/update.htm?cmdStatus=apply");
+exec("wget -qO /dev/null 127.0.0.1:$(lsof -i -P -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K\d+')/update.htm?cmdStatus=apply");
 
 $disks = parse_ini_file("/var/local/emhttp/disks.ini",true);
 $var   = parse_ini_file("/var/local/emhttp/var.ini");
