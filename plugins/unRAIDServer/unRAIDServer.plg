@@ -24,6 +24,69 @@
 unRAID Server OS Change Log
 ===========================
 
+Version 6.2-next
+------------------
+- add 10Gb ethernet tuning in /etc/sysctl.conf
+- docker: version 1.10.2
+- avahi: version 0.6.32
+- beep: version 1.3
+- emhttp:
+  - trial key now supports 6 devices, gets time from limetech keyserver
+  - array PQ support (dual-parity)
+  - support unlimited devices
+  - support nvme devices
+  - support USB storage devices assignable to array and cache/pool
+  - system shares handling
+  - libvirt image file handling
+  - no attached device limit for Pro
+  - misc other improvements and bug fixes
+- eudev: 3.1.5a: support NVMe
+- fuse: version 2.9.5
+- irqbalance: version 1.1.0
+- jemalloc: version 4.0.4
+- libestr: version 0.1.10
+- liblogging: version 1.0.5
+- libusb: version 1.0.20
+- libvirt: version 1.3.1
+- linux:
+  - version 4.4.3
+  - default iommu to passthrough (iommu=pt)
+  - kvm: enabled nested virtualization
+- lshw: version B.02.17 svn2588
+- lz4: version r133
+- mozilla-firefox: version 44.0.2
+- netatalk: version 3.1.8
+- numactl: version 2.0.11
+- qemu: version 2.5.0
+- rsyslog: version 8.16.0
+- samba:
+  - version: 4.3.5
+  - enable asynchronous I/O in /etc/samba/smb.conf
+  - remove 'max protocol = SMB3' from /etc/samba/smb.conf (automatic negotiation chooses the appropriate protocol)
+- shfs: for cache-only share, if cannot create on cache, go ahead and create on array
+- spice: version 0.12.6
+- slack:
+  - switch to 'slackware64-current' base packages
+  - stop md/unraid driver cleanly upon system poweroff/reset
+- unraid: allow two failures before terminating in-process parity sync/check
+- unraid: terminate sync/rebuild only if/when all target disks fail
+- webGui:
+  - all fixes and enhancements from 6.1.9
+  - added hardware profile page
+  - added service status labels to docker and vm manager settings pages
+  - docker: revamped docker container edit page (thanks gfjardim!)
+  - docker: now using docker's v2 index/repos
+  - docker: updating a stopped container will keep it stopped upon completion
+  - reverse negative logic in docker and libvirt image fsck confirmation
+  - support user specified network MTU value
+  - vm manager: usb3 controller support, improved usb device sorting and display
+  - vm manager: integrated virtio driver iso downloader
+  - vm manager: support nvidia with hyper-v for windows guests
+  - vm manager: added auto option for vdisk location
+  - misc other improvements and bug fixes
+- xorg-server: version 1.18.1
+- yajl: version 2.1.0
+
 Version 6.2-beta18
 ------------------
 - system shares handling
