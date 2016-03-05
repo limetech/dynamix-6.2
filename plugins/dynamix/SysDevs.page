@@ -35,6 +35,12 @@ Title="System Devices"
 	}
 ?></pre>
 
+**CPU Thread Pairings**
+
+> This displays a list of CPU thread pairings.
+
+<pre><?=str_replace(',', ' <===> ', shell_exec("cat /sys/devices/system/cpu/*/topology/thread_siblings_list | sort -u"))?></pre>
+
 **USB Devices**
 
 > This displays the output of the `lsusb` command.  The numeric identifiers are used to configure PCI pass-through.
