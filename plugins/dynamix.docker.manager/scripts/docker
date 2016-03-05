@@ -18,7 +18,7 @@ array_shift($argv);
 $colorize = ($argv[0] == 'logs');
 
 if ($colorize) echo "<p style='text-align:center'><span class='error label'>Error</span><span class='warn label'>Warning</span><span class='system label'>System</span><span class='array label'>Array</span><span class='login label'>Login</span></p>\n";
-$handle = popen('/usr/bin/docker '.implode(' ',$argv),'r');
+$handle = popen('/usr/bin/docker "'.implode('" "',$argv).'"','r');
 while (!feof($handle)) {
   $line = fgets($handle);
   if ($colorize) {
