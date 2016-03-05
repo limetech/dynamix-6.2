@@ -384,9 +384,6 @@ switch ($action) {
 		}
 
 		if ($boolModded) {
-			// Backup syslinux.cfg
-			copy('/boot/syslinux/syslinux.cfg', '/boot/syslinux/syslinux.cfg-');
-
 			// Write Changes to syslinux.cfg
 			file_put_contents('/boot/syslinux/syslinux.cfg', implode('', $arrSyslinuxCfg));
 		}
@@ -417,9 +414,6 @@ switch ($action) {
 		}
 
 		if ($boolModded) {
-			// Backup syslinux.cfg
-			copy('/boot/syslinux/syslinux.cfg', '/boot/syslinux/syslinux.cfg-');
-
 			// Write Changes to syslinux.cfg
 			file_put_contents('/boot/syslinux/syslinux.cfg', implode('', $arrSyslinuxCfg));
 		}
