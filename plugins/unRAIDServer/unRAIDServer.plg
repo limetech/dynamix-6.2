@@ -9,7 +9,7 @@
 <!ENTITY category  "beta">
 <!ENTITY zip       "https://s3.amazonaws.com/dnld.lime-technology.com/&category;/unRAIDServer-&version;-x86_64.zip">
 <!ENTITY md5       "https://s3.amazonaws.com/dnld.lime-technology.com/&category;/unRAIDServer-&version;-x86_64.md5">
-<!ENTITY files     "bzimage,bzroot,make_bootable.bat,make_bootable_mac,memtest,*.txt">
+<!ENTITY files     "bzimage,bzroot,make_bootable.bat,make_bootable_mac,memtest,*.txt,syslinux/syslinux.cfg-">
 
 <!ENTITY infozip   "infozip-6.0-i486-1.txz">
 ]>
@@ -342,6 +342,10 @@ if [ "${version:0:3}" \&lt; "6.2" ]; then
   fi
   if ! grep -q 'IMAGE_SIZE' /boot/config/domains.cfg &amp;&gt; /dev/null ; then
     echo 'IMAGE_SIZE="1"' &gt;&gt; /boot/config/domains.cfg
+  fi
+  if ! grep -q '/bzroot-gui' /boot/syslinux/syslinux.cfg &amp;&gt; /dev/null ; then
+    sed -i 's|menu title Lime Technology\r|menu title Lime Technology, Inc.\r|g' /boot/syslinux/syslinux.cfg &amp;&gt; /dev/null
+    sed -i 's|label unRAID OS Safe Mode (no plugins)|label unRAID OS GUI Mode\r\n  kernel /bzimage\r\n  append initrd=/bzroot,/bzroot-gui\r\nlabel unRAID OS Safe Mode (no plugins, no GUI)|g' /boot/syslinux/syslinux.cfg &amp;&gt; /dev/null
   fi
 fi
 # when upgrading any version prior to 6.1
