@@ -43,7 +43,7 @@ if (file_exists($realfile)) {
   .advanced{display:none;white-space: nowrap;}
 </style>
 <span class="status" style="margin-top: -10px;"><input type="checkbox" class="advancedview"></span>
-<form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
+<form id="settingsForm" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$docker_cfgfile;?>" />
 
 <dl>
@@ -135,6 +135,9 @@ if (file_exists($realfile)) {
 </dl>
 
 </form>
+<form id="removeForm" method="POST" action="/update.php" target="progressFrame">
+  <input type="hidden" name="#command" value="/plugins/dynamix.docker.manager/scripts/docker_rm" />
+</form>
 <?if (pgrep('docker') !== false):?>
 <div class="advanced">
   <div id="title"><span class="left"><img src="/plugins/dynamix.docker.manager/icons/vcard.png" class="icon">Docker volume info</span></div>
@@ -144,7 +147,7 @@ if (file_exists($realfile)) {
     <dd><?="<pre>".shell_exec("btrfs filesystem show /var/lib/docker")."</pre>"?></dd>
   </dl>
 
-  <form markdown="1" method="POST" action="/update.php" target="progressFrame">
+  <form method="POST" action="/update.php" target="progressFrame">
   <?exec("/usr/local/emhttp/webGui/scripts/btrfs_scrub status /var/lib/docker", $scrub_status, $retval);?>
 
   <dl>
@@ -188,12 +191,9 @@ if (file_exists($realfile)) {
 <script src="/webGui/javascript/jquery.switchbutton.js"></script>
 <script>
 $(function() {
-  //$.ajaxSetup({ async: false });
   $("#applyBtn").click(function(){
     if ($("#deleteCheckbox").length && $("#deleteCheckbox").is(":checked")) {
-      $("#command").val("/plugins/dynamix.docker.manager/scripts/docker_rm");
-      $("#DOCKER_IMAGE_FILE").val("");
-      $("#settingsForm").submit();
+      $("#removeForm").submit();
       return;
     }
 
