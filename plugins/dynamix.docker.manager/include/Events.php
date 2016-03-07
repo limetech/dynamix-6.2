@@ -62,16 +62,28 @@ switch ($action) {
 		if ($container) {
 			$since = array_key_exists('since', $_REQUEST) ? $_REQUEST['since'] : '';
 			$title = array_key_exists('title', $_REQUEST) ? $_REQUEST['title'] : '';
+			require_once '/usr/local/emhttp/webGui/include/ColorCoding.php';
 			if (!$since) {
 				readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
 				echo "<script>document.title = '$title';</script>";
+				echo "<script>addLog('".addslashes("<p style='text-align:center'><span class='error label'>Error</span><span class='warn label'>Warning</span><span class='system label'>System</span><span class='array label'>Array</span><span class='login label'>Login</span></p>")."');</script>";
 				$tail = 350;
 			} else {
 				$tail = null;
 			}
-			$echo = function($s) {
-				$s = addslashes(substr(trim($s), 8));
-				echo "<script>addLog('".$s."');</script>";
+			$echo = function($s) use ($match) {
+				$line = substr(trim($s), 8);
+				$span = "span";
+				foreach ($match as $type) {
+					foreach ($type['text'] as $text) {
+						if (preg_match("/$text/i",$line)) {
+							$span = "span class='{$type['class']}'";
+							break 2;
+						}
+					}
+				}
+
+				echo "<script>addLog('".addslashes("<$span>".htmlentities($line)."</span>")."');</script>";
 				@flush();
 			};
 			$DockerClient->getContainerLog($container, $echo, $tail, $since);
