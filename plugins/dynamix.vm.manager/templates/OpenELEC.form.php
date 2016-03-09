@@ -1026,8 +1026,6 @@ $(function() {
 		}, "json");
 	});
 
-	$("#vmform #btnCancel").click(done);
-
 	var checkDownloadTimer = null;
 	var checkOrInitDownload = function(checkonly) {
 		clearTimeout(checkDownloadTimer);

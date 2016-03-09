@@ -1268,9 +1268,6 @@ $(function() {
 		}, "json");
 	});
 
-	$("#vmform #btnCancel").click(done);
-
-
 	// Fire events below once upon showing page
 	var os = $("#vmform #template_os").val() || 'linux';
 	var os_casted = (os.indexOf('windows') == -1 ? 'other' : 'windows');

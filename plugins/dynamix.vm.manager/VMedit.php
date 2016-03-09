@@ -397,6 +397,10 @@ $(function() {
 		$('.advancedview_panel').fadeOut('fast');
 	}
 
+	$("#vmform #btnCancel").click(function (){
+		done();
+	});
+
 	$('#form_content').fadeIn('fast');
 });
 </script>

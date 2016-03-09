@@ -195,7 +195,5 @@ $(function() {
 			}
 		}, "json");
 	});
-
-	$("#vmform #btnCancel").click(done);
 });
 </script>
