@@ -7,14 +7,13 @@ if [ ! -f $OLD_IMAGE ]; then
     OLD_IMAGE=
   fi
 fi
+cp -rp /etc/libvirt-/* /etc/libvirt
 if [ "$OLD_IMAGE" != "" ]; then
+  rm -r /etc/libvirt/qemu/*
   mount $OLD_IMAGE /etc/libvirt-
-  cp -rp /etc/libvirt-/* /etc/libvirt
-  umount /etc/libvirt-
-  if [ ! -f /etc/libvirt/hooks/qemu ]; then
-    mkdir -p /etc/libvirt/hooks
-    cp -p /etc/libvirt-/hooks/qemu /etc/libvirt/hooks/qemu 
+  cp -rp /etc/libvirt-/qemu/* /etc/libvirt/qemu
+  if [ -f /etc/libvirt-/hooks/qemu ]; then
+    cp -p /etc/libvirt-/hooks/qemu /etc/libvirt/hooks/qemu
   fi
-else
-  cp -rp /etc/libvirt-/* /etc/libvirt
+  umount /etc/libvirt-
 fi
