@@ -1,0 +1,30 @@
+# Numerous always-ignore extensions
+*.diff
+*.err
+*.orig
+*.log
+*.rej
+*.swo
+*.swp
+*.vi
+*~
+*.sass-cache
+
+# OS or Editor folders
+.DS_Store
+Thumbs.db
+.cache
+.project
+.settings
+.tmproj
+*.esproj
+nbproject
+*.sublime-project
+*.sublime-workspace
+sftp-settings.json
+sftp-config.json
+sftp-config-alt.json
+sftp-config-alt2.json
+
+# omit non-dynamix plugins
+unRAIDServer/
