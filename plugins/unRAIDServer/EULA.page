@@ -1,8 +1,0 @@
-Menu="About"
-Title="EULA"
----
-<?PHP
-$file = "/boot/license.txt";
-if (file_exists($file)) echo Markdown(file_get_contents($file)); else echo Markdown("** No license file present! **");
-?>
-<button type="button" onclick="done()">Done</button>
