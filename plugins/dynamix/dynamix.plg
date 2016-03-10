@@ -3,23 +3,19 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "dynamix">
 <!ENTITY author    "Bergware">
-<!ENTITY version   "2016.03.08"> <!-- Intended new version of Dynamix webGUI -->
-<!ENTITY unRAID    "6.2.0-beta">  <!-- Change to new unRAID version when issued together -->
-<!ENTITY pluginURL "https://raw.github.com/limetech/&name;/master/plugins/&name;/&name;.plg">
+<!ENTITY version   "2016.03.10">   <!-- Intended new version of Dynamix webGUI -->
+<!ENTITY unRAID    "6.2.0-beta18"> <!-- Change to new unRAID version when issued together -->
+<!ENTITY pluginURL "https://raw.github.com/limetech/&name;-6.2/master/plugins/&name;/&name;.plg">
 ]>
 
-<!--
-Prevent independent update for now
-         pluginURL="&pluginURL;">
--->
-<PLUGIN name="&name;" author="&author;" version="&version;" unRAID="&unRAID;">
+<PLUGIN name="&name;" author="&author;" version="&version;" unRAID="&unRAID;" pluginURL="&pluginURL;">
 
 <CHANGES>
 Dynamix webGui v&version;
 -------------------------
 
 Please refer to
-**&lt;a href="https://github.com/limetech/dynamix/commits/master" target="_blank">commit history&lt;/a>**
+**&lt;a href="https://github.com/limetech/&name;-6.2/commits/master" target="_blank">commit history&lt;/a>**
 on github.
 </CHANGES>
 
