@@ -143,7 +143,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
         if ($var['sbSyncExit']!=0):?>
           <tr>
           <td></td>
-          <td><input type="button" value="History" onclick="openBox('/webGui/include/ParityHistory.php','Parity Check History',490,430,false)"></td>
+          <td><input type="button" value="History" onclick="openBox('/webGui/include/ParityHistory.php','Parity/Read-Check History',490,430,false)"></td>
           <td>Last check incomplete on <strong><?=my_time($var['sbSynced2']).day_count($var['sbSynced2'])?></strong>, finding <strong><?=$var['sbSyncErrs']?></strong> error<?=$var['sbSyncErrs']==1?'':'s'?>.
             <br><i class="fa fa-dot-circle-o icon"></i><small>Error code: <?=my_error($var['sbSyncExit'])?></small></td>
           </tr>
@@ -151,12 +151,12 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
           <tr>
           <td></td>
           <td></td>
-          <td><em>Parity has not been checked yet.<em></td>
+          <td></td>
           </tr>
 <?      elseif ($var['sbSynced2']==0):?>
           <tr>
           <td></td>
-          <td><input type="button" value="History" onclick="openBox('/webGui/include/ParityHistory.php','Parity Check History',490,430,false)"></td>
+          <td><input type="button" value="History" onclick="openBox('/webGui/include/ParityHistory.php','Parity/Read-Check History',490,430,false)"></td>
 <?        list($entry,$duration,$speed,$status) = explode('|', read_parity_log($var['sbSynced']));
           if ($status==0):?>
             <td>Last checked on <strong><?=my_time($var['sbSynced']).day_count($var['sbSynced'])?></strong>, finding <strong><?=$var['sbSyncErrs']?></strong> error<?=$var['sbSyncErrs']==1?'':'s'?>.
@@ -171,7 +171,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
           $speed = $duration?my_scale($var['mdResyncSize']*1024/$duration,$unit,1)." $unit/sec":'';?>
           <tr>
           <td></td>
-          <td><input type="button" value="History" onclick="openBox('/webGui/include/ParityHistory.php','Parity Check History',490,430,false)"></td>
+          <td><input type="button" value="History" onclick="openBox('/webGui/include/ParityHistory.php','Parity/Read-Check History',490,430,false)"></td>
           <td>Last check completed on <strong><?=my_time($var['sbSynced2']).day_count($var['sbSynced2'])?></strong>, finding <strong><?=$var['sbSyncErrs']?></strong> error<?=$var['sbSyncErrs']==1?'':'s'?>.
             <br><i class="fa fa-clock-o icon"></i><small>Duration: <?=my_check($duration,$speed)?></small></td>
           </tr>
