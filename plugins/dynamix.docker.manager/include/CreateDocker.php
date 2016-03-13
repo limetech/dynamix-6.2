@@ -1185,7 +1185,7 @@ $showAdditionalInfo = '';
     <table class="advanced">
       <tr>
         <td>&nbsp;</td>
-        <td><button type="button" onclick="addConfigPopup();">Add Config</button></td>
+        <td><a href="javascript:addConfigPopup();" style="font-size: 1.2em"><i class="fa fa-plus"></i> Add another Path, Port or Variable</a></td>
       </tr>
     </table>
     <br>
