@@ -1280,7 +1280,7 @@ $(function() {
 		$('#vmform #domain_clock').val('localtime');
 		$("#vmform #domain_machine option").each(function(){
 			if ($(this).val().indexOf('i440fx') != -1) {
-				$('#vmform #domain_machine').val($(this).val());
+				$('#vmform #domain_machine').val($(this).val()).change();
 				return false;
 			}
 		});
@@ -1288,7 +1288,7 @@ $(function() {
 		$('#vmform #domain_clock').val('utc');
 		$("#vmform #domain_machine option").each(function(){
 			if ($(this).val().indexOf('q35') != -1) {
-				$('#vmform #domain_machine').val($(this).val());
+				$('#vmform #domain_machine').val($(this).val()).change();
 				return false;
 			}
 		});
