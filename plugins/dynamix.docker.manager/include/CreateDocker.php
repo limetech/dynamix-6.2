@@ -1194,7 +1194,7 @@ $showAdditionalInfo = '';
         <td>&nbsp;</td>
         <td>
           <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save' ?>">
-          <button class="advanced" type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Dry Run</button>
+          <!--button class="advanced" type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Dry Run</button-->
           <input type="button" value="Cancel" onclick="done()">
         </td>
       </tr>
