@@ -618,6 +618,7 @@ $showAdditionalInfo = '';
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.ui.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<link rel="stylesheet" type="text/css" href="/plugins/dynamix.docker.manager/styles/style-<?=$display['theme'];?>.css">
 <style>
   body{-webkit-overflow-scrolling:touch;}
   .fileTree{width:240px;height:150px;overflow:scroll;position:absolute;z-index:100;display:none;margin-bottom: 100px;}
