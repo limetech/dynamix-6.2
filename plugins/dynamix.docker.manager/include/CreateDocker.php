@@ -326,7 +326,7 @@ function xmlToVar($xml) {
   return $out;
 }
 
-function xmlToCommand($xml) {
+function xmlToCommand($xml, $create_paths=false) {
   global $var;
   $xml           = xmlToVar($xml);
   $cmdName       = (strlen($xml['Name'])) ? '--name="'.$xml['Name'].'"' : "";
@@ -349,6 +349,11 @@ function xmlToCommand($xml) {
     if (!strlen($containerConfig)) continue;
     if ($confType == "path") {
       $Volumes[] = sprintf('"%s":"%s":%s', $hostConfig, $containerConfig, $Mode);
+      if ( ! file_exists($hostConfig) && $create_paths ) {
+        @mkdir($hostConfig, 0777, true);
+        @chown($hostConfig, 99);
+        @chgrp($hostConfig, 100);
+      }
     } elseif ($confType == 'port') {
       # Export ports as variable if Network is set to host
       if (strtolower($xml['Network']) == 'host') {
@@ -415,12 +420,14 @@ function setXmlVal(&$xml, $value, $el, $attr = null, $pos = 0) {
 if (isset($_POST['contName'])) {
 
   $postXML = postToXML($_POST, true);
+  $dry_run = ($_POST['dryRun'] == "true") ? true : false;
+  $create_paths = $dry_run ? false : true;
 
   // Get the command line
-  list($cmd, $Name, $Repository) = xmlToCommand($postXML);
+  list($cmd, $Name, $Repository) = xmlToCommand($postXML, $create_paths);
 
   // Run dry
-  if ($_POST['dryRun'] == "true") {
+  if ($dry_run) {
     echo "<h2>XML</h2>";
     echo "<pre>".htmlentities($postXML)."</pre>";
     echo "<h2>COMMAND:</h2>";
