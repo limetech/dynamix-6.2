@@ -812,6 +812,9 @@ $showAdditionalInfo = '';
           ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
             Opts[e] = getVal(Element, e);
           });
+          if ( ! Opts["Name"] ){
+            Opts["Name"] = makeName(Opts["Type"]);
+          }
           Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
           if (Opts.Required == "true") {
             Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
@@ -908,6 +911,11 @@ $showAdditionalInfo = '';
 
   function removeConfig(num) {
     $('#ConfigNum' + num).fadeOut("fast", function() { $(this).remove(); });
+  }
+
+  function makeName(type) {
+    i = $("#configLocation input[name^='confType'][value='"+type+"']").length + 1;
+    return type + " "+i;
   }
 
   function toggleMode(el) {
