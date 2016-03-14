@@ -22,7 +22,6 @@ $DockerClient    = new DockerClient();
 $DockerUpdate    = new DockerUpdate();
 $DockerTemplates = new DockerTemplates();
 ?>
-<link type="text/css" rel="stylesheet" href="/plugins/dynamix.docker.manager/styles/gh-buttons.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.ui.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/context.standalone.css">
