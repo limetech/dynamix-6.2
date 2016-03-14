@@ -350,9 +350,14 @@ function xmlToCommand($xml) {
     if ($confType == "path") {
       $Volumes[] = sprintf('"%s":"%s":%s', $hostConfig, $containerConfig, $Mode);
     } elseif ($confType == 'port') {
-      $Ports[] = sprintf("%s:%s/%s", $hostConfig, $containerConfig, $Mode);
+      # Export ports as variable if Network is set to host
+      if (strtolower($xml['Network']) == 'host') {
+        $Variables[] = strtoupper(sprintf('"%s_PORT_%s"="%s"', $Mode, $containerConfig, $hostConfig));
+      } else {
+        $Ports[] = sprintf("%s:%s/%s", $hostConfig, $containerConfig, $Mode);
+      }
     } elseif ($confType == "variable") {
-      $Variables[] = sprintf('%s="%s"', $containerConfig, $hostConfig);
+      $Variables[] = sprintf('"%s"="%s"', $containerConfig, $hostConfig);
     } elseif ($confType == "device") {
       $Devices[] = '"'.$containerConfig.'"';
     }
