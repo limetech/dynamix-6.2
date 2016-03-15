@@ -122,12 +122,12 @@ var context = context || (function () {
 
 		$('body').append($menu);
 
-		$(document).on('click', selector, function (e) {
+		$(document).on('click', selector.replace(/(:|\.|\[|\]|,)/g, "\\$1"), function (e) {
 			e.preventDefault();
 			e.stopPropagation();
 
 			$('.dropdown-context:not(.dropdown-context-sub)').hide();
-			$dd = $('#dropdown-' + id);
+			$dd = $('#dropdown-' + id.replace(/(:|\.|\[|\]|,)/g, "\\$1"));
 
 			var place_above = false;
 			if (typeof options.above == 'boolean') {
@@ -151,10 +151,10 @@ var context = context || (function () {
 	}
 
 	function destroyContext(selector) {
-		var id = selector.replace('#', '');
+		selector = selector.replace(/(:|\.|\[|\]|,)/g, "\\$1");
 
 		$(document).off('contextmenu', selector).off('click', '.context-event');
-		$('#dropdown-' + id).remove();
+		$('#dropdown-' + selector.replace('#', '')).remove();
 	}
 
 	return {
