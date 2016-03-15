@@ -299,7 +299,7 @@ if ($var['mdResync']>0) {
     $status = $var['sbSyncExit'];
     $speed = $status==0 ? my_scale($var['mdResyncSize']*1024/$duration,$unit,1)." $unit/s" : "Unavailable";
     list($entry,$duration,$speed,$status) = explode('|', read_write_parity_log($var['sbSynced2'],$duration,$speed,$status));
-    $info = $status==0 ? "Duration: ".my_check($duration, $speed) : $status==-4 ? "Canceled" : "Error code: $status";
+    $info = $status==0 ? "Duration: ".my_check($duration, $speed) : ($status==-4 ? "Canceled" : "Error code: $status");
     $level = ($status==0 && $var['sbSyncErrs']==0) ? "normal" : "warning";
     exec("$notify -e \"unRAID $last\" -s \"Notice [$server] - $last finished ({$var['sbSyncErrs']} errors)\" -d \"$info\" -i \"$level\"");
     unset($saved[$item][$name]);
