@@ -940,7 +940,7 @@ $showAdditionalInfo = '';
     var index = $(el)[0].selectedIndex;
     if (index == 0) {
       // Path
-      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='rw'>Read/Write</option><option value='ro'>Read Only</option></select></dd>");
+      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='rw'>Read/Write</option><option value='rw,shared'>RW/Shared</option></option><option value='ro'>Read Only</option></select></dd>");
       value.bind("click", function(){openFileBrowser(this,$(this).val(), 'sh', true, false);});
     } else if (index == 1) {
       // Port
