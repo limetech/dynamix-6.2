@@ -709,6 +709,8 @@ $showAdditionalInfo = '';
     $('.advanced-switch').change(function () {
       var status = $(this).is(':checked');
       toggleRows('advanced,.hidden', status, 'basic');
+    $("#catSelect").dropdownchecklist("destroy");
+    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', width:300, explicitClose:'...close'});
     });
   });
 
@@ -1005,6 +1007,15 @@ $showAdditionalInfo = '';
       target.val(reset);
     }
   }
+
+  function prepareCategory() {
+    var values = $.map($('#catSelect option') ,function(option) {
+      if ($(option).is(":selected")) {
+        return option.value;
+      }
+    });
+    $("input[name='contCategory']").val(values.join(" "));
+  }
 </script>
 <div id="docker_tabbed" style="display: inline; float: right; margin: -47px 0px;"></div>
 <div id="dialogAddConfig" style="display: none"></div>
@@ -1112,9 +1123,46 @@ $showAdditionalInfo = '';
           </blockquote>
         </td>
       </tr>
-      <tr class="advanced">
+      <tr class="">
         <td>Categories:</td>
-        <td><input type="text" name="contCategory" class="textPath"></td>
+        <td>
+          <input type="hidden" name="contCategory">
+          <select id="catSelect" size="1" multiple="multiple" style="display:none" onchange="prepareCategory();">
+            <optgroup label="Categories">
+              <option value="Backup:">Backup</option>
+              <option value="Cloud:">Cloud</option>
+              <option value="Downloaders:">Downloaders</option>
+              <option value="HomeAutomation:">HomeAutomation</option>
+              <option value="Other:">Other</option>
+              <option value="Productivity:">Productivity</option>
+              <option value="Tools:">Tools</option>
+            </optgroup>
+            <optgroup label="MediaApp">
+              <option value="MediaApp:Video">MediaApp:Video</option>
+              <option value="MediaApp:Music">MediaApp:Music</option>
+              <option value="MediaApp:Books">MediaApp:Books</option>
+              <option value="MediaApp:Photos">MediaApp:Photos</option>
+              <option value="MediaApp:Other">MediaApp:Other</option>
+            </optgroup>
+            <optgroup label="MediaServer">
+              <option value="MediaServer:Video">MediaServer:Video</option>
+              <option value="MediaServer:Music">MediaServer:Music</option>
+              <option value="MediaServer:Books">MediaServer:Books</option>
+              <option value="MediaServer:Photos">MediaServer:Photos</option>
+              <option value="MediaServer:Other">MediaServer:Other</option>
+            </optgroup>
+            <optgroup label="Network">
+              <option value="Network:Web">Network:Web</option>
+              <option value="Network:DNS">Network:DNS</option>
+              <option value="Network:FTP">Network:FTP</option>
+              <option value="Network:Proxy">Network:Proxy</option>
+              <option value="Network:Voip">Network:Voip</option>
+              <option value="Network:Management">Network:Management</option>
+              <option value="Network:Other">Network:Other</option>
+              <option value="Network:Messenger">Network:Messenger</option>
+            </optgroup>
+          </select>
+        </td>
       </tr>
       <tr class="advanced">
         <td>Support Thread:</td>
@@ -1352,6 +1400,12 @@ $showAdditionalInfo = '';
         }
       }
 
+      // Load the confCategory input into the s1 select
+      categories=$("input[name='contCategory']").val().split(" ");
+      for (var i = 0; i < categories.length; i++) {
+        $("#catSelect option[value='"+categories[i]+"']").prop("selected", true);
+      }
+
       // Remove empty description
       if (!Settings.Description.length) {
         $('#canvas').find('#Overview:first').hide();
@@ -1380,6 +1434,8 @@ $showAdditionalInfo = '';
 
     // Add switchButton
     $('.switch-on-off').each(function(){var checked = $(this).is(":checked");$(this).switchButton({labels_placement: "right", checked:checked});});
+    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', width:300, explicitClose:'...close'});
+
   });
 </script>
 <?END:?>
