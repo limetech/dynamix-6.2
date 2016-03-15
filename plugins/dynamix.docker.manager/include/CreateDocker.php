@@ -710,7 +710,7 @@ $showAdditionalInfo = '';
       var status = $(this).is(':checked');
       toggleRows('advanced,.hidden', status, 'basic');
     $("#catSelect").dropdownchecklist("destroy");
-    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', width:300, explicitClose:'...close'});
+    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', maxDropHeight:150, width:300, explicitClose:'...close'});
     });
   });
 
@@ -1123,7 +1123,7 @@ $showAdditionalInfo = '';
           </blockquote>
         </td>
       </tr>
-      <tr class="">
+      <tr class="advanced">
         <td>Categories:</td>
         <td>
           <input type="hidden" name="contCategory">
@@ -1133,9 +1133,9 @@ $showAdditionalInfo = '';
               <option value="Cloud:">Cloud</option>
               <option value="Downloaders:">Downloaders</option>
               <option value="HomeAutomation:">HomeAutomation</option>
-              <option value="Other:">Other</option>
               <option value="Productivity:">Productivity</option>
               <option value="Tools:">Tools</option>
+              <option value="Other:">Other</option>
             </optgroup>
             <optgroup label="MediaApp">
               <option value="MediaApp:Video">MediaApp:Video</option>
@@ -1160,6 +1160,10 @@ $showAdditionalInfo = '';
               <option value="Network:Management">Network:Management</option>
               <option value="Network:Other">Network:Other</option>
               <option value="Network:Messenger">Network:Messenger</option>
+            </optgroup>
+            <optgroup label="Development Status">
+              <option value="Status:Stable">Status:Stable</option>
+              <option value="Status:Beta">Status:Beta</option>
             </optgroup>
           </select>
         </td>
@@ -1434,7 +1438,7 @@ $showAdditionalInfo = '';
 
     // Add switchButton
     $('.switch-on-off').each(function(){var checked = $(this).is(":checked");$(this).switchButton({labels_placement: "right", checked:checked});});
-    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', width:300, explicitClose:'...close'});
+    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', maxDropHeight:150, width:300, explicitClose:'...close'});
 
   });
 </script>

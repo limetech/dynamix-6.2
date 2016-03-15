@@ -58,3 +58,17 @@ jQuery UI adaptation to unRAID's style
   background:-webkit-radial-gradient(#202020,#101010);
   cursor:default;
 }
+.ui-dropdownchecklist, .ui-dropdownchecklist-selector{background:-webkit-radial-gradient(#505050,#303030);background:linear-gradient(#505050,#303030);border:none;box-shadow:0 2px 0 #404040;border-radius:4px;outline:none;cursor:pointer;height:22px;line-height:22px;}
+.ui-dropdownchecklist-group{font-weight:normal;font-style:italic;padding:1px 9px 1px 8px;}
+.ui-dropdownchecklist-selector{border:1px solid #404040;display:inline-block;cursor:pointer;padding:1px 9px 1px 8px;}
+.ui-dropdownchecklist-selector-wrapper{vertical-align:middle;font-size:0;}
+.ui-state-active{background:linear-gradient(#303030,#101010);background:-webkit-radial-gradient(#303030,#101010);}
+.ui-dropdownchecklist-dropcontainer{background:#000000;border:1px solid #404040;}
+.ui-state-disabled{background:linear-gradient(#202020,#101010);background:-webkit-radial-gradient(#202020,#101010);}
+.ui-dropdownchecklist-indent{padding-left:7px;}
+.ui-dropdownchecklist-text{color:#A0A0A0;font-size:11px;}
+.ui-widget-content .ui-state-default{background:#000000;border:0px;}
+
+
+
+
