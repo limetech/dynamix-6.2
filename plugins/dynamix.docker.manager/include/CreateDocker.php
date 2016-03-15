@@ -326,7 +326,7 @@ function xmlToVar($xml) {
   return $out;
 }
 
-function xmlToCommand($xml) {
+function xmlToCommand($xml, $create_paths=false) {
   global $var;
   $xml           = xmlToVar($xml);
   $cmdName       = (strlen($xml['Name'])) ? '--name="'.$xml['Name'].'"' : "";
@@ -349,10 +349,20 @@ function xmlToCommand($xml) {
     if (!strlen($containerConfig)) continue;
     if ($confType == "path") {
       $Volumes[] = sprintf('"%s":"%s":%s', $hostConfig, $containerConfig, $Mode);
+      if ( ! file_exists($hostConfig) && $create_paths ) {
+        @mkdir($hostConfig, 0777, true);
+        @chown($hostConfig, 99);
+        @chgrp($hostConfig, 100);
+      }
     } elseif ($confType == 'port') {
-      $Ports[] = sprintf("%s:%s/%s", $hostConfig, $containerConfig, $Mode);
+      # Export ports as variable if Network is set to host
+      if (strtolower($xml['Network']) == 'host') {
+        $Variables[] = strtoupper(sprintf('"%s_PORT_%s"="%s"', $Mode, $containerConfig, $hostConfig));
+      } else {
+        $Ports[] = sprintf("%s:%s/%s", $hostConfig, $containerConfig, $Mode);
+      }
     } elseif ($confType == "variable") {
-      $Variables[] = sprintf('%s="%s"', $containerConfig, $hostConfig);
+      $Variables[] = sprintf('"%s"="%s"', $containerConfig, $hostConfig);
     } elseif ($confType == "device") {
       $Devices[] = '"'.$containerConfig.'"';
     }
@@ -410,12 +420,14 @@ function setXmlVal(&$xml, $value, $el, $attr = null, $pos = 0) {
 if (isset($_POST['contName'])) {
 
   $postXML = postToXML($_POST, true);
+  $dry_run = ($_POST['dryRun'] == "true") ? true : false;
+  $create_paths = $dry_run ? false : true;
 
   // Get the command line
-  list($cmd, $Name, $Repository) = xmlToCommand($postXML);
+  list($cmd, $Name, $Repository) = xmlToCommand($postXML, $create_paths);
 
   // Run dry
-  if ($_POST['dryRun'] == "true") {
+  if ($dry_run) {
     echo "<h2>XML</h2>";
     echo "<pre>".htmlentities($postXML)."</pre>";
     echo "<h2>COMMAND:</h2>";
@@ -606,6 +618,7 @@ $showAdditionalInfo = '';
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.ui.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
+<link rel="stylesheet" type="text/css" href="/plugins/dynamix.docker.manager/styles/style-<?=$display['theme'];?>.css">
 <style>
   body{-webkit-overflow-scrolling:touch;}
   .fileTree{width:240px;height:150px;overflow:scroll;position:absolute;z-index:100;display:none;margin-bottom: 100px;}
@@ -799,6 +812,9 @@ $showAdditionalInfo = '';
           ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
             Opts[e] = getVal(Element, e);
           });
+          if ( ! Opts["Name"] ){
+            Opts["Name"] = makeName(Opts["Type"]);
+          }
           Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
           if (Opts.Required == "true") {
             Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
@@ -895,6 +911,11 @@ $showAdditionalInfo = '';
 
   function removeConfig(num) {
     $('#ConfigNum' + num).fadeOut("fast", function() { $(this).remove(); });
+  }
+
+  function makeName(type) {
+    i = $("#configLocation input[name^='confType'][value='"+type+"']").length + 1;
+    return type + " "+i;
   }
 
   function toggleMode(el) {
