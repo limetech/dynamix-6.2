@@ -269,7 +269,7 @@ case 'array':
     foreach ($disks as $disk) {if ($disk['type']=='Data') array_offline($disk);}
     echo "<tr class='tr_last'><td><img src='/webGui/images/sum.png' class='icon'>Slots:</td><td colspan='9'>".array_slots()."</td><td></td></tr>";
   } else {
-    foreach ($disks as $disk) {if ($disk['type']=='Parity') array_online($disk);}
+    foreach ($disks as $disk) {if ($disk['type']=='Parity' && $disk['status']!='DISK_NP_DSBL') array_online($disk);}
     foreach ($disks as $disk) {if ($disk['type']=='Data') array_online($disk);}
     if ($display['total']) show_totals('Array of '.my_word($var['mdNumDisks']).' devices');
   }
