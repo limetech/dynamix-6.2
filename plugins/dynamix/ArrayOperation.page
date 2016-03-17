@@ -474,11 +474,6 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
 <?if ($var['fsState']=="Stopped"):?>
   <tr>
   <td></td>
-  <td><input type="submit" name="cmdIdentify" value="Identify"></td>
-  <td><strong>Identify</strong> will briefly read from each disk in order.</td>
-  </tr>
-  <tr>
-  <td></td>
   <?if ($confirm['down']):?>
    <td><input type="submit" name="reboot" value="Reboot" disabled></td>
    <td><strong>Reboot</strong> will activate a system reset.
