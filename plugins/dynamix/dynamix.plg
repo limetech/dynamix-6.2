@@ -3,8 +3,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "dynamix">
 <!ENTITY author    "Bergware">
-<!ENTITY version   "2016.03.11">   <!-- Intended new version of Dynamix webGUI -->
-<!ENTITY unRAID    "6.2.0-beta18"> <!-- Change to new unRAID version when issued together -->
+<!ENTITY version   "2016.03.17">   <!-- Intended new version of Dynamix webGUI -->
+<!ENTITY unRAID    "6.2.0-beta19"> <!-- Change to new unRAID version when issued together -->
 <!ENTITY pluginURL "https://raw.github.com/limetech/&name;-6.2/master/plugins/&name;/&name;.plg">
 ]>
 
