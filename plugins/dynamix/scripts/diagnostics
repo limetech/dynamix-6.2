@@ -72,6 +72,7 @@ exec("lspci -knn 2>/dev/null|todos >/$diag/system/lspci.txt");
 exec("free -mt 2>/dev/null|todos >/$diag/system/memory.txt");
 exec("ps -ef 2>/dev/null|todos >/$diag/system/ps.txt");
 exec("lsof -Pni 2>/dev/null|todos >/$diag/system/lsof.txt");
+exec("lsmod 2>/dev/null|todos >/$diag/system/lsmod.txt");
 exec("ifconfig -s 2>/dev/null|grep -Po '^(eth|bond)[0-9]+'", $ports);
 // create ethernet information information (suppress errors)
 foreach ($ports as $port) {
