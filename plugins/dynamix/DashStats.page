@@ -2,8 +2,8 @@ Menu="Dashboard"
 Title="Statistics"
 ---
 <?PHP
-/* Copyright 2015, Bergware International.
- * Copyright 2015, Lime Technology
+/* Copyright 2015-2016, Bergware International.
+ * Copyright 2015-2016, Lime Technology
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -15,7 +15,7 @@ Title="Statistics"
 ?>
 
 <?
-$cores = exec('nproc');
+exec('cat /sys/devices/system/cpu/*/topology/thread_siblings_list|sort -nu', $cores);
 $fans  = exec("sensors -uA 2>/dev/null|grep -c 'fan[0-9]_input'");
 $group = $var['shareSMBEnabled']=='yes' | $var['shareAFPEnabled']=='yes' | $var['shareNFSEnabled']=='yes';
 $names = "";
@@ -153,16 +153,19 @@ echo "<td>Array Status</td>".implode('',$row0);
 </td></tr><tr><td colspan='4'><center>Load Statistics</center></td></tr></thead>
 <tbody>
 <tr class='wide'><td>CPU utilization</td><td colspan='3'><div class='usage-disk sys'><span id='sys0' style='width:0'></span></div></td></tr>
-<?if ($cores>2):?><tr><td rowspan='<?=ceil($cores/2)?>'><?else:?><tr class='wide'><td><?endif;?>CPU speed</td>
+<?if (count($cores)>1):?><tr><td rowspan='<?=count($cores)?>'><?else:?><tr class='wide'><td><?endif;?>CPU speed</td>
 <?
-for ($c=0; $c<$cores; $c+=2):
-  if ($c) echo "<tr>";
-  if ($c+1<$cores)
-    echo "<td>core ".($c)." / ".($c+1)."</td><td class='blue' id='cpu{$c}'>"."</td><td class='blue' id='cpu".($c+1)."'></td>";
+$tr = false;
+foreach ($cores as $pair):
+  list($core1, $core2) = explode(',',$pair);
+  if ($tr) echo "<tr>";
+  if ($core2>=0)
+    echo "<td>core $core1 / $core2</td><td class='blue' id='cpu{$core1}'>"."</td><td class='blue' id='cpu{$core2}'></td>";
   else
-    echo "<td>core ".($c)."</td><td colspan='2' class='blue' id='cpu{$c}'>";
+    echo "<td>core $core1</td><td colspan='2' class='blue' id='cpu{$core1}'>";
   echo "</tr>";
-endfor;
+  $tr = true;
+endforeach;
 if ($fans>0):
   echo $fans>2 ? "<tr><td rowspan='".ceil($fans/2)."'>" : "<tr class='wide'><td>";
   echo "FAN speed</td>";
