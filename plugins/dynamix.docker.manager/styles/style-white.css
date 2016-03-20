@@ -1,0 +1,50 @@
+.ui-dropdownchecklist .ui-state-default {
+  background:-webkit-radial-gradient(#F4F4F4,#FCFCFC);
+  background:linear-gradient(#F4F4F4,#FCFCFC);
+  border:none;
+  box-shadow:0 2px 0 #E0E0E0,inset 0 -1px #FFFFFF;
+  border-radius:4px;
+  outline:none;
+  cursor:pointer;
+  height:22px;
+  line-height:22px;
+}
+.ui-dropdownchecklist-group {
+  font-weight:normal;
+  font-style:italic;
+  padding:1px 9px 1px 8px;
+}
+.ui-dropdownchecklist-selector {
+  border:1px solid #E0E0E0;
+  display:inline-block;
+  cursor:pointer;
+  padding:1px 9px 1px 8px;
+}
+.ui-dropdownchecklist-selector-wrapper {
+  vertical-align:middle;
+  font-size:0;
+}
+.ui-state-active {
+  background:linear-gradient(#E8E8E8,#F8F8F8);
+  background:-webkit-radial-gradient(#E8E8E8,#F8F8F8);
+}
+.ui-dropdownchecklist-dropcontainer {
+  background:#FFFFFF;
+  border:1px solid #E0E0E0;
+}
+.ui-state-disabled {
+  background:linear-gradient(#F0F0F0,#F8F8F8);
+  background:-webkit-radial-gradient(#F0F0F0,#F8F8F8);
+}
+.ui-dropdownchecklist-indent {
+  padding-left:7px;
+}
+.ui-dropdownchecklist-text {
+  color:#303030;
+  font-size:11px;
+}
+.ui-dropdownchecklist .ui-widget-content .ui-state-default {
+  background:#FFFFFF;
+  border:0px;
+}
+
