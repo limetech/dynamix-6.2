@@ -248,7 +248,20 @@ function xmlToVar($xml) {
     foreach ($xml->Config as $config) {
       $c = [];
       $c['Value'] = strlen(xml_decode($config)) ? xml_decode($config) : xml_decode($config['Default']);
-      foreach ($config->attributes() as $key => $value) $c[$key] = xml_decode(xml_decode($value));
+      foreach ($config->attributes() as $key => $value) {
+        $value = xml_decode($value);
+        if ($key == 'Mode') {
+          switch (xml_decode($config['Type'])) {
+            case 'Path':
+              $value = (strtolower($value) == 'rw' || strtolower($value) == 'rw,slave' || strtolower($value) == 'ro') ? $value : "rw";
+              break;
+            case 'Port':
+              $value = (strtolower($value) == 'tcp' || strtolower($value) == 'udp' ) ? $value : "tcp";
+              break;
+          }
+        }
+        $c[$key] = $value;
+      }
       $out['Config'][] = $c;
     }
   }
@@ -272,7 +285,7 @@ function xmlToVar($xml) {
           'Target'      => xml_decode($port->ContainerPort),
           'Default'     => xml_decode($port->HostPort),
           'Value'       => xml_decode($port->HostPort),
-          'Mode'        => xml_decode($port->Protocol),
+          'Mode'        => xml_decode($port->Protocol) ? xml_decode($port->Protocol) : "tcp",
           'Description' => '',
           'Type'        => 'Port',
           'Display'     => 'always',
@@ -292,7 +305,7 @@ function xmlToVar($xml) {
           'Target'      => xml_decode($vol->ContainerDir),
           'Default'     => xml_decode($vol->HostDir),
           'Value'       => xml_decode($vol->HostDir),
-          'Mode'        => xml_decode($vol->Mode),
+          'Mode'        => xml_decode($vol->Mode) ? xml_decode($vol->Mode) : "rw",
           'Description' => '',
           'Type'        => 'Path',
           'Display'     => 'always',
