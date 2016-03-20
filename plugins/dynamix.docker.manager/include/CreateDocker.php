@@ -178,8 +178,10 @@ function postToXML($post, $setOwnership = false) {
   $xml->Overview           = xml_encode($post['contOverview']);
   $xml->Category           = xml_encode($post['contCategory']);
   $xml->WebUI              = xml_encode($post['contWebUI']);
+  $xml->TemplateURL        = xml_encode($post['contTemplateURL']);
   $xml->Icon               = xml_encode($post['contIcon']);
   $xml->ExtraParams        = xml_encode($post['contExtraParams']);
+  $xml->DateInstalled      = xml_encode(strtotime("now"));
 
   # V1 compatibility
   $xml->Description      = xml_encode($post['contOverview']);
@@ -240,6 +242,7 @@ function xmlToVar($xml) {
   $out['Overview']    = stripslashes(xml_decode($xml->Overview));
   $out['Category']    = xml_decode($xml->Category);
   $out['WebUI']       = xml_decode($xml->WebUI);
+  $out['TemplateURL'] = xml_decode($xml->TemplateURL);
   $out['Icon']        = xml_decode($xml->Icon);
   $out['ExtraParams'] = xml_decode($xml->ExtraParams);
 
@@ -1200,6 +1203,17 @@ $showAdditionalInfo = '';
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>The path to the container's repository location on the Docker Hub.</p>
+          </blockquote>
+        </td>
+      </tr>
+      <tr class="advanced">
+        <td>Template URL:</td>
+        <td><input type="text" name="contTemplateURL" class="textPath"></td>
+      </tr>
+      <tr class="<?=$authoring;?>">
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>This URL is used to keep the template updated.</p>
           </blockquote>
         </td>
       </tr>

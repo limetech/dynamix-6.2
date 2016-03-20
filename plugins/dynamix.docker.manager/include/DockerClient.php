@@ -65,10 +65,12 @@ class DockerTemplates {
 		if ($this->verbose) echo $m."\n";
 	}
 
+
 	public function download_url($url, $path = "", $bg = false) {
 		exec("curl --max-time 60 --silent --insecure --location --fail ".($path ? " -o ".escapeshellarg($path) : "")." ".escapeshellarg($url)." ".($bg ? ">/dev/null 2>&1 &" : "2>/dev/null"), $out, $exit_code);
 		return ($exit_code === 0) ? implode("\n", $out) : false;
 	}
+
 
 	public function listDir($root, $ext = null) {
 		$iter = new RecursiveIteratorIterator(
@@ -331,6 +333,10 @@ class DockerTemplates {
 				$tmp['template'] = $this->getUserTemplate($name);
 			}
 
+			if ($reload) {
+				$DockerUpdate->updateUserTemplate($ct);
+			}
+
 			$this->debug("\n$name");
 			foreach ($tmp as $c => $d) $this->debug(sprintf("   %-10s: %s", $c, $d));
 			$new_info[$name] = $tmp;
@@ -376,6 +382,16 @@ class DockerUpdate{
 
 	private function debug($m) {
 		if ($this->verbose) echo $m."\n";
+	}
+
+
+	private function xml_encode($string) {
+	  return htmlspecialchars($string, ENT_XML1, 'UTF-8');
+	}
+
+
+	private function xml_decode($string) {
+	  return strval(html_entity_decode($string, ENT_XML1, 'UTF-8'));
 	}
 
 
@@ -502,6 +518,86 @@ class DockerUpdate{
 		];
 		$this->debug("Update status: Image='${image}', Local='${version}', Remote='${version}'");
 		file_put_contents($update_file, json_encode($updateStatus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+	}
+
+
+	public function updateUserTemplate($Container) {
+		$changed = false;
+		$DockerTemplates = new DockerTemplates();
+		$validElements = array( 0 => "Support",
+														1 => "Overview",
+														2 => "Category",
+														3 => "WebUI",
+														4 => "Icon");
+
+		$validAttributes = array( 0 => "Name",
+                              1 => "Default",
+                              2 => "Description",
+                              3 => "Display",
+                              4 => "Required",
+                              5 => "Mask");
+		// Get user template file and abort if fail
+		if ( ! $file = $DockerTemplates->getUserTemplate($Container) ) return null;
+		// Load user template XML, verify if it's valid and abort if doesn't have TemplateURL element
+		$template = @simplexml_load_file($file);
+	  if ( $template && ! isset($template->TemplateURL) ) return null;
+	  // Load a user template DOM for import remote template new Config
+		$dom_local = dom_import_simplexml($template);
+		// Try to download the remote template and abort if it fail.
+	  if (! $dl = $this->download_url($this->xml_decode($template->TemplateURL))) return null;
+	  // Try to load the downloaded template and abort if fail.
+	  if (! $remote_template = @simplexml_load_string($dl)) return null;
+	  // Loop through remote template elements and compare them to local ones
+	  foreach ($remote_template->children() as $name => $remote_element) {
+			$name   = $this->xml_decode($name);
+			// Compare through validElements
+	  	if ($name != "Config" && in_array($name, $validElements)) {
+				$local_element = $template->xpath("//$name")[0];
+				$rvalue  = $this->xml_decode($remote_element);
+				$value   = $this->xml_decode($local_element);
+				// Values changed, updating.
+		  	if ( $value != $rvalue) {
+		  		$local_element->{0} = $this->xml_encode($rvalue);
+		  		$changed = true;
+		  	}
+		  // Compare atributes on Config if they are in the validAttributes list
+	  	} else if ($name == "Config"){
+				$type   = $this->xml_decode($remote_element['Type']);
+				$target = $this->xml_decode($remote_element['Target']);
+	  		if ($type == "Port") {
+	  			$mode = $this->xml_decode($remote_element['Mode']);
+		  		$local_element = $template->xpath("//Config[@Type='$type'][@Target='$target'][@Mode='$mode']")[0];
+	  		} else {
+		  		$local_element = $template->xpath("//Config[@Type='$type'][@Target='$target']")[0];
+	  		}
+	  		// If the local template already have the pertinent Config element, loop through it's attributes and update those on validAttributes
+	  		if (! empty($local_element)) {
+		  		foreach ($remote_element->attributes() as $key => $value) {
+		  			$rvalue  = $this->xml_decode($value);
+		  			$value = $this->xml_decode($local_element[$key]);
+		  			// Values changed, updating.
+		  			if ($value != $rvalue && in_array($key, $validAttributes)) {
+		  				$local_element[$key] = $this->xml_encode($rvalue);
+		  				$changed = true;
+		  			}
+		  		}
+  			// New Config element, add it to the local template
+	  		} else {
+					$dom_remote  = dom_import_simplexml($remote_element);
+					$new_element = $dom_local->ownerDocument->importNode($dom_remote, TRUE);
+					$dom_local->appendChild($new_element);
+		  		$changed = true;
+	  		}
+	  	}
+	  }
+	  if ($changed) {
+	  	// Format output and save to file if there were any commited changes
+		  $dom = new DOMDocument('1.0');
+		  $dom->preserveWhiteSpace = false;
+		  $dom->formatOutput = true;
+		  $dom->loadXML($template->asXML());
+		  file_put_contents($file, $dom->saveXML());
+	  }
 	}
 }
 
