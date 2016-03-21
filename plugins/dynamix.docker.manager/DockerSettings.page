@@ -129,6 +129,21 @@ if (file_exists($realfile)) {
   </blockquote-->
 </div>
 
+<div class="advanced">
+  <dl>
+    <dt>Template Authoring Mode:</dt>
+    <dd>
+    <select id="DOCKER_AUTHORING_MODE" name="DOCKER_AUTHORING_MODE" class="narrow">
+    <?= mk_option($dockercfg['DOCKER_AUTHORING_MODE'], 'no', 'No'); ?>
+    <?= mk_option($dockercfg['DOCKER_AUTHORING_MODE'], 'yes', 'Yes'); ?>
+    </select>
+    </dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p>If set to <b>Yes</b>, when creating/editing containers the interface will be present with some extra fields related to template authoring.</p>
+  </blockquote>
+</div>
+
 <dl>
   <dt>&nbsp;</dt>
   <dd><input id="applyBtn" type="button" value="Apply"><input type="button" value="Done" onclick="done()"></dd>

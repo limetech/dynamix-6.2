@@ -178,8 +178,10 @@ function postToXML($post, $setOwnership = false) {
   $xml->Overview           = xml_encode($post['contOverview']);
   $xml->Category           = xml_encode($post['contCategory']);
   $xml->WebUI              = xml_encode($post['contWebUI']);
+  $xml->TemplateURL        = xml_encode($post['contTemplateURL']);
   $xml->Icon               = xml_encode($post['contIcon']);
   $xml->ExtraParams        = xml_encode($post['contExtraParams']);
+  $xml->DateInstalled      = xml_encode(strtotime("now"));
 
   # V1 compatibility
   $xml->Description      = xml_encode($post['contOverview']);
@@ -240,6 +242,7 @@ function xmlToVar($xml) {
   $out['Overview']    = stripslashes(xml_decode($xml->Overview));
   $out['Category']    = xml_decode($xml->Category);
   $out['WebUI']       = xml_decode($xml->WebUI);
+  $out['TemplateURL'] = xml_decode($xml->TemplateURL);
   $out['Icon']        = xml_decode($xml->Icon);
   $out['ExtraParams'] = xml_decode($xml->ExtraParams);
 
@@ -248,7 +251,20 @@ function xmlToVar($xml) {
     foreach ($xml->Config as $config) {
       $c = [];
       $c['Value'] = strlen(xml_decode($config)) ? xml_decode($config) : xml_decode($config['Default']);
-      foreach ($config->attributes() as $key => $value) $c[$key] = xml_decode(xml_decode($value));
+      foreach ($config->attributes() as $key => $value) {
+        $value = xml_decode($value);
+        if ($key == 'Mode') {
+          switch (xml_decode($config['Type'])) {
+            case 'Path':
+              $value = (strtolower($value) == 'rw' || strtolower($value) == 'rw,slave' || strtolower($value) == 'ro') ? $value : "rw";
+              break;
+            case 'Port':
+              $value = (strtolower($value) == 'tcp' || strtolower($value) == 'udp' ) ? $value : "tcp";
+              break;
+          }
+        }
+        $c[$key] = $value;
+      }
       $out['Config'][] = $c;
     }
   }
@@ -272,7 +288,7 @@ function xmlToVar($xml) {
           'Target'      => xml_decode($port->ContainerPort),
           'Default'     => xml_decode($port->HostPort),
           'Value'       => xml_decode($port->HostPort),
-          'Mode'        => xml_decode($port->Protocol),
+          'Mode'        => xml_decode($port->Protocol) ? xml_decode($port->Protocol) : "tcp",
           'Description' => '',
           'Type'        => 'Port',
           'Display'     => 'always',
@@ -292,7 +308,7 @@ function xmlToVar($xml) {
           'Target'      => xml_decode($vol->ContainerDir),
           'Default'     => xml_decode($vol->HostDir),
           'Value'       => xml_decode($vol->HostDir),
-          'Mode'        => xml_decode($vol->Mode),
+          'Mode'        => xml_decode($vol->Mode) ? xml_decode($vol->Mode) : "rw",
           'Description' => '',
           'Type'        => 'Path',
           'Display'     => 'always',
@@ -426,24 +442,8 @@ if (isset($_POST['contName'])) {
   // Get the command line
   list($cmd, $Name, $Repository) = xmlToCommand($postXML, $create_paths);
 
-  // Run dry
-  if ($dry_run) {
-    echo "<h2>XML</h2>";
-    echo "<pre>".htmlentities($postXML)."</pre>";
-    echo "<h2>COMMAND:</h2>";
-    echo "<pre>".htmlentities($cmd)."</pre>";
-    echo '<center><input type="button" value="Done" onclick="done()"></center><br>';
-    goto END;
-  }
-
   readfile("/usr/local/emhttp/plugins/dynamix.docker.manager/log.htm");
   @flush();
-
-  // Will only pull image if it's absent
-  if (!$DockerClient->doesImageExist($Repository)) {
-    // Pull image
-    pullImage($Name, $Repository);
-  }
 
   // Saving the generated configuration file.
   $userTmplDir = $dockerManPaths['templates-user'];
@@ -453,6 +453,23 @@ if (isset($_POST['contName'])) {
   if (!empty($Name)) {
     $filename = sprintf('%s/my-%s.xml', $userTmplDir, $Name);
     file_put_contents($filename, $postXML);
+  }
+
+  // Run dry
+  if ($dry_run) {
+    echo "<h2>XML</h2>";
+    echo "<pre>".htmlentities($postXML)."</pre>";
+    echo "<h2>COMMAND:</h2>";
+    echo "<pre>".htmlentities($cmd)."</pre>";
+    echo "<center><input type='button' value='Back' onclick='window.location=window.location.pathname+window.location.hash+\"?xmlTemplate=edit:${filename}\"'>";
+    echo "<input type='button' value='Done' onclick='done()'></center><br>";
+    goto END;
+  }
+
+  // Will only pull image if it's absent
+  if (!$DockerClient->doesImageExist($Repository)) {
+    // Pull image
+    pullImage($Name, $Repository);
   }
 
   $startContainer = true;
@@ -612,8 +629,10 @@ if ($_GET['xmlTemplate']) {
     echo "<script>var Settings=".json_encode($xml).";</script>";
   }
 }
-
+$authoringMode = ($dockercfg["DOCKER_AUTHORING_MODE"] == "yes") ? true : false;
+$authoring     = $authoringMode ? 'advanced' : 'noshow';
 $showAdditionalInfo = '';
+
 ?>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.ui.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
@@ -656,6 +675,7 @@ $showAdditionalInfo = '';
   .toggleMode:hover,.toggleMode:focus,.toggleMode:active,.toggleMode .active{color:#625D5D;}
   .basic{display:table-row;}
   .advanced{display:none;}
+  .noshow{display: none;}
   .required:after {content: " * ";color: #E80000}
 
   .switch-wrapper {
@@ -685,6 +705,9 @@ $showAdditionalInfo = '';
   .label-warning{background-color:#f89406;}
   .label-success{background-color:#468847;}
   .label-important{background-color:#b94a48;}
+  .selectVariable{
+    width: 320px;
+  }
 </style>
 <script src="/webGui/javascript/jquery.switchbutton.js"></script>
 <script src="/webGui/javascript/jquery.filetree.js"></script>
@@ -708,9 +731,10 @@ $showAdditionalInfo = '';
     $('.advanced-switch').switchButton({ labels_placement: "left", on_label: 'Advanced View', off_label: 'Basic View'});
     $('.advanced-switch').change(function () {
       var status = $(this).is(':checked');
-      toggleRows('advanced,.hidden', status, 'basic');
-    $("#catSelect").dropdownchecklist("destroy");
-    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', maxDropHeight:150, width:300, explicitClose:'...close'});
+      toggleRows('advanced', status, 'basic');
+      load_contOverview();
+      $("#catSelect").dropdownchecklist("destroy");
+      $("#catSelect").dropdownchecklist({emptyText:'Select categories...', maxDropHeight:200, width:300, explicitClose:'...close'});
     });
   });
 
@@ -732,7 +756,11 @@ $showAdditionalInfo = '';
       });
     };
   }
-
+  if (!String.prototype.replaceAll) {
+    String.prototype.replaceAll = function(str1, str2, ignore) {
+      return this.replace(new RegExp(str1.replace(/([\/\,\!\\\^\$\{\}\[\]\(\)\.\*\+\?\|\<\>\-\&])/g,"\\$&"),(ignore?"gi":"g")),(typeof(str2)=="string")?str2.replace(/\$/g,"$$$$"):str2);
+    };
+  }
   // Create config nodes using templateDisplayConfig
   function makeConfig(opts) {
     confNum += 1;
@@ -750,7 +778,7 @@ $showAdditionalInfo = '';
                                  opts.Buttons,
                                  (opts.Required == "true") ? "required" : ""
                                  );
-    newConfig = "<div id='ConfigNum"+opts.Number+"' class='"+opts.Display+"'>"+newConfig+"</div>";
+    newConfig = "<div id='ConfigNum"+opts.Number+"' class='config_"+Opts.Display+"'' >"+newConfig+"</div>";
     newConfig = $($.parseHTML(newConfig));
     value     = newConfig.find("input[name='confValue[]']");
     if (opts.Type == "Path") {
@@ -759,7 +787,7 @@ $showAdditionalInfo = '';
       value.attr("onclick", "openFileBrowser(this,$(this).val(),'',false,true);")
     } else if (opts.Type == "Variable" && opts.Default.split("|").length > 1) {
       var valueOpts = opts.Default.split("|");
-      var newValue = "<select name='confValue[]' class='textPath' default='"+valueOpts[0]+"'>";
+      var newValue = "<select name='confValue[]' class='selectVariable' default='"+valueOpts[0]+"'>";
       for (var i = 0; i < valueOpts.length; i++) {
         newValue += "<option value='"+valueOpts[i]+"' "+(opts.Value == valueOpts[i] ? "selected" : "")+">"+valueOpts[i]+"</option>";
       }
@@ -886,17 +914,26 @@ $showAdditionalInfo = '';
             Opts[e] = getVal(Element, e);
           });
           Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
-          if (Opts.Required == "true") {
+          if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
             Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+num+")'> Edit</button> ";
             Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button></span>";
           } else {
             Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+num+")'> Edit</button> ";
             Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button>";
           }
-          Opts.Number      = confNum;
+          Opts.Number      = num;
           newConf = makeConfig(Opts);
-          config.removeClass("always advanced hidden").addClass(Opts.Display);
-          $("#ConfigNum" + num).html(newConf);
+          if (config.hasClass("config_"+Opts.Display)) {
+            config.html(newConf);
+            config.removeClass("config_always config_always-hide config_advanced config_advanced-hide").addClass("config_"+Opts.Display);
+          } else {
+            config.remove();
+            if (Opts.Display == 'advanced' || Opts.Display == 'advanced-hide') {
+              $("#configLocationAdvanced").append(newConf);
+            } else {
+              $("#configLocation").append(newConf);
+            }            
+          }
           reloadTriggers();
         },
         Cancel: function() {
@@ -1123,7 +1160,7 @@ $showAdditionalInfo = '';
           </blockquote>
         </td>
       </tr>
-      <tr class="advanced">
+      <tr class="<?=$authoring;?>">
         <td>Categories:</td>
         <td>
           <input type="hidden" name="contCategory">
@@ -1168,11 +1205,11 @@ $showAdditionalInfo = '';
           </select>
         </td>
       </tr>
-      <tr class="advanced">
+      <tr class="<?=$authoring;?>">
         <td>Support Thread:</td>
         <td><input type="text" name="contSupport" class="textPath"></td>
       </tr>
-      <tr class="advanced">
+      <tr class="<?=$authoring;?>">
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>Link to a support thread on Lime-Technology's forum.</p>
@@ -1187,6 +1224,17 @@ $showAdditionalInfo = '';
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>The path to the container's repository location on the Docker Hub.</p>
+          </blockquote>
+        </td>
+      </tr>
+      <tr class="<?=$authoring;?>">
+        <td>Template URL:</td>
+        <td><input type="text" name="contTemplateURL" class="textPath"></td>
+      </tr>
+      <tr class="<?=$authoring;?>">
+        <td colspan="2" class="inline_help">
+          <blockquote class="inline_help">
+            <p>This URL is used to keep the template updated.</p>
           </blockquote>
         </td>
       </tr>
@@ -1258,6 +1306,13 @@ $showAdditionalInfo = '';
     <table>
       <tr>
         <td>&nbsp;</td>
+        <td id="readmore_toggle" class="readmore_collapsed"><a onclick="toggleReadmore();" style="font-size: 1.2em;cursor: pointer;"><i class="fa fa-chevron-down"></i> Show advanced settings ...</a></td>
+      </tr>
+    </table>
+    <div id="configLocationAdvanced" style="display:none"></div>
+    <table>
+      <tr>
+        <td>&nbsp;</td>
         <td><a href="javascript:addConfigPopup();" style="font-size: 1.2em"><i class="fa fa-plus"></i> Add another Path, Port or Variable</a></td>
       </tr>
     </table>
@@ -1266,8 +1321,10 @@ $showAdditionalInfo = '';
       <tr>
         <td>&nbsp;</td>
         <td>
-          <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save' ?>">
-          <!--button class="advanced" type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Dry Run</button-->
+          <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save and Apply' ?>">
+          <?if ($authoringMode):?>
+          <button type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Save Template</button>
+          <?endif;?>
           <input type="button" value="Cancel" onclick="done()">
         </td>
       </tr>
@@ -1319,8 +1376,9 @@ $showAdditionalInfo = '';
       <dd>
         <select name="Display" class="narrow">
           <option value="always" selected>Always</option>
+          <option value="always-hide">Always - Hide Edit Buttons</option>
           <option value="advanced">Advanced</option>
-          <option value="hidden">Hidden</option>
+          <option value="advanced-hide">Advanced - Hide Edit Buttons</option>
         </select>
       </dd>
       <dt>Required:</dt>
@@ -1382,8 +1440,24 @@ $showAdditionalInfo = '';
   function reloadTriggers() {
     $(".basic").toggle(!$(".advanced-switch:first").is(":checked"));
     $(".advanced").toggle($(".advanced-switch:first").is(":checked"));
-    $(".hidden").toggle($(".advanced-switch:first").is(":checked"));
     $(".numbersOnly").keypress(function(e){if(e.which != 45 && e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)){return false;}});
+  }
+  function toggleReadmore() {
+    var readm = $('#readmore_toggle');
+    if ( readm.hasClass('readmore_collapsed') ) {
+      readm.removeClass('readmore_collapsed').addClass('readmore_expanded');
+      $('#configLocationAdvanced').slideDown('fast');
+      readm.find('a').html('<i class="fa fa-chevron-up"></i> Hide advanced settings ...');
+    } else {
+      $('#configLocationAdvanced').slideUp('fast');
+      readm.removeClass('readmore_expanded').addClass('readmore_collapsed');
+      readm.find('a').html('<i class="fa fa-chevron-down"></i> Show advanced settings ...');
+    }
+  }
+  function load_contOverview() {
+    var new_overview = $("textarea[name='contOverview']").val();
+    new_overview = new_overview.replaceAll("[","<").replaceAll("]",">");
+    $("div[name='contDescription']").html(new_overview);
   }
   $(function() {
     // Load container info on page load
@@ -1420,7 +1494,7 @@ $showAdditionalInfo = '';
         confNum += 1;
         Opts             = Settings.Config[i];
         Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
-        if (Opts.Required == "true") {
+        if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
           Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
           Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
         } else {
@@ -1429,8 +1503,11 @@ $showAdditionalInfo = '';
         }
         Opts.Number      = confNum;
         newConf = makeConfig(Opts);
-        $("#configLocation").append(newConf);
-        reloadTriggers();
+        if (Opts.Display == 'advanced' || Opts.Display == 'advanced-hide') {
+          $("#configLocationAdvanced").append(newConf);
+        } else {
+          $("#configLocation").append(newConf);
+        }
       }
     } else {
       $('#canvas').find('#Overview:first').hide();
@@ -1438,8 +1515,14 @@ $showAdditionalInfo = '';
 
     // Add switchButton
     $('.switch-on-off').each(function(){var checked = $(this).is(":checked");$(this).switchButton({labels_placement: "right", checked:checked});});
-    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', maxDropHeight:150, width:300, explicitClose:'...close'});
 
+    // Add dropdownchecklist to Select Categories
+    $("#catSelect").dropdownchecklist({emptyText:'Select categories...', maxDropHeight:200, width:300, explicitClose:'...close'});
+    
+    <?if ($authoringMode){
+      echo "$('.advanced-switch').prop('checked','true'); $('.advanced-switch').change();";
+      echo "$('.advanced-switch').siblings('.switch-button-background').click();";
+    }?>
   });
 </script>
 <?END:?>
