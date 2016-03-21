@@ -1,6 +1,6 @@
 <?PHP
-/* Copyright 2015, Lime Technology
- * Copyright 2015, Bergware International.
+/* Copyright 2015-2016, Lime Technology
+ * Copyright 2015-2016, Bergware International.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -330,6 +330,9 @@ $(function() {
   var top = ($.cookie('top')||0) - $('.tabs').offset().top - 75;
   if (top>0) {$('html,body').scrollTop(top);}
   $.removeCookie('top',{path:'/'});
+  $('blockquote.inline_help').each(function(i){
+    $(this).attr('id','helpinfo'+i).prev().children().first().css('cursor','help').click(function(){$('#helpinfo'+i).toggle('slow');});
+  });
 });
 </script>
 </body>
