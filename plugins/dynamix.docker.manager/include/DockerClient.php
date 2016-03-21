@@ -253,7 +253,8 @@ class DockerTemplates {
 
 		if (preg_match("%\[IP\]%", $WebUI)) {
 			$WebUI = preg_replace("%\[IP\]%", $var["IPADDR"], $WebUI);
-			preg_match("%\[PORT:(\d+)\]%", $WebUI, $matches);
+		}
+		if (preg_match("%\[PORT:(\d+)\]%", $WebUI, $matches)) {
 			$ConfigPort = $matches[1];
 			if ($ct["NetworkMode"] == "bridge") {
 				foreach ($Ports as $key) {
