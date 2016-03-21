@@ -243,7 +243,7 @@ class DockerTemplates {
 		$Repository = "";
 		foreach ($DockerClient->getDockerContainers() as $ct) {
 			if ($ct['Name'] == $name) {
-				$Repository = preg_replace("/:[\w]*$/i", "", $ct['Image']);
+				$Repository = $ct['Image'];
 				$Ports = $ct["Ports"];
 				break;
 			}
