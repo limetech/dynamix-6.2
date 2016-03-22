@@ -778,7 +778,7 @@ $showAdditionalInfo = '';
                                  opts.Buttons,
                                  (opts.Required == "true") ? "required" : ""
                                  );
-    newConfig = "<div id='ConfigNum"+opts.Number+"' class='config_"+Opts.Display+"'' >"+newConfig+"</div>";
+    newConfig = "<div id='ConfigNum"+opts.Number+"' class='config_"+opts.Display+"'' >"+newConfig+"</div>";
     newConfig = $($.parseHTML(newConfig));
     value     = newConfig.find("input[name='confValue[]']");
     if (opts.Type == "Path") {
