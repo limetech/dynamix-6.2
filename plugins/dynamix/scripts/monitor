@@ -195,11 +195,6 @@ function check_usage($name,$used,$text,$info) {
   }
 }
 
-// check once a week for smart database updates
-$smartDB = '/usr/share/smartmontools/drivedb.h.lastcheck';
-$interval = 3600*24*7; // one week
-if (!file_exists($smartDB) || (time()-filemtime($smartDB)>=$interval)) exec('/usr/sbin/update-smart-drivedb 1>/dev/null 2>&1');
-
 // check array devices
 foreach ($disks as $disk) {
   $name = $disk['name'];
