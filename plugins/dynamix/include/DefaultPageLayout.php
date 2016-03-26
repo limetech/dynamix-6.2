@@ -330,26 +330,28 @@ $(function() {
   var top = ($.cookie('top')||0) - $('.tabs').offset().top - 75;
   if (top>0) {$('html,body').scrollTop(top);}
   $.removeCookie('top',{path:'/'});
-  $('blockquote.inline_help').each(function(i) {
-    $(this).attr('id','helpinfo'+i);
-    var pin = $(this).prev();
-    if (!pin.prop('nodeName')) pin = $(this).parent().prev();
-    while (pin.prop('nodeName') && pin.prop('nodeName').search(/(table|dl)/i)==-1) pin = pin.prev();
-    pin.find('tr:first,dt:last').each(function() {
-      var node = $(this);
-      var name = node.prop('nodeName').toLowerCase();
-      if (name=='dt') {
-        while (!node.html() || node.html().search(/(<input|<select|nbsp;)/i)>=0 || name!='dt') {
-          if (name=='dt' && node.is(':first-of-type')) break;
-          node = node.prev();
-          name = node.prop('nodeName').toLowerCase();
+  if (!location.pathname.startsWith('/VMs/') && !location.pathname.startsWith('/Docker/')) {
+    $('blockquote.inline_help').each(function(i) {
+      $(this).attr('id','helpinfo'+i);
+      var pin = $(this).prev();
+      if (!pin.prop('nodeName')) pin = $(this).parent().prev();
+      while (pin.prop('nodeName') && pin.prop('nodeName').search(/(table|dl)/i)==-1) pin = pin.prev();
+      pin.find('tr:first,dt:last').each(function() {
+        var node = $(this);
+        var name = node.prop('nodeName').toLowerCase();
+        if (name=='dt') {
+          while (!node.html() || node.html().search(/(<input|<select|nbsp;)/i)>=0 || name!='dt') {
+            if (name=='dt' && node.is(':first-of-type')) break;
+            node = node.prev();
+            name = node.prop('nodeName').toLowerCase();
+          }
+          node.css('cursor','help').click(function(){$('#helpinfo'+i).toggle('slow');});
+        } else {
+          if (node.html() && (name!='tr' || node.children('td:first').html())) node.css('cursor','help').click(function(){$('#helpinfo'+i).toggle('slow');});
         }
-        node.css('cursor','help').click(function(){$('#helpinfo'+i).toggle('slow');});
-      } else {
-        if (node.html() && (name!='tr' || node.children('td:first').html())) node.css('cursor','help').click(function(){$('#helpinfo'+i).toggle('slow');});
-      }
+      });
     });
-  });
+  }
 });
 </script>
 </body>
