@@ -94,10 +94,9 @@ function my_clock($time) {
   return plus($days,'day',($hour|$mins)==0).plus($hour,'hour',$mins==0).plus($mins,'minute',true);
 }
 
-// generate report of array devices
-foreach ($disks as $disk) {
+function my_array(&$disk) {
+  global $data,$max,$hot,$error0,$error1,$error2,$error3;
   $name = $disk['name'];
-  if ($name=='flash' || substr($disk['status'],-3)=='_NP') continue;
   $temp = $disk['temp'];
   if ($temp>=$max) {
     $fail = ' (disk is overheated';
@@ -116,13 +115,18 @@ foreach ($disks as $disk) {
   if ($fail) $fail .= ')';
   $status = $fail ? ' [NOK]' : ' [OK]';
   $color = strtok($disk['color'],'-');
-  if ($disk['type']=='Parity') $parity = true;
-  if ($name=='cache') $cache = true;
   if ($color=='red'||$color=='yellow') { $error3++; $status = ' ['.str_replace(array('NP_','_'),array('',' '),$disk['status']).']'; }
   $info = "{$disk['id']} ({$disk['device']})";
   if ($info==" ()") $info = 'No device identification present';
   $data[] = my_disk($name)." - $info".my_temp($temp).$fail.$status;
+  return true;
 }
+
+// generate report of array devices
+foreach ($disks as $disk) if ($disk['type']=='Parity') $parity |= my_array($disk);
+foreach ($disks as $disk) if ($disk['type']=='Data') my_array($disk);
+foreach ($disks as $disk) if ($disk['type']=='Cache') $cache |= my_array($disk);
+
 $size = count($data);
 
 // generate parity report
