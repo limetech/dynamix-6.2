@@ -157,7 +157,7 @@ echo "<td>Array Status</td>".implode('',$row0);
 <?
 $tr = false;
 foreach ($cores as $pair):
-  list($core1, $core2) = explode(',',$pair);
+  list($core1, $core2) = preg_split('/[,-]/',$pair);
   if ($tr) echo "<tr>";
   if (isset($core2))
     echo "<td>core $core1 / $core2</td><td class='blue' id='cpu{$core1}'>"."</td><td class='blue' id='cpu{$core2}'></td>";
