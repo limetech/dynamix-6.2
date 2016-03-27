@@ -97,6 +97,7 @@ function my_clock($time) {
 function my_array(&$disk) {
   global $data,$max,$hot,$error0,$error1,$error2,$error3;
   $name = $disk['name'];
+  if (strpos($disk['status'],'_NP')!==false) return false;
   $temp = $disk['temp'];
   if ($temp>=$max) {
     $fail = ' (disk is overheated';
