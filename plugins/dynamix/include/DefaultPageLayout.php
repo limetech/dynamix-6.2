@@ -150,6 +150,7 @@ function showFooter(data, id) {
 }
 function showNotice(data) {
   $('#user-notice').html(data.replace(/<[ab]>(.*?)<\/[ab]>/,"<a href='/Plugins'>$1</a>"));
+  if (timers.countDown) {clearTimeout(timers.countDown);$('#countdown').html('');}
 }
 function notifier() {
   $.post('/webGui/include/Notify.php',{cmd:'get'},function(data) {
@@ -192,7 +193,7 @@ function countDown() {
   counting--;
   if (counting==0) counting = update;
   $('#countdown').html('<small>Page refresh in '+counting+' sec</small>');
-  setTimeout(countDown,1000);
+  timers.countDown = setTimeout(countDown,1000);
 }
 $(function() {
   var tab = $.cookie('one')||$.cookie('tab')||'tab1';
@@ -200,7 +201,7 @@ $(function() {
   if ($.cookie('help')=='help') {$('.inline_help').show(); $('#nav-item.HelpButton').addClass('active');}
   $('#'+tab).attr('checked', true);
 <?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
-  if (update>1) setTimeout(countDown,1000);
+  if (update>1) timers.countDown = setTimeout(countDown,1000);
 <?endif;?>
   updateTime();
   $.jGrowl.defaults.closer = false;
@@ -320,6 +321,7 @@ echo "</span></div>";
 ?>
 <script>
 $(function() {
+  var updateText = '';
 <?if ($notify['entity'] & 1 == 1):?>
   $.post('/webGui/include/Notify.php',{cmd:'init'},function(x){timers.notifier = setTimeout(notifier,0);});
 <?endif;?>
@@ -333,6 +335,13 @@ $(function() {
   var top = ($.cookie('top')||0) - $('.tabs').offset().top - 75;
   if (top>0) {$('html,body').scrollTop(top);}
   $.removeCookie('top',{path:'/'});
+<?if ($version = plugin_update_available('unRAIDServer')):?>
+  updateText = 'New version <?=$version?> available. Update of <a>unRAID OS</a> is recommended';
+<?endif;?>
+<?if ($version = plugin_update_available('dynamix')):?>
+  if (!updateText) updateText = 'New version <?=$version?> available. Update of <a>Dynamix webGUI</a> is recommended';
+<?endif;?>
+  if (updateText) showNotice(updateText);
   if (!location.pathname.startsWith('/VMs/') && !location.pathname.startsWith('/Docker/')) {
     $('blockquote.inline_help').each(function(i) {
       $(this).attr('id','helpinfo'+i);
