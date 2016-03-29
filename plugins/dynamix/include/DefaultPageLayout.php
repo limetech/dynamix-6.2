@@ -148,8 +148,9 @@ function showFooter(data, id) {
   if (id !== undefined) $('#'+id).remove();
   $('#copyright').prepend(data);
 }
-function showNotice(data) {
-  $('#user-notice').html(data.replace(/<[ab]>(.*?)<\/[ab]>/,"<a href='/Plugins'>$1</a>"));
+function showNotice(data,plugin) {
+  var cmd ="openBox('/plugins/dynamix.plugin.manager/scripts/plugin&arg1=update&arg2="+plugin+".plg','Update Plugin',600,900,true)";
+  $('#user-notice').html(data.replace(/<a>(.*?)<\/a>/,"<a href=\"#\" onclick=\""+cmd+"\">$1</a>"));
   if (timers.countDown) {clearTimeout(timers.countDown);$('#countdown').html('');}
 }
 function notifier() {
@@ -322,6 +323,7 @@ echo "</span></div>";
 <script>
 $(function() {
   var updateText = '';
+  var pluginName = '';
 <?if ($notify['entity'] & 1 == 1):?>
   $.post('/webGui/include/Notify.php',{cmd:'init'},function(x){timers.notifier = setTimeout(notifier,0);});
 <?endif;?>
@@ -336,12 +338,13 @@ $(function() {
   if (top>0) {$('html,body').scrollTop(top);}
   $.removeCookie('top',{path:'/'});
 <?if ($version = plugin_update_available('unRAIDServer')):?>
-  updateText = 'New version <?=$version?> available. Update of <a>unRAID OS</a> is recommended';
+  updateText = 'unRAID OS v<?=$version?> is available. <a>Download Now</a>';
+  pluginName = 'unRAIDServer';
 <?endif;?>
 <?if ($version = plugin_update_available('dynamix')):?>
-  if (!updateText) updateText = 'New version <?=$version?> available. Update of <a>Dynamix webGUI</a> is recommended';
+  if (!updateText) {updateText = 'Dynamix GUI <b><?=$version?></b> is available. <a>Download Now</a>'; pluginName = 'dynamix';}
 <?endif;?>
-  if (updateText) showNotice(updateText);
+  if (updateText) showNotice(updateText,pluginName);
   if (!location.pathname.startsWith('/VMs/') && !location.pathname.startsWith('/Docker/')) {
     $('blockquote.inline_help').each(function(i) {
       $(this).attr('id','helpinfo'+i);
