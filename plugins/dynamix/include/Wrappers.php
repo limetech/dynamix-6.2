@@ -32,4 +32,11 @@ function agent_fullname($agent, $state) {
     default        : return $agent;
   }
 }
+
+function plugin_update_available($plugin) {
+  $script = '/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin';
+  $local = file_exists("/var/log/plugins/$plugin.plg") ? exec("$script version /var/log/plugins/$plugin.plg") : "";
+  $remote = file_exists("/tmp/plugins/$plugin.plg") ? exec("$script version /tmp/plugins/$plugin.plg") : "";
+  return strcmp($remote,$local)>0;
+}
 ?>
