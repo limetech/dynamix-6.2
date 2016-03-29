@@ -149,8 +149,11 @@ function showFooter(data, id) {
   $('#copyright').prepend(data);
 }
 function showNotice(data,plugin) {
-  var cmd ="openBox('/plugins/dynamix.plugin.manager/scripts/plugin&arg1=update&arg2="+plugin+".plg','Update Plugin',600,900,true)";
-  $('#user-notice').html(data.replace(/<a>(.*?)<\/a>/,"<a href=\"#\" onclick=\""+cmd+"\">$1</a>"));
+  if (plugin)
+    var href = "href=\"#\" onclick=\"openBox('/plugins/dynamix.plugin.manager/scripts/plugin&arg1=update&arg2="+plugin+".plg','Update Plugin',600,900,true)\"";
+  else
+    var href = "href=\"/Plugins\"";
+  $('#user-notice').html(data.replace(/<a>(.*?)<\/a>/,"<a "+href+">$1</a>"));
   if (timers.countDown) {clearTimeout(timers.countDown);$('#countdown').html('');}
 }
 function notifier() {
