@@ -33,17 +33,20 @@ function my_duration($time) {
 <body>
 <table class='share_status' style='margin-top:0'><thead><tr><td>Date</td><td>Duration</td><td>Speed</td><td>Status</td></tr></thead><tbody>
 <?
-$log = '/boot/config/parity-checks.log'; $row = 0;
+$log = '/boot/config/parity-checks.log'; $list = [];
 if (file_exists($log)) {
   $handle = fopen($log, 'r');
   while (($line = fgets($handle)) !== false) {
     list($date,$duration,$speed,$status) = explode('|',$line);
     if ($speed==0) $speed = 'Unavailable';
-    if ($duration>0||$status<>0) {echo "<tr><td>$date</td><td>".my_duration($duration)."</td><td>$speed</td><td>".($status==0?'OK':($status==-4?'Canceled':$status))."</td></tr>"; $row++;}
+    if ($duration>0||$status<>0) $list[] = "<tr><td>$date</td><td>".my_duration($duration)."</td><td>$speed</td><td>".($status==0?'OK':($status==-4?'Canceled':$status))."</td></tr>";
   }
   fclose($handle);
 }
-if ($row==0) echo "<tr><td colspan='4' style='text-align:center'>No parity check history present!</td></tr>";
+if ($list)
+  for ($i=count($list); $i>=0; --$i) echo $list[$i];
+else
+  echo "<tr><td colspan='4' style='text-align:center'>No parity check history present!</td></tr>";
 ?>
 </tbody></table>
 <center><input type="button" value="Done" onclick="top.Shadowbox.close()"></center>
