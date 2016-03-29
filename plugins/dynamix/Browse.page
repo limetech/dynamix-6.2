@@ -126,7 +126,7 @@ $disk_order=($column=='disk'?$order:'A');
       $total+=$entry['size'];
       $warn = substr($entry['disk'],-1)=="*" ? ' class="warning"' : '';
 ?>    <td><div class="icon-file icon-<?=strtolower($entry['fext'])?>"></div></td>
-      <td><a href="<?=urlencode_path($dir.'/'.$entry['name']);?>" <?=$warn?$warn:'class="none"'?>><?=$entry['name']?></a></td>
+      <td><a href="<?=autov(urlencode_path($dir.'/'.$entry['name']));?>" <?=$warn?$warn:'class="none"'?>><?=$entry['name']?></a></td>
       <td<?=$warn?>><?=my_scale($entry['size'],$unit).' '.$unit?></td>
 <?  endif;?>
 <?if ($show_disk):?>
