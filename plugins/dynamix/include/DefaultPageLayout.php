@@ -148,6 +148,14 @@ function showFooter(data, id) {
   if (id !== undefined) $('#'+id).remove();
   $('#copyright').prepend(data);
 }
+function showNotice(data,plugin) {
+  if (plugin)
+    var href = "href=\"#\" onclick=\"openBox('/plugins/dynamix.plugin.manager/scripts/plugin&arg1=update&arg2="+plugin+".plg','Update Plugin',600,900,true)\"";
+  else
+    var href = "href=\"/Plugins\"";
+  $('#user-notice').html(data.replace(/<a>(.*?)<\/a>/,"<a "+href+">$1</a>"));
+  if (timers.countDown) {clearTimeout(timers.countDown);$('#countdown').html('');}
+}
 function notifier() {
   $.post('/webGui/include/Notify.php',{cmd:'get'},function(data) {
     if (data) {
@@ -189,7 +197,7 @@ function countDown() {
   counting--;
   if (counting==0) counting = update;
   $('#countdown').html('<small>Page refresh in '+counting+' sec</small>');
-  setTimeout(countDown,1000);
+  timers.countDown = setTimeout(countDown,1000);
 }
 $(function() {
   var tab = $.cookie('one')||$.cookie('tab')||'tab1';
@@ -197,7 +205,7 @@ $(function() {
   if ($.cookie('help')=='help') {$('.inline_help').show(); $('#nav-item.HelpButton').addClass('active');}
   $('#'+tab).attr('checked', true);
 <?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
-  if (update>1) setTimeout(countDown,1000);
+  if (update>1) timers.countDown = setTimeout(countDown,1000);
 <?endif;?>
   updateTime();
   $.jGrowl.defaults.closer = false;
@@ -308,7 +316,7 @@ default:
 }
 echo "</span>&bullet;&nbsp;<span class='bitstream'>Dynamix webGui v";
 echo exec("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin version /var/log/plugins/dynamix.plg");
-echo "</span></span><span id='countdown'></span><span id='copyright'>unRAID&trade; webGui &copy; 2015, Lime Technology, Inc.";
+echo "</span></span><span id='countdown'></span><span id='user-notice' class='red-text'></span><span id='copyright'>unRAID&trade; webGui &copy; 2015, Lime Technology, Inc.";
 if (isset($myPage['Author'])) {
   echo "&nbsp;|&nbsp;Page author: {$myPage['Author']}";
   if (isset($myPage['Version'])) echo ", version: {$myPage['Version']}";
@@ -317,6 +325,8 @@ echo "</span></div>";
 ?>
 <script>
 $(function() {
+  var updateText = '';
+  var pluginName = '';
 <?if ($notify['entity'] & 1 == 1):?>
   $.post('/webGui/include/Notify.php',{cmd:'init'},function(x){timers.notifier = setTimeout(notifier,0);});
 <?endif;?>
@@ -330,6 +340,14 @@ $(function() {
   var top = ($.cookie('top')||0) - $('.tabs').offset().top - 75;
   if (top>0) {$('html,body').scrollTop(top);}
   $.removeCookie('top',{path:'/'});
+<?if ($version = plugin_update_available('unRAIDServer')):?>
+  updateText = 'unRAID OS v<?=$version?> is available. <a>Download Now</a>';
+  pluginName = 'unRAIDServer';
+<?endif;?>
+<?if ($version = plugin_update_available('dynamix')):?>
+  if (!updateText) {updateText = 'Dynamix GUI <b><?=$version?></b> is available. <a>Download Now</a>'; pluginName = 'dynamix';}
+<?endif;?>
+  if (updateText) showNotice(updateText,pluginName);
   if (!location.pathname.startsWith('/VMs/') && !location.pathname.startsWith('/Docker/')) {
     $('blockquote.inline_help').each(function(i) {
       $(this).attr('id','helpinfo'+i);
