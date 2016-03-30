@@ -335,7 +335,7 @@ class DockerTemplates {
 			}
 
 			if ($reload) {
-				$DockerUpdate->updateUserTemplate($ct);
+				$DockerUpdate->updateUserTemplate($name);
 			}
 
 			$this->debug("\n$name");
@@ -543,16 +543,28 @@ class DockerUpdate{
 		];
 
 		// Get user template file and abort if fail
-		if ( ! $file = $DockerTemplates->getUserTemplate($Container) ) return null;
+		if ( ! $file = $DockerTemplates->getUserTemplate($Container) ) {
+			$this->debug("User template for container '$Container' not found, aborting.");
+			return null;
+		}
 		// Load user template XML, verify if it's valid and abort if doesn't have TemplateURL element
-		$template = @simplexml_load_file($file);
-		if ( $template && ! isset($template->TemplateURL) ) return null;
+		$template = simplexml_load_file($file);
+		if ( empty($template->TemplateURL) ) {
+			$this->debug("Template doesn't have TemplateURL element, aborting.");
+			return null;
+		}
 		// Load a user template DOM for import remote template new Config
 		$dom_local = dom_import_simplexml($template);
 		// Try to download the remote template and abort if it fail.
-		if (! $dl = $this->download_url($this->xml_decode($template->TemplateURL))) return null;
+		if (! $dl = $this->download_url($this->xml_decode($template->TemplateURL))) {
+			$this->debug("Download of remote template failed, aborting.");
+			return null;
+		}
 		// Try to load the downloaded template and abort if fail.
-		if (! $remote_template = @simplexml_load_string($dl)) return null;
+		if (! $remote_template = @simplexml_load_string($dl)) {
+			$this->debug("The downloaded template is not a valid XML file, aborting.");
+			return null;
+		}
 		// Loop through remote template elements and compare them to local ones
 		foreach ($remote_template->children() as $name => $remote_element) {
 			$name = $this->xml_decode($name);
@@ -564,6 +576,7 @@ class DockerUpdate{
 				// Values changed, updating.
 				if ($value != $rvalue) {
 					$local_element->{0} = $this->xml_encode($rvalue);
+					$this->debug("Updating $name from [$value] to [$rvalue]");
 					$changed = true;
 				}
 			// Compare atributes on Config if they are in the validAttributes list
@@ -583,6 +596,7 @@ class DockerUpdate{
 						$value = $this->xml_decode($local_element[$key]);
 						// Values changed, updating.
 						if ($value != $rvalue && in_array($key, $validAttributes)) {
+							$this->debug("Updating $type '$target' attribute '$key' from [$value] to [$rvalue]");
 							$local_element[$key] = $this->xml_encode($rvalue);
 							$changed = true;
 						}
@@ -598,6 +612,7 @@ class DockerUpdate{
 		}
 		if ($changed) {
 			// Format output and save to file if there were any commited changes
+			$this->debug("Saving template modifications to '$file");
 			$dom = new DOMDocument('1.0');
 			$dom->preserveWhiteSpace = false;
 			$dom->formatOutput = true;
