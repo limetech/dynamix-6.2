@@ -256,7 +256,7 @@ function xmlToVar($xml) {
         if ($key == 'Mode') {
           switch (xml_decode($config['Type'])) {
             case 'Path':
-              $value = (strtolower($value) == 'rw' || strtolower($value) == 'rw,slave' || strtolower($value) == 'ro') ? $value : "rw";
+              $value = (strtolower($value) == 'rw' || strtolower($value) == 'rw,slave' || strtolower($value) == 'ro' || strtolower($value) == 'ro,slave') ? $value : "rw";
               break;
             case 'Port':
               $value = (strtolower($value) == 'tcp' || strtolower($value) == 'udp' ) ? $value : "tcp";
@@ -932,7 +932,7 @@ $showAdditionalInfo = '';
               $("#configLocationAdvanced").append(newConf);
             } else {
               $("#configLocation").append(newConf);
-            }            
+            }
           }
           reloadTriggers();
         },
@@ -977,7 +977,7 @@ $showAdditionalInfo = '';
     var index = $(el)[0].selectedIndex;
     if (index == 0) {
       // Path
-      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='rw'>Read/Write</option><option value='rw,slave'>RW/Slave</option></option><option value='ro'>Read Only</option></select></dd>");
+      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='rw'>Read/Write</option><option value='rw,slave'>RW/Slave</option><option value='ro'>Read Only</option><option value='ro,slave'>RO/Slave</option></select></dd>");
       value.bind("click", function(){openFileBrowser(this,$(this).val(), 'sh', true, false);});
     } else if (index == 1) {
       // Port
@@ -1518,7 +1518,7 @@ $showAdditionalInfo = '';
 
     // Add dropdownchecklist to Select Categories
     $("#catSelect").dropdownchecklist({emptyText:'Select categories...', maxDropHeight:200, width:300, explicitClose:'...close'});
-    
+
     <?if ($authoringMode){
       echo "$('.advanced-switch').prop('checked','true'); $('.advanced-switch').change();";
       echo "$('.advanced-switch').siblings('.switch-button-background').click();";
