@@ -772,6 +772,7 @@
 			'fr-ca' => 'French-Canadian (fr-ca)',
 			'fr-ch' => 'French-Switzerland (fr-ch)',
 			'de-ch' => 'German-Switzerland (de-ch)',
+			'de' => 'German (de)',
 			'hu' => 'Hungarian (hu)',
 			'is' => 'Icelandic (is)',
 			'it' => 'Italian (it)',
