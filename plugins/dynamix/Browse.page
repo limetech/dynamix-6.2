@@ -23,7 +23,6 @@ function sort_by($field, $opt, $show_disk) {
 // read directory contents into 'list' array
   global $docroot,$dir;
   $path = $docroot.preg_replace('/([\'" &()[\]\\\\])/','\\\\$1',$dir).'/*';
-  file_put_contents('/tmp/test',$path);
   $file = array(); $disk = array(); $list = array();
   $i = 0;
   exec("shopt -s dotglob ; stat -L -c'%F|%n|%s|%Y' $path 2>/dev/null", $file);
