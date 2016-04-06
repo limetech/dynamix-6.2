@@ -169,7 +169,7 @@ function postToXML($post, $setOwnership = false) {
   $dom->appendChild($dom->createElement("Container"));
   $xml = simplexml_import_dom($dom);
   $xml["version"]          = 2;
-  $xml->Name               = xml_encode($post['contName']);
+  $xml->Name               = xml_encode(preg_replace('/\s+/', '', $post['contName']));
   $xml->Repository         = xml_encode($post['contRepository']);
   $xml->Registry           = xml_encode($post['contRegistry']);
   $xml->Network            = xml_encode($post['contNetwork']);
@@ -233,7 +233,7 @@ function xmlToVar($xml) {
   $xml           = (is_file($xml)) ? simplexml_load_file($xml) : simplexml_load_string($xml);
 
   $out                = [];
-  $out['Name']        = xml_decode($xml->Name);
+  $out['Name']        = preg_replace('/\s+/', '', xml_decode($xml->Name));
   $out['Repository']  = xml_decode($xml->Repository);
   $out['Registry']    = xml_decode($xml->Registry);
   $out['Network']     = (isset($xml->Network)) ? xml_decode($xml->Network) : xml_decode($xml->Network['Default']);
