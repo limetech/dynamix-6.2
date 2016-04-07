@@ -52,6 +52,7 @@ foreach (glob('plugins/*', GLOB_ONLYDIR) as $plugin) {
 // Here's the page we're rendering
 $myPage = $site[basename($path)];
 $pageroot = "{$docroot}/".dirname($myPage['file']);
+$update = $display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0);
 
 // Giddyup
 require_once 'include/DefaultPageLayout.php';

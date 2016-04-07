@@ -13,7 +13,6 @@ Title="Statistics"
  * all copies or substantial portions of the Software.
 */
 ?>
-
 <?
 exec('cat /sys/devices/system/cpu/*/topology/thread_siblings_list|sort -nu', $cores);
 $fans  = exec("sensors -uA 2>/dev/null|grep -c 'fan[0-9]_input'");
@@ -391,7 +390,7 @@ function update3() {
 <?endif;?>
   $.post('<?=$url?>',{cmd:'cpu'},function(data) {
     if (data) $.each(data.split('#'),function(k,v) {$('#cpu'+k).html(v);});
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
     setTimeout(update3,<?=max(abs($display['refresh']),3000)?>);
 <?endif;?>
   });
@@ -417,7 +416,7 @@ function update30() {
       if (view == 'alert') opts.push({text:'Acknowledge',icon:'fa-check-square-o',action:function(e){e.preventDefault();acknowledge(disk);}});
       context.attach(id,opts);
     });
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
     timer30 = setTimeout(update30,<?=max(abs($display['refresh']),30000)?>);
 <?endif;?>
   });
@@ -426,7 +425,7 @@ function update60() {
 <?if ($var['mdNumInvalid']==0 && $var['mdResync']>0):?>
   $.post('<?=$url?>',{cmd:'parity'},function(data) {
     if (data) $('#parity').html(data);
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
     setTimeout(update60,<?=max(abs($display['refresh']),60000)?>);
 <?endif;?>
   });
