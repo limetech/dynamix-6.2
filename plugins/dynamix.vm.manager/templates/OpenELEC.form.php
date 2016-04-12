@@ -82,6 +82,8 @@
 
 		if (empty($arrDownloadOpenELEC)) {
 			$arrResponse = ['error' => 'Unknown version: ' . $_POST['download_version']];
+		} else if (empty($_POST['download_path'])) {
+			$arrResponse = ['error' => 'Please choose a folder the OpenELEC image will download to'];
 		} else {
 			@mkdir($_POST['download_path'], 0777, true);
 			$_POST['download_path'] = realpath($_POST['download_path']) . '/';
@@ -458,7 +460,11 @@
 			<select name="template[openelec]" id="template_openelec" class="narrow" title="Select the OpenELEC version to use">
 			<?php
 				foreach ($arrOpenELECVersions as $strOEVersion => $arrOEVersion) {
-					$strLocalFolder = ($arrOEVersion['localpath'] == '' ? '' : dirname($arrOEVersion['localpath']));
+					$strDefaultFolder = '';
+					if (!empty($domain_cfg['DOMAINDIR']) && file_exists($domain_cfg['DOMAINDIR'])) {
+						$strDefaultFolder = $domain_cfg['DOMAINDIR'];
+					}
+					$strLocalFolder = ($arrOEVersion['localpath'] == '' ? $strDefaultFolder : dirname($arrOEVersion['localpath']));
 					echo mk_option($arrConfig['template']['openelec'], $strOEVersion, $arrOEVersion['name'], 'localpath="' . $arrOEVersion['localpath'] . '" localfolder="' . $strLocalFolder . '" valid="' . $arrOEVersion['valid'] . '"');
 				}
 			?>
