@@ -2,8 +2,8 @@ Menu="Main:5"
 Title="Array Operation"
 ---
 <?PHP
-/* Copyright 2015, Lime Technology
- * Copyright 2015, Bergware International.
+/* Copyright 2015-2016, Lime Technology
+ * Copyright 2015-2016, Bergware International.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -13,7 +13,6 @@ Title="Array Operation"
  * all copies or substantial portions of the Software.
  */
 ?>
-
 <?
 function maintenance_mode() {
   echo "<tr>";
@@ -42,7 +41,7 @@ function tab0() {
 function parity_status() {
   $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'parity'},function(data) {
     if (data) {$.each(data.split(';'),function(k,v) {if ($('#line'+k).length>0) $('#line'+k).html(v);});}
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
 <?if ($tabbed):?>
     if ($('#tab'+$('input[name$="tabs"]').length).is(':checked')) timer = setTimeout(parity_status,<?=abs($display['refresh'])?>);
 <?else:?>
@@ -58,7 +57,7 @@ function parity_status() {
 }
 parity_status();
 
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
 <?if ($tabbed):?>
 $('#tab'+$('input[name$="tabs"]').length).bind({click:function() {clearTimeout(timer); parity_status(); tab0();}});
 <?endif;?>

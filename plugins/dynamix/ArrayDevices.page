@@ -2,8 +2,8 @@ Menu="Main:1"
 Title="Array Devices"
 ---
 <?PHP
-/* Copyright 2015, Lime Technology
- * Copyright 2015, Bergware International.
+/* Copyright 2015-2016, Lime Technology
+ * Copyright 2015-2016, Bergware International.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -19,7 +19,7 @@ var timer = null;
 function array_status() {
   $.post('/webGui/include/DeviceList.php',{path:'<?=$path?>',device:'array'},function(data) {
     if (data) $('#array_devices').html(data);
-<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started'):?>
+<?if ($update && $var['fsState']=='Started'):?>
 <?if ($tabbed):?>
     if ($('#tab1').is(':checked')) timer = setTimeout(array_status,<?=abs($display['refresh'])?>);
 <?else:?>
@@ -28,7 +28,7 @@ function array_status() {
 <?endif;?>
   });
 }
-<?if (($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)) && $var['fsState']=='Started' && $display['tabs']==0):?>
+<?if ($update && $var['fsState']=='Started' && $tabbed):?>
 $('#tab1').bind({click:function() {clearTimeout(timer); array_status();}});
 <?endif;?>
 

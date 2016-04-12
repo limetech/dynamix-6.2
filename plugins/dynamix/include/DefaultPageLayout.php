@@ -68,9 +68,9 @@ function plus(value, label, last) {
 }
 function updateTime() {
   var now = new Date();
-  days = parseInt(uptime/86400);
-  hour = parseInt(uptime/3600%24);
-  mins = parseInt(uptime/60%60);
+  var days = parseInt(uptime/86400);
+  var hour = parseInt(uptime/3600%24);
+  var mins = parseInt(uptime/60%60);
   $('#uptime').html(((days|hour|mins)?plus(days,'day',(hour|mins)==0)+plus(hour,'hour',mins==0)+plus(mins,'minute',true):'less than a minute'));
   uptime += Math.round((now.getTime() - before.getTime())/1000);
   before = now;
@@ -172,7 +172,7 @@ function notifier() {
           close: function(e,m,o) {$.post('/webGui/include/Notify.php',{cmd:'archive',file:notify.file}); return(false);}
         });
       });
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
       timers.notifier = setTimeout(notifier,<?=max(5000,abs($display['refresh']))?>);
 <?endif;?>
     }
@@ -182,7 +182,7 @@ function watchdog() {
   $.post('/webGui/include/Watchdog.php',{mode:<?=$display['refresh']?>,dot:'<?=$display['number'][0]?>'},function(data) {
     if (data) {
       $.each(data.split('#'),function(k,v) {
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
         if (v!='stop') $('#statusbar').html(v); else setTimeout(refresh,0);
       });
       timers.watchdog = setTimeout(watchdog,<?=abs($display['refresh'])?>);
@@ -204,7 +204,7 @@ $(function() {
   if (tab=='tab0') tab = 'tab'+$('input[name$="tabs"]').length; else if ($('#'+tab).length==0) {initab(); tab = 'tab1';}
   if ($.cookie('help')=='help') {$('.inline_help').show(); $('#nav-item.HelpButton').addClass('active');}
   $('#'+tab).attr('checked', true);
-<?if ($display['refresh']>0 || ($display['refresh']<0 && $var['mdResync']==0)):?>
+<?if ($update):?>
   if (update>1) timers.countDown = setTimeout(countDown,1000);
 <?endif;?>
   updateTime();
