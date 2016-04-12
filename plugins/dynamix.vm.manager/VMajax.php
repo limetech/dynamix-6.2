@@ -543,17 +543,15 @@ switch ($action) {
 						// Status = running extract
 						$arrResponse['status'] = 'Cleanup ... ';
 
-						if (!pgrep($strExtractPgrep)) {
-							// Examine md5 status
-							$strMD5StatusContents = file_get_contents($strMD5StatusFile);
+						// Examine md5 status
+						$strMD5StatusContents = file_get_contents($strMD5StatusFile);
 
-							if (strpos($strMD5StatusContents, ': FAILED') !== false) {
+						if (strpos($strMD5StatusContents, ': FAILED') !== false) {
 
-								// ERROR: MD5 check failed
-								unset($arrResponse['status']);
-								$arrResponse['error'] = 'MD5 verification failed, your download is incomplete or corrupted.';
+							// ERROR: MD5 check failed
+							unset($arrResponse['status']);
+							$arrResponse['error'] = 'MD5 verification failed, your download is incomplete or corrupted.';
 
-							}
 						}
 
 					} else if (!file_exists($strMD5File)) {
