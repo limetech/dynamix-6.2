@@ -1,6 +1,6 @@
 <?PHP
-/* Copyright 2015, Lime Technology
- * Copyright 2015, Derek Macias, Eric Schultz, Jon Panozzo.
+/* Copyright 2015-2016, Lime Technology
+ * Copyright 2015-2016, Derek Macias, Eric Schultz, Jon Panozzo.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -262,6 +262,12 @@
 
 
 	$virtio_isos = [
+		'virtio-win-0.1.113-1' => [
+			'name' => 'virtio-win-0.1.113-1.iso',
+			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.113-1/virtio-win-0.1.113.iso',
+			'size' => 56936448,
+			'md5' => '11ed773055e19eca75ed186ff12d354c'
+		],
 		'virtio-win-0.1.112-1' => [
 			'name' => 'virtio-win-0.1.112-1.iso',
 			'url' => 'https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.112-1/virtio-win-0.1.112.iso',
