@@ -105,9 +105,12 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 		font-family: arimo;
 		vertical-align: top;
 	}
+	#download_button.fa-spin span {
+		display: none;
+	}
 </style>
 <span class="status" style="margin-top: -10px;"><input type="checkbox" class="advancedview"></span>
-<form id="settingsForm" markdown="1" method="POST" action="/update.php" target="progressFrame">
+<form id="settingsForm" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$domain_cfgfile;?>" />
 
 <dl>
@@ -153,7 +156,7 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 	<p>To resize an existing image file, specify the new size here.  Next time the Libvirt service is started the file (and file system) will increased to the new size (but never decreased).</p>
 </blockquote>
 
-<div class="advanced" markdown="1">
+<div class="advanced">
 	<dl>
 		<dt>Libvirt storage location:</dt>
 		<dd><input id="IMAGE_FILE" type="text" name="IMAGE_FILE" value="<?=$domain_cfg['IMAGE_FILE'];?>" placeholder="e.g. /mnt/user/system/libvirt/libvirt.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <span id="IMAGE_ERROR" class="errortext"></span></dd>
@@ -275,7 +278,7 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
     <dd><?="<pre>".shell_exec("btrfs filesystem show /etc/libvirt")."</pre>"?></dd>
   </dl>
 
-  <form markdown="1" method="POST" action="/update.php" target="progressFrame">
+  <form method="POST" action="/update.php" target="progressFrame">
   <?exec("/usr/local/emhttp/webGui/scripts/btrfs_scrub status /etc/libvirt", $scrub_status, $retval);?>
 
   <dl>
