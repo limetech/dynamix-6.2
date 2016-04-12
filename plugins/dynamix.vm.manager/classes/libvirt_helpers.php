@@ -945,14 +945,36 @@
 		*/
 
 		$arrDisks = [];
-		foreach ($disks as $disk) {
+		foreach ($disks as $i => $disk) {
+			$strPath = (empty($disk['file']) ? $disk['partition'] : $disk['file']);
+
+			$default_option = 'auto';
+			if (empty($domain_cfg['DOMAINDIR']) ||
+				!file_exists($domain_cfg['DOMAINDIR']) ||
+				!is_file($strPath) ||
+				strpos($domain_cfg['DOMAINDIR'], dirname(dirname($strPath))) === false ||
+				basename($strPath) != 'vdisk'.($i+1).'.img') {
+
+				$default_option = 'manual';
+			}
+
 			$arrDisks[] = [
-				'new' => (empty($disk['file']) ? $disk['partition'] : $disk['file']),
+				'new' => $strPath,
 				'size' => '',
 				'driver' => 'raw',
 				'dev' => $disk['device'],
 				'bus' => $disk['bus'],
-				'select' => $domain_cfg['VMSTORAGEMODE']
+				'select' => $default_option
+			];
+		}
+		if (empty($arrDisks)) {
+			$arrDisks[] = [
+				'new' => '',
+				'size' => '',
+				'driver' => 'raw',
+				'dev' => 'hda',
+				'select' => '',
+				'bus' => 'virtio'
 			];
 		}
 
