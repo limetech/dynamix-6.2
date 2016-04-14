@@ -159,7 +159,7 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 <div class="advanced">
 	<dl>
 		<dt>Libvirt storage location:</dt>
-		<dd><input id="IMAGE_FILE" type="text" name="IMAGE_FILE" value="<?=$domain_cfg['IMAGE_FILE'];?>" placeholder="e.g. /mnt/user/system/libvirt/libvirt.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <span id="IMAGE_ERROR" class="errortext"></span></dd>
+		<dd><input id="IMAGE_FILE" type="text" name="IMAGE_FILE" value="<?=$domain_cfg['IMAGE_FILE'];?>" placeholder="e.g. /mnt/user/system/libvirt/libvirt.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <?php if (file_exists($domain_cfg['IMAGE_FILE'])) { ?><span id="deletePanel"><label><input type="checkbox" id="deleteCheckbox" /> Delete Image File</label></span><?php } ?> <span id="IMAGE_ERROR" class="errortext"></span></dd>
 	</dl>
 	<blockquote class="inline_help">
 		<p>You must specify an image file for Libvirt.  The system will automatically create this file when the Libvirt service is first started.</p>
@@ -317,6 +317,10 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
   </form>
   <?endif;?>
 </div>
+<?elseif ($libvirt_running != 'yes'):?>
+<form id="removeForm" method="POST" action="/update.php" target="progressFrame">
+  <input type="hidden" name="#command" value="/plugins/dynamix.vm.manager/scripts/libvirt_rm" />
+</form>
 <?endif;?>
 
 <script src="/webGui/javascript/jquery.filetree.js"></script>
@@ -325,6 +329,10 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 <script>
 $(function(){
 	$("#applyBtn").click(function(){
+		if ($("#deleteCheckbox").length && $("#deleteCheckbox").is(":checked")) {
+			$("#removeForm").submit();
+			return;
+		}
 		if ($('#pcie_acs_override').val() == '1') {
 			$.getJSON("/plugins/dynamix.vm.manager/VMajax.php", {action: "acs-override-enable"}, function(data) {
 				$("#settingsForm").submit();
@@ -448,5 +456,35 @@ $(function(){
 	<?if ($var['fsState'] == "Started"):?>
 		$("input[data-pickroot]").fileTreeAttach();
 	<?endif;?>
+
+	if ($("#IMAGE_FILE").length) {
+		$("#IMAGE_FILE").on("input change", function () {
+			$("#IMAGE_ERROR").fadeOut();
+			$("#applyBtn").prop("disabled", false);
+			<? if (file_exists($domain_cfg['IMAGE_FILE'])) { ?>
+			if ($(this).val() != "<?=$domain_cfg['IMAGE_FILE']?>") {
+				$("#deleteCheckbox").prop("disabled", true).attr("checked", false);
+				$("#deletePanel").fadeOut();
+			} else {
+				$("#deleteCheckbox").attr("checked", false).prop("disabled", false);
+				$("#deletePanel").fadeIn();
+			}
+			<? } ?>
+		});
+
+		$("#deleteCheckbox").change(function () {
+			var checked = $(this).is(":checked");
+			$("#SERVICE").prop("disabled", checked).val('disable');
+			$("#IMAGE_SIZE").prop("disabled", checked);
+			$("#IMAGE_FILE").prop("disabled", checked).val("<?=$domain_cfg['IMAGE_FILE']?>");
+			$("#domaindir").prop("disabled", checked);
+			$("#mediadir").prop("disabled", checked);
+			$("#winvirtio_select").prop("disabled", checked);
+			$("#winvirtio").prop("disabled", checked);
+			$("#bridge").prop("disabled", checked);
+			$("#pcie_acs_override").prop("disabled", checked);
+			$("#applyBtn").val(checked ? "Delete" : "Apply").removeAttr('disabled');
+		});
+	}
 });
 </script>

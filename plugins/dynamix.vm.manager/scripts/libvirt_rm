@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# delete the libvirt image file
+if [ -f /boot/config/domain.cfg ]; then
+  . /boot/config/domain.cfg
+  if [ "${IMAGE_FILE}" != "" -a -f "${IMAGE_FILE}" ]; then
+    echo "Deleting ${IMAGE_FILE} ..."
+    rm "${IMAGE_FILE}"
+  fi
+fi
