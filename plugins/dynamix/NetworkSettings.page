@@ -126,17 +126,17 @@ Obtain IP address automatically:
 > If set to 'Yes' the server will attempt to obtain its IP address from the local DHCP server.
 
 IP address:
-: <input type="text" name="IPADDR" maxlength="40" value="<?=$var['IPADDR']?>" class="narrow" onchange="checkNetworkSettings()">
+: <input type="text" name="IPADDR" maxlength="40" pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" title="IPv4 address" value="<?=$var['IPADDR']?>" class="narrow" onchange="checkNetworkSettings()">
 
 > Greyed out when using DHCP server. Otherwise specify here the IP address of the system.
 
 Network mask:
-: <input type="text" name="NETMASK" maxlength="40" value="<?=$var['NETMASK']?>" class="narrow" onchange="checkNetworkSettings()">
+: <input type="text" name="NETMASK" maxlength="40" pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" title="IPv4 address" value="<?=$var['NETMASK']?>" class="narrow" onchange="checkNetworkSettings()">
 
 > Greyed out when using DHCP server. Otherwise specify here the associated network mask, usually 255.255.255.0
 
 Default gateway:
-: <input type="text" name="GATEWAY" maxlength="40" value="<?=$var['GATEWAY']?>" class="narrow" onchange="checkNetworkSettings()">
+: <input type="text" name="GATEWAY" maxlength="40" pattern="((^|\.)((25[0-5])|(2[0-4]\d)|(1\d\d)|([1-9]?\d))){4}$" title="IPv4 address" value="<?=$var['GATEWAY']?>" class="narrow" onchange="checkNetworkSettings()">
 
 > Greyed out when using DHCP server. Otherwise specify here the IP address of your router.
 
