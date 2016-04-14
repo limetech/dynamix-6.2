@@ -462,7 +462,7 @@
 				foreach ($arrOpenELECVersions as $strOEVersion => $arrOEVersion) {
 					$strDefaultFolder = '';
 					if (!empty($domain_cfg['DOMAINDIR']) && file_exists($domain_cfg['DOMAINDIR'])) {
-						$strDefaultFolder = $domain_cfg['DOMAINDIR'];
+						$strDefaultFolder = str_replace('//', '/', $domain_cfg['DOMAINDIR'].'/OpenELEC/');
 					}
 					$strLocalFolder = ($arrOEVersion['localpath'] == '' ? $strDefaultFolder : dirname($arrOEVersion['localpath']));
 					echo mk_option($arrConfig['template']['openelec'], $strOEVersion, $arrOEVersion['name'], 'localpath="' . $arrOEVersion['localpath'] . '" localfolder="' . $strLocalFolder . '" valid="' . $arrOEVersion['valid'] . '"');
