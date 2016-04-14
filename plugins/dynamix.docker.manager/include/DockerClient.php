@@ -311,13 +311,12 @@ class DockerTemplates {
 			$tmp['running'] = $ct['Running'];
 			$tmp['autostart'] = in_array($name, $allAutoStart);
 
-			if (!$tmp['icon'] || !$tmp['banner'] || $reload) {
-				$img = $this->getBannerIcon($image);
-				$tmp['banner'] = ($img['banner']) ? $img['banner'] : null;
-				$tmp['icon']   = ($img['icon'])   ? $img['icon'] : null;
+			if (!$tmp['icon'] || $reload) {
+				$icon = $this->getIcon($image);
+				$tmp['icon'] = ($icon) ? $icon : null;
 			}
 			if (!$tmp['url'] || $reload) {
-				$WebUI      = $this->getControlURL($name);
+				$WebUI = $this->getControlURL($name);
 				$tmp['url'] = ($WebUI) ? $WebUI : null;
 			}
 
@@ -327,7 +326,7 @@ class DockerTemplates {
 			if (!$tmp['updated'] || $reload) {
 				if ($reload) $DockerUpdate->reloadUpdateStatus($image);
 				$vs = $DockerUpdate->getUpdateStatus($image);
-				$tmp['updated'] = ($vs === null) ? null : ($vs === true) ? 'true' : 'false';
+				$tmp['updated'] = ($vs === null) ? null : (($vs === true) ? 'true' : 'false');
 			}
 
 			if (!$tmp['template'] || $reload) {
@@ -347,30 +346,24 @@ class DockerTemplates {
 	}
 
 
-	public function getBannerIcon($Repository) {
+	public function getIcon($Repository) {
 		global $dockerManPaths;
-		$out = [];
 
-		$Images = [
-			'banner' => $this->getTemplateValue($Repository, "Banner"),
-			'icon' => $this->getTemplateValue($Repository, "Icon")
-		];
+		$imgUrl = $this->getTemplateValue($Repository, "Icon");
 
-		foreach ($Images as $type => $imgUrl) {
-			preg_match_all("/(.*?):([\w]*$)/i", $Repository, $matches);
-			$tempPath    = sprintf("%s/%s-%s-%s.png", $dockerManPaths['images-ram'], preg_replace('%\/|\\\%', '-', $matches[1][0]), $matches[2][0], $type);
-			$storagePath = sprintf("%s/%s-%s-%s.png", $dockerManPaths['images-storage'], preg_replace('%\/|\\\%', '-', $matches[1][0]), $matches[2][0], $type);
-			if (!is_dir(dirname($tempPath))) @mkdir(dirname($tempPath), 0770, true);
-			if (!is_dir(dirname($storagePath))) @mkdir(dirname($storagePath), 0770, true);
-			if (!is_file($tempPath)) {
-				if (!is_file($storagePath)) {
-					$this->download_url($imgUrl, $storagePath);
-				}
-				@copy($storagePath, $tempPath);
+		preg_match_all("/(.*?):([\w]*$)/i", $Repository, $matches);
+		$tempPath    = sprintf("%s/%s-%s-%s.png", $dockerManPaths['images-ram'], preg_replace('%\/|\\\%', '-', $matches[1][0]), $matches[2][0], 'icon');
+		$storagePath = sprintf("%s/%s-%s-%s.png", $dockerManPaths['images-storage'], preg_replace('%\/|\\\%', '-', $matches[1][0]), $matches[2][0], 'icon');
+		if (!is_dir(dirname($tempPath))) @mkdir(dirname($tempPath), 0770, true);
+		if (!is_dir(dirname($storagePath))) @mkdir(dirname($storagePath), 0770, true);
+		if (!is_file($tempPath)) {
+			if (!is_file($storagePath)) {
+				$this->download_url($imgUrl, $storagePath);
 			}
-			$out[$type] = (is_file($tempPath)) ? str_replace('/usr/local/emhttp', '', $tempPath) : "";
+			@copy($storagePath, $tempPath);
 		}
-		return $out;
+
+		return (is_file($tempPath)) ? str_replace('/usr/local/emhttp', '', $tempPath) : "";
 	}
 }
 
