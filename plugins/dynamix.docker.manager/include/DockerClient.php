@@ -207,14 +207,9 @@ class DockerTemplates {
 		foreach ($this->getTemplates($scope) as $file) {
 			$doc = new DOMDocument();
 			$doc->load($file['path']);
-			$TemplateRepository = $doc->getElementsByTagName("Repository")->item(0)->nodeValue;
-			if (!preg_match("/:[\w]*$/i", $TemplateRepository)) {
-				$Repo = preg_replace("/:[\w]*$/i", "", $Repository);
-			} else {
-				$Repo = $Repository;
-			}
+			$TemplateRepository = DockerUtil::ensureImageTag($doc->getElementsByTagName("Repository")->item(0)->nodeValue);
 
-			if ($Repo == $TemplateRepository) {
+			if ($Repository == $TemplateRepository) {
 				$TemplateField = $doc->getElementsByTagName($field)->item(0)->nodeValue;
 				return trim($TemplateField);
 			}
@@ -271,7 +266,7 @@ class DockerTemplates {
 
 	public function removeInfo($container, $image) {
 		global $dockerManPaths;
-		$image = ($image && count(preg_split("#[:\/]#", $image)) < 3) ? "${image}:latest" : $image;
+		$image = DockerUtil::ensureImageTag($image);
 		$dockerIni = $dockerManPaths['webui-info'];
 		if (!is_dir(dirname($dockerIni))) @mkdir(dirname($dockerIni), 0770, true);
 		$info = (is_file($dockerIni)) ? json_decode(file_get_contents($dockerIni), true) : [];
@@ -403,7 +398,8 @@ class DockerUpdate{
 
 	// DEPRECATED: Only used for Docker Index V1 type update checks
 	public function getRemoteVersion($image) {
-		$apiUrl = vsprintf("http://index.docker.io/v1/repositories/%s/%s/tags/%s", preg_split("#[:\/]#", $image));
+		list($strRepo, $strTag) = explode(':', DockerUtil::ensureImageTag($image));
+		$apiUrl = sprintf("http://index.docker.io/v1/repositories/%s/tags/%s", $strRepo, $strTag);
 		$this->debug("API URL: $apiUrl");
 		$apiContent = $this->download_url($apiUrl);
 		return ($apiContent === false) ? null : substr(json_decode($apiContent, true)[0]['id'], 0, 8);
@@ -411,9 +407,11 @@ class DockerUpdate{
 
 
 	public function getRemoteVersionV2($image) {
+		list($strRepo, $strTag) = explode(':', DockerUtil::ensureImageTag($image));
+
 		// First - get auth token:
 		//   https://auth.docker.io/token?service=registry.docker.io&scope=repository:needo/nzbget:pull
-		$strAuthURL = vsprintf("https://auth.docker.io/token?service=registry.docker.io&scope=repository:%s:pull", strstr($image.':', ':', true));
+		$strAuthURL = sprintf("https://auth.docker.io/token?service=registry.docker.io&scope=repository:%s:pull", $strRepo);
 		$this->debug("Auth URL: $strAuthURL");
 		$arrAuth = json_decode($this->download_url($strAuthURL), true);
 		if (empty($arrAuth) || empty($arrAuth['token'])) {
@@ -424,7 +422,7 @@ class DockerUpdate{
 
 		// Next - get manifest:
 		//   curl -H "Authorization: Bearer <TOKEN>" https://registry-1.docker.io/v2/needo/nzbget/manifests/latest
-		$strManifestURL = vsprintf("https://registry-1.docker.io/v2/%s/%s/manifests/%s", preg_split("#[:\/]#", $image));
+		$strManifestURL = sprintf("https://registry-1.docker.io/v2/%s/manifests/%s", $strRepo, $strTag);
 		$this->debug("Manifest URL: $strManifestURL");
 		$strManifest = $this->download_url_and_headers($strManifestURL, "Authorization: Bearer ".$arrAuth['token']);
 		if (empty($strManifest)) {
@@ -462,11 +460,10 @@ class DockerUpdate{
 		global $dockerManPaths;
 		if (is_file($dockerManPaths['update-status'])) {
 			$updateStatus = json_decode(file_get_contents($dockerManPaths['update-status']), true);
-			// Add :latest tag to image if it's absent
-			$image = ($image && count(preg_split("#[:\/]#", $image)) < 3) ? "${image}:latest" : $image;
+			$image = DockerUtil::ensureImageTag($image);
 			if (isset($updateStatus[$image])) {
 				if ($updateStatus[$image]['local'] || $updateStatus[$image]['remote']) {
-					return ($updateStatus[$image]['local'] == $updateStatus[$image]['remote']) ? true : false;
+					return ($updateStatus[$image]['local'] == $updateStatus[$image]['remote']);
 				}
 			}
 		}
@@ -479,10 +476,7 @@ class DockerUpdate{
 		$DockerClient = new DockerClient();
 		$update_file  = $dockerManPaths['update-status'];
 		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), true) : [];
-
-		// Add :latest tag to image if it's absent
-		$image = ($image && count(preg_split("#[:\/]#", $image)) < 3) ? "${image}:latest" : $image;
-		$images = ($image) ? [$image] : array_map(function($ar){return $ar['Tags'][0];}, $DockerClient->getDockerImages());
+		$images = ($image) ? [DockerUtil::ensureImageTag($image)] : array_map(function($ar){return $ar['Tags'][0];}, $DockerClient->getDockerImages());
 		foreach ($images as $img) {
 			$localVersion = null;
 			if (!empty($updateStatus[$img]) && array_key_exists('local', $updateStatus[$img])) {
@@ -503,6 +497,7 @@ class DockerUpdate{
 
 	public function setUpdateStatus($image, $version) {
 		global $dockerManPaths;
+		$image = DockerUtil::ensureImageTag($image);
 		$update_file  = $dockerManPaths['update-status'];
 		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), true) : [];
 		$updateStatus[$image] = [
@@ -816,16 +811,8 @@ class DockerClient {
 		foreach ($this->getDockerJSON("/containers/json?all=1") as $obj) {
 			$details = $this->getContainerDetails($obj['Id']);
 
-			// Docker 1.7 uses full image ID when there aren't tags, so lets crop it
-			$Image = (strlen($obj['Image']) == 64) ? substr($obj['Image'], 0, 12) : $obj['Image'];
-
-			// Docker 1.7 doesn't automatically append the tag 'latest', so we do that now if there's no tag
-			if ($Image && count(preg_split("#[:\/]#", $Image)) < 3) {
-				$Image .= ':latest';
-			}
-
 			$c = [];
-			$c["Image"]       = $Image;
+			$c["Image"]       = DockerUtil::ensureImageTag($obj['Image']);
 			$c["ImageId"]     = substr(str_replace('sha256:', '', $details["Image"]), 0, 12);
 			$c["Name"]        = substr($details['Name'], 1);
 			$c["Status"]      = $obj['Status'] ? $obj['Status'] : "None";
@@ -905,7 +892,7 @@ class DockerClient {
 			$c["Size"]         = $this->formatBytes($obj['Size']);
 			$c["VirtualSize"]  = $this->formatBytes($obj['VirtualSize']);
 			$c["Tags"]         = array_map("htmlentities", $obj['RepoTags']);
-			$c["Repository"]   = vsprintf('%1$s/%2$s', preg_split("#[:\/]#", $obj['RepoTags'][0]));
+			$c["Repository"]   = vsprintf('%1$s/%2$s', preg_split("#[:\/]#", DockerUtil::ensureImageTag($obj['RepoTags'][0])));
 			$c["usedBy"]       = $this->usedBy($c["Id"]);
 
 			$this->allImagesCache[$c["Id"]]  = $c;
@@ -918,5 +905,32 @@ class DockerClient {
 		$this->allContainersCache = null;
 		$this->allImagesCache = null;
 	}
+}
+
+
+######################################
+##        DOCKERUTIL CLASS          ##
+######################################
+class DockerUtil {
+
+	public static function ensureImageTag($image) {
+		list($strRepo, $strTag) = explode(':', $image.':');
+
+		if (strpos($strRepo, 'sha256:') === 0) {
+			// sha256 was provided instead of actual repo name so truncate it for display:
+			$strRepo = substr(str_replace('sha256:', '', $strRepo), 0, 12);
+		} else if (strpos($strRepo, '/') === false) {
+			// Prefix library/ if there's no author (maybe a Docker offical image?)
+			$strRepo = 'library/'.$strRepo;
+		}
+
+		// Add :latest tag to image if it's absent
+		if (empty($strTag)) {
+			$strTag = 'latest';
+		}
+
+		return $strRepo.':'.$strTag;
+	}
+
 }
 ?>
