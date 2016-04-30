@@ -65,25 +65,28 @@ function mhz($speed) {
 function rpm($speed) {
   return "$speed RPM";
 }
+function active_disks($disk) {
+  return $disk['status']!='DISK_NP' && preg_match('/^(Parity|Data|Cache)$/',$disk['type']);
+}
 $path   = '/webGui/images';
 $failed = ['FAILED','NOK'];
 switch ($_POST['cmd']) {
 case 'disk':
   $i = 1;
   $var = [];
-  $disks = @parse_ini_file('state/disks.ini',true);
+  $disks = @array_filter(parse_ini_file('state/disks.ini',true),'active_disks');
   $devs  = @parse_ini_file('state/devs.ini',true);
   $saved = @parse_ini_file('state/monitor.ini',true);
   require_once 'CustomMerge.php';
   require_once 'Preselect.php';
-  $slots = max(count($disks)+count($devs)-1, 25)+1;
-  $row1 = array_fill(0,$slots,'<td></td>'); my_insert($row1[0],'Active');
-  $row2 = array_fill(0,$slots,'<td></td>'); my_insert($row2[0],'Inactive');
-  $row3 = array_fill(0,$slots,'<td></td>'); my_insert($row3[0],'Unassigned');
-  $row4 = array_fill(0,$slots,'<td></td>'); my_insert($row4[0],'Faulty');
-  $row5 = array_fill(0,$slots,'<td></td>'); my_insert($row5[0],'Heat alarm');
-  $row6 = array_fill(0,$slots,'<td></td>'); my_insert($row6[0],'SMART status');
-  $row7 = array_fill(0,$slots,'<td></td>'); my_insert($row7[0],'Utilization');
+  $slots = $_POST['slots'];
+  $row1 = array_fill(0,31,'<td></td>'); my_insert($row1[0],'Active');
+  $row2 = array_fill(0,31,'<td></td>'); my_insert($row2[0],'Inactive');
+  $row3 = array_fill(0,31,'<td></td>'); my_insert($row3[0],'Unassigned');
+  $row4 = array_fill(0,31,'<td></td>'); my_insert($row4[0],'Faulty');
+  $row5 = array_fill(0,31,'<td></td>'); my_insert($row5[0],'Heat alarm');
+  $row6 = array_fill(0,31,'<td></td>'); my_insert($row6[0],'SMART status');
+  $row7 = array_fill(0,31,'<td></td>'); my_insert($row7[0],'Utilization');
   $funcRenderRow = function($n,$disk) use (&$row1,&$row2,&$row3,&$row4,&$row5,&$row6,&$row7,$path,$_POST) {
     if ($n>0) {
       $state = $disk['color'];
@@ -115,22 +118,16 @@ case 'disk':
       my_usage($row7[$n],($disk['type']!='Parity' && $disk['fsStatus']=='Mounted')?(round((1-$disk['fsFree']/$disk['fsSize'])*100).'%'):'');
     }
   };
-  foreach ($disks as $disk)
-    if ($disk['type']=='Parity' && $disk['status']!='DISK_NP')
-      $funcRenderRow($i++,$disk);
-  foreach ($disks as $disk)
-    if ($disk['type']=='Data' && $disk['status']!='DISK_NP')
-      $funcRenderRow($i++,$disk);
-  foreach ($disks as $disk)
-    if ($disk['type']=='Cache' && $disk['status']!='DISK_NP') {
-      if ($disk['name']!='cache') $disk['fsStatus']=='-';
-      $funcRenderRow($i++,$disk);
+  foreach ($disks as $disk) if ($disk['type']=='Parity') $funcRenderRow($i++,$disk);
+  foreach ($disks as $disk) if ($disk['type']=='Data') $funcRenderRow($i++,$disk);
+  if ($slots <= 30) {
+    foreach ($disks as $disk) if ($disk['type']=='Cache') $funcRenderRow($i++,$disk);
+    foreach ($devs as $dev) {
+      $device = $dev['device'];
+      $state = exec("hdparm -C /dev/$device|grep -Po active") ? 'blue-on' : 'blue-blink';
+      if ($state=='blue-on') my_smart($row6[$i],$device,'New');
+      my_insert($row3[$i++],"<img src=$path/$state.png>");
     }
-  foreach ($devs as $dev) {
-    $device = $dev['device'];
-    $state = exec("hdparm -C /dev/$device|grep -Po active") ? 'blue-on' : 'blue-blink';
-    if ($state=='blue-on') my_smart($row6[$i],$device,'New');
-    my_insert($row3[$i++],"<img src=$path/$state.png>");
   }
   echo "<tr>".implode('',$row1)."</tr>";
   echo "<tr>".implode('',$row2)."</tr>";
@@ -139,6 +136,30 @@ case 'disk':
   echo "<tr>".implode('',$row5)."</tr>";
   echo "<tr>".implode('',$row6)."</tr>";
   echo "<tr>".implode('',$row7)."</tr>";
+  if ($slots > 30) {
+    echo '#'; $i = 1;
+    $row1 = array_fill(0,31,'<td></td>'); my_insert($row1[0],'Active');
+    $row2 = array_fill(0,31,'<td></td>'); my_insert($row2[0],'Inactive');
+    $row3 = array_fill(0,31,'<td></td>'); my_insert($row3[0],'Unassigned');
+    $row4 = array_fill(0,31,'<td></td>'); my_insert($row4[0],'Faulty');
+    $row5 = array_fill(0,31,'<td></td>'); my_insert($row5[0],'Heat alarm');
+    $row6 = array_fill(0,31,'<td></td>'); my_insert($row6[0],'SMART status');
+    $row7 = array_fill(0,31,'<td></td>'); my_insert($row7[0],'Utilization');
+    foreach ($disks as $disk) if ($disk['type']=='Cache') $funcRenderRow($i++,$disk);
+    foreach ($devs as $dev) {
+      $device = $dev['device'];
+      $state = exec("hdparm -C /dev/$device|grep -Po active") ? 'blue-on' : 'blue-blink';
+      if ($state=='blue-on') my_smart($row6[$i],$device,'New');
+      my_insert($row3[$i++],"<img src=$path/$state.png>");
+    }
+    echo "<tr>".implode('',$row1)."</tr>";
+    echo "<tr>".implode('',$row2)."</tr>";
+    echo "<tr>".implode('',$row3)."</tr>";
+    echo "<tr>".implode('',$row4)."</tr>";
+    echo "<tr>".implode('',$row5)."</tr>";
+    echo "<tr>".implode('',$row6)."</tr>";
+    echo "<tr>".implode('',$row7)."</tr>";
+  }
 break;
 case 'sys':
   exec("grep -Po '^Mem(Total|Available):\s+\K\d+' /proc/meminfo",$memory);
