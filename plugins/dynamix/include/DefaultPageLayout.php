@@ -338,7 +338,7 @@ $(function() {
   var top = ($.cookie('top')||0) - $('.tabs').offset().top - 75;
   if (top>0) {$('html,body').scrollTop(top);}
   $.removeCookie('top',{path:'/'});
-<?if (exec("grep -wo unraidsafemode /proc/cmdline")):?>
+<?if (strpos(file_get_contents('/proc/cmdline'),'unraidsafemode')!==false):?>
   showNotice('System running in <b>safe</b> mode');
 <?else:?>
 <?if ($version = plugin_update_available('unRAIDServer')):?>
