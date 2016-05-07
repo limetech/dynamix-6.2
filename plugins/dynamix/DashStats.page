@@ -33,8 +33,8 @@ $memory_maximum = exec("dmidecode -t 16 | awk -F: '/^\tMaximum Capacity: [0-9]+ 
 // If maximum < installed then roundup maximum to the next power of 2 size of installed. E.g. 6 -> 8 or 12 -> 16
 if ($memory_maximum*1024 < $memory_installed) $memory_maximum = pow(2,ceil(log($memory_installed/1024)/log(2)));
 
-function init_row($label,$slots) {
-  echo "<tr><td>$label</td>".str_repeat("<td></td>",$slots)."</tr>";
+function init_row($label) {
+  echo "<tr><td>$label</td>".str_repeat("<td></td>",30)."</tr>";
 }
 function parity_status() {
   global $var,$disks;
@@ -105,6 +105,11 @@ function export_settings($protocol,$share) {
   if ($share['export']=='e') return ucfirst($share['security']);
   return '<em>'.ucfirst($share['security']).'</em>';
 }
+function active_disks($disk) {
+  return $disk['status']!='DISK_NP' && preg_match('/^(Parity|Data|Cache)$/',$disk['type']);
+}
+$disks = array_filter($disks,'active_disks');
+$slots = count($disks) + count($devs);
 ?>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/context.standalone.css">
 <script src="/webGui/javascript/context.js"></script>
@@ -112,32 +117,48 @@ function export_settings($protocol,$share) {
 <table class='share_status fixed'>
 <thead><tr>
 <?
-$slots = max(count($disks)+count($devs)-1, 25);
-$row0 = array_fill(0,$slots,"<td>-</td>"); $i = 0;
-foreach ($disks as $disk)
-  if ($disk['type']=='Parity' && $disk['status']!='DISK_NP')
-    $row0[$i++] = "<td>Parity<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
-foreach ($disks as $disk)
-  if ($disk['type']=='Data' && $disk['status']!='DISK_NP')
-    $row0[$i++] = "<td>Disk<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
-foreach ($disks as $disk)
-  if ($disk['type']=='Cache' && $disk['status']!='DISK_NP')
-    $row0[$i++] = "<td>Cache<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
-foreach ($devs as $dev)
-  $row0[$i++] = "<td>{$dev['device']}</td>";
+$row0 = array_fill(0,30,"<td>-</td>"); $i = 0;
+foreach ($disks as $disk) if ($disk['type']=='Parity') $row0[$i++] = "<td>Parity<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
+foreach ($disks as $disk) if ($disk['type']=='Data') $row0[$i++] = "<td>Disk<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
+if ($slots <= 30) {
+  foreach ($disks as $disk) if ($disk['type']=='Cache') $row0[$i++] = "<td>Cache<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
+  foreach ($devs as $dev) $row0[$i++] = "<td>{$dev['device']}</td>";
+}
+echo "<td>Array Status</td>".implode('',$row0);
+?>
+</tr></thead>
+<tbody id='dash0'>
+<?init_row('Active')?>
+<?init_row('Inactive')?>
+<?init_row('Unassigned')?>
+<?init_row('Faulty')?>
+<?init_row('Heat alarm')?>
+<?init_row('SMART status')?>
+<?init_row('Utilization')?>
+</tbody>
+</table>
+<?if ($slots > 30):?>
+<br>
+<table class='share_status fixed'>
+<thead><tr>
+<?
+$row0 = array_fill(0,30,"<td>-</td>"); $i = 0;
+foreach ($disks as $disk) if ($disk['type']=='Cache' && $disk['status']!='DISK_NP') $row0[$i++] = "<td>Cache<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
 echo "<td>Array Status</td>".implode('',$row0);
 ?>
 </tr></thead>
 <tbody id='dash1'>
-<?init_row('Active',$slots)?>
-<?init_row('Inactive',$slots)?>
-<?init_row('Unassigned',$slots)?>
-<?init_row('Faulty',$slots)?>
-<?init_row('Heat alarm',$slots)?>
-<?init_row('SMART status',$slots)?>
-<?init_row('Utilization',$slots)?>
+<?init_row('Active')?>
+<?init_row('Inactive')?>
+<?init_row('Unassigned')?>
+<?init_row('Faulty')?>
+<?init_row('Heat alarm')?>
+<?init_row('SMART status')?>
+<?init_row('Utilization')?>
 </tbody>
 </table>
+<?endif;?>
+
 <table class='share_status table'>
 <thead><tr><td colspan='2'>Parity Status</td></tr></thead>
 <tbody><?=parity_status()?></tbody>
@@ -400,8 +421,12 @@ function update30() {
   $.post('<?=$url?>',{cmd:'port',view:tag,ports:'<?=implode(',',$ports)?>'},function(data) {
     if (data) $.each(data.split('#'),function(k,v) {$('#'+tag+k).html(v);});
   });
-  $.post('<?=$url?>',{cmd:'disk',hot:'<?=$display['hot']?>',max:'<?=$display['max']?>',unit:'<?=$display['unit']?>'},function(data) {
-    if (data) $('#dash1').html(data);
+  $.post('<?=$url?>',{cmd:'disk',hot:'<?=$display['hot']?>',max:'<?=$display['max']?>',unit:'<?=$display['unit']?>',slots:<?=$slots?>},function(data) {
+<?if ($slots <= 30):?>
+    if (data) $('#dash0').html(data);
+<?else:?>
+    if (data) $.each(data.split('#'),function(k,v) {$('#dash'+k).html(v);});
+<?endif;?>
     clearTimeout(timer2);
     timer2 = setTimeout(heatAlarm,2000);
     $('[id^="smart-"]').each(function() {

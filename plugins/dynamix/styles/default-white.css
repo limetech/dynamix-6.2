@@ -146,7 +146,8 @@ table.share_status tr.share_status_size>td+td{padding-left:15px;}
 table.share_status tbody tr:nth-child(even){background-color:#F8F8F8;}
 table.share_status.share tr td:last-child{width:4%;text-align:right;padding-right:10px;}
 table.share_status.fixed{border:1px solid #D0D0D0;}
-table.share_status.fixed tr>td+td{width:45px;text-align:center;padding:0;}
+table.share_status.fixed thead tr>td+td{font-size:11px;}
+table.share_status.fixed tr>td+td{width:38px;text-align:center;padding:0;}
 table.share_status.fixed tbody tr{border-bottom:1px #D0D0D0 dotted;}
 table.share_status.fixed tbody tr:nth-child(even){background-color:#FFFFFF;}
 table.share_status.fixed tbody tr td:nth-child(even){background-color:#F8F8F8;}

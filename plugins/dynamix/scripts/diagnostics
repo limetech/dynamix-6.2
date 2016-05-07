@@ -16,6 +16,10 @@ $opt = getopt('a',['all']);
 $all = isset($opt['a']) || isset($opt['all']);
 $zip = $all ? $argv[2] : $argv[1];
 $cli = empty($zip);
+$get = "/var/local/emhttp";
+$var = file_exists("$get/var.ini") ? parse_ini_file("$get/var.ini") : [];
+
+$folders = ['/boot','/boot/config','/boot/config/plugins','/boot/extra','/boot/syslinux','/var/log','/var/log/plugins','/var/log/packages','/tmp'];
 
 function anonymize($text,$select) {
   global $all;
@@ -47,7 +51,6 @@ if ($cli) {
 // script is called from CLI
   echo "Starting diagnostics collection... ";
   exec("mkdir -p /boot/logs");
-  $var = @parse_ini_file("/var/local/emhttp/var.ini");
   $server = isset($var['NAME']) ? str_replace(' ','_',strtolower($var['NAME'])) : 'tower';
   $date = date('Ymd-Hi');
   $diag = "$server-diagnostics-$date";
@@ -60,8 +63,11 @@ if ($cli) {
 }
 // create folder structure
 exec("mkdir -p /$diag/system /$diag/config /$diag/logs /$diag/shares /$diag/smart /$diag/qemu");
+// make unRAID version reference
+$unraid = parse_ini_file('/etc/unraid-version');
+file_put_contents("/$diag/unRAID-".$unraid['version'].".txt",$unraid['version']);
 // copy ini variables
-foreach (glob("/var/local/emhttp/*.ini") as $file) {
+foreach (glob("$get/*.ini") as $file) {
   $ini = basename($file,".ini");
   // skip users file in anonymized mode
   if ($all || $ini != "users") file_put_contents("/$diag/system/vars.txt",preg_replace(["/\n/","/^Array/"],["\r\n",$ini],anonymize(print_r(parse_ini_file($file,true),true),1)),FILE_APPEND);
@@ -73,6 +79,7 @@ exec("free -mt 2>/dev/null|todos >/$diag/system/memory.txt");
 exec("ps -ef 2>/dev/null|todos >/$diag/system/ps.txt");
 exec("lsof -Pni 2>/dev/null|todos >/$diag/system/lsof.txt");
 exec("lsmod 2>/dev/null|todos >/$diag/system/lsmod.txt");
+exec("df -h 2>/dev/null|todos >/$diag/system/df.txt");
 exec("ifconfig -s 2>/dev/null|grep -Po '^(eth|bond)[0-9]+'", $ports);
 // create ethernet information information (suppress errors)
 foreach ($ports as $port) {
@@ -85,6 +92,11 @@ exec("ifconfig 2>/dev/null|todos >/$diag/system/ifconfig.txt");
 // create system information (suppress errors)
 exec("find /sys/kernel/iommu_groups/ -type l 2>/dev/null|todos >/$diag/system/iommu_groups.txt");
 exec("todos </proc/cmdline >/$diag/system/cmdline.txt");
+// create folder structure listing
+$dest = "/$diag/system/folders.txt";
+foreach ($folders as $folder) {
+  if (is_dir($folder)) exec("echo -ne \"\r\n$folder\r\n\" >>$dest;ls -l $folder|todos >>$dest"); else exec("echo -ne \"\r\n$folder\r\nfolder does not exist\r\n\" >>$dest");
+}
 // copy configuration files (suppress errors)
 exec("cp /boot/config/*.{cfg,conf,dat} /boot/config/go /$diag/config 2>/dev/null");
 // anonymize configuration files
@@ -98,27 +110,29 @@ foreach ($files as $file) {
   if (!$all) exec("sed -ri 's/^(share(Comment|ReadList|WriteList)=\")[^\"]+/\\1.../' '$dest' 2>/dev/null");
 }
 // create default user shares information
-$ini = "/var/local/emhttp/shares.ini";
-$shares = file_exists($ini) ? parse_ini_file($ini, true) : [];
+$shares = file_exists("$get/shares.ini") ? parse_ini_file("$get/shares.ini", true) : [];
 foreach ($shares as $share) {
   $name = $share['name'];
   if (!in_array("/boot/config/shares/$name.cfg",$files)) file_put_contents(anonymize("/$diag/shares/$name.cfg",2),"# This share has default settings.\r\n");
 }
 // copy syslog information (anonymize if applicable)
+$max = 3*1024*1024; //3MB
 foreach (glob("/var/log/syslog*") as $file) {
-  $dest = "/$diag/logs/".basename($file).".txt";
-  exec("todos <$file >$dest");
+  $log = "/$diag/logs/".basename($file);
+  exec("todos <$file >$log.txt");
   if (!$all) {
     unset($titles,$rows);
-    exec("grep -Po 'logger: moving \"\K[^\"]+' $dest 2>/dev/null|sort|uniq", $titles);
-    exec("sed -ri 's|\b\S+@\S+\.\S+\b|xxx@removed.com|;s|\b(username\|password)([=:])\S+\b|\\1\\2xxx|;s|(GUID: \S)\S+(\S) |\\1..\\2 |;s|(moving \"\S\|\"/mnt/user/\S).*(\S)\"|\\1..\\2\"|' $dest");
+    exec("grep -Po 'logger: moving \"\K[^\"]+' $log.txt 2>/dev/null|sort|uniq", $titles);
+    exec("sed -ri 's|\b\S+@\S+\.\S+\b|xxx@removed.com|;s|\b(username\|password)([=:])\S+\b|\\1\\2xxx|;s|(GUID: \S)\S+(\S) |\\1..\\2 |;s|(moving \"\S\|\"/mnt/user/\S).*(\S)\"|\\1..\\2\"|' $log.txt");
     foreach ($titles as $mover) {
       $title = "/{$mover[0]}..".substr($mover,-1)."/...";
-      exec("sed -ri 's|(logger: [.>cr].*)[ /]$mover/.*$|\\1 file: $title|' $dest 2>/dev/null");
+      exec("sed -ri 's|(logger: [.>cr].*)[ /]$mover/.*$|\\1 file: $title|' $log.txt 2>/dev/null");
     }
-    exec("grep -n ' cache_dirs: -' $dest 2>/dev/null|cut -d: -f1", $rows);
-    for ($i = 0; $i < count($rows); $i += 2) for ($row = $rows[$i]+1; $row < $rows[$i+1]; $row++) exec("sed -ri '$row s|(cache_dirs: \S).*(\S)|\\1..\\2|' $dest 2>/dev/null");
+    exec("grep -n ' cache_dirs: -' $log.txt 2>/dev/null|cut -d: -f1", $rows);
+    for ($i = 0; $i < count($rows); $i += 2) for ($row = $rows[$i]+1; $row < $rows[$i+1]; $row++) exec("sed -ri '$row s|(cache_dirs: \S).*(\S)|\\1..\\2|' $log.txt 2>/dev/null");
   }
+  exec("tail -n 200 $log.txt >$log.last200.txt");
+  exec("truncate -s '<$max' $log.txt");
 }
 // copy docker information (if existing)
 $docker = "/var/log/docker.log";
@@ -131,10 +145,31 @@ if ($qemu)
 else
   file_put_contents("/$diag/qemu/no qemu log files","");
 // create SMART reports (suppress errors)
+$disks = file_exists("$get/disks.ini") ? parse_ini_file("$get/disks.ini", true) : [];
+include_once '/usr/local/emhttp/webGui/include/CustomMerge.php';
 exec("ls -l /dev/disk/by-id/[au]* 2>/dev/null|awk '$0!~/-part/{split($11,a,\"/\");print a[3],substr($9,21)}'", $devices);
 foreach ($devices as $device) {
   $disk = explode(' ',$device);
-  exec("smartctl -a /dev/${disk[0]} 2>/dev/null|todos >/$diag/smart/${disk[1]}-$date.txt");
+  $type = '';
+  foreach ($disks as $find) {
+    if ($find['device']==$disk[0]) {
+      $type = isset($find['smType']) ? $find['smType'] : -1;
+      if ($type==-1) $type = isset($var['smType']) ? $var['smType'] : '';
+      if ($type) {
+        $ports = [];
+        if (isset($find['smDevice']) && strlen($find['smDevice'])) $port = $find['smDevice'];
+        if (isset($find['smPort1']) && strlen($find['smPort1'])) $ports[] = $find['smPort1'];
+        if (isset($find['smPort2']) && strlen($find['smPort2'])) $ports[] = $find['smPort2'];
+        if (isset($find['smPort3']) && strlen($find['smPort3'])) $ports[] = $find['smPort3'];
+        if ($ports) {
+          $glue = isset($find['smGlue']) ? $find['smGlue'] : ',';
+          $type .= ','.implode($glue,$ports);
+        }
+      }
+      break;
+    }
+  }
+  exec("smartctl -a $type /dev/${disk[0]} 2>/dev/null|todos >/$diag/smart/${disk[1]}-$date.txt");
 }
 // create resulting zip file and remove temp folder
 exec("zip -qmr $zip /$diag");

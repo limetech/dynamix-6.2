@@ -325,8 +325,6 @@ echo "</span></div>";
 ?>
 <script>
 $(function() {
-  var updateText = '';
-  var pluginName = '';
 <?if ($notify['entity'] & 1 == 1):?>
   $.post('/webGui/include/Notify.php',{cmd:'init'},function(x){timers.notifier = setTimeout(notifier,0);});
 <?endif;?>
@@ -340,15 +338,16 @@ $(function() {
   var top = ($.cookie('top')||0) - $('.tabs').offset().top - 75;
   if (top>0) {$('html,body').scrollTop(top);}
   $.removeCookie('top',{path:'/'});
+<?if (strpos(file_get_contents('/proc/cmdline'),'unraidsafemode')!==false):?>
+  showNotice('System running in <b>safe</b> mode');
+<?else:?>
 <?if ($version = plugin_update_available('unRAIDServer')):?>
-  updateText = 'unRAID OS v<?=$version?> is available. <a>Download Now</a>';
-  pluginName = 'unRAIDServer';
+  showNotice('unRAID OS v<?=$version?> is available. <a>Download Now</a>','unRAIDServer');
+<?elseif ($version = plugin_update_available('dynamix')):?>
+  showNotice('Dynamix webGUI v<?=$version?> is available. <a>Download Now</a>','dynamix');
 <?endif;?>
-<?if ($version = plugin_update_available('dynamix')):?>
-  if (!updateText) {updateText = 'Dynamix GUI <b><?=$version?></b> is available. <a>Download Now</a>'; pluginName = 'dynamix';}
 <?endif;?>
-  if (updateText) showNotice(updateText,pluginName);
-  if (location.pathname.indexOf('/AddVM')==-1 && location.pathname.indexOf('/UpdateVM')==-1 && location.pathname.indexOf('/AddContainer')==-1 && location.pathname.indexOf('/UpdateContainer')==-1) {
+  if (location.pathname.search(/\/(AddVM|UpdateVM|AddContainer|UpdateContainer)/)==-1) {
     $('blockquote.inline_help').each(function(i) {
       $(this).attr('id','helpinfo'+i);
       var pin = $(this).prev();

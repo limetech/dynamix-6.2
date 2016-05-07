@@ -3,7 +3,7 @@
 // Copyright 2015, Lime Technology LLC.
 // License: GPLv2 only
 //
-// Program updates made by Bergware International (December 2014)
+// Program updates made by Bergware International (April 2016)
 $usage = <<<EOF
 Process plugin files.
 
@@ -196,7 +196,7 @@ function error_desc($code) {
 //
 function logger($message) {
 //  echo "$message\n";
-  shell_exec( "logger $message");
+  shell_exec("logger $message");
 }
 
 // Interpret a plugin file
@@ -207,6 +207,7 @@ function logger($message) {
 // is processed for any of those methods.
 //
 function plugin($method, $plugin_file, &$error) {
+  global $unraid;
   $methods = array("install", "remove");
 
   // parse plugin definition XML file
@@ -245,9 +246,19 @@ function plugin($method, $plugin_file, &$error) {
     if (isset($file->attributes()->Method)) {
       if (!in_array($method, explode(" ", $file->attributes()->Method))) continue;
     } else if ($method != "install") continue;
-
-    // Name can be missing but only makes sense if Run attribute is present
     $name = $file->attributes()->Name;
+    // bergware - check unRAID version dependency (if present)
+    $min = $file->attributes()->Min;
+    if ($min && version_compare($unraid['version'],$min,'<')) {
+      echo "plugin: skipping: ".basename($name)." - unRAID version too low, requires at least version $min\n";
+      continue;
+    }
+    $max = $file->attributes()->Max;
+    if ($max && version_compare($unraid['version'],$max,'>')) {
+      echo "plugin: skipping: ".basename($name)." - unRAID version too high, requires at most version $max\n";
+      continue;
+    }
+    // Name can be missing but only makes sense if Run attribute is present
     if ($name) {
       // Ensure parent directory exists
       //
@@ -382,6 +393,7 @@ if ($argc < 3) {
 // b) [plugin_file] is a URL
 // c) dirname of [plugin_file] is not /boot/config/plugins
 //
+$unraid = parse_ini_file('/etc/unraid-version');
 if ($method == "install") {
   echo "plugin: installing: $argv[2]\n";
   // check for URL
@@ -396,9 +408,18 @@ if ($method == "install") {
     }
   } else
     $plugin_file = realpath($argv[2]);
-
+  // bergware - check unRAID version dependency (if present)
+  $min = plugin("min", $plugin_file, $error);
+  if ($min && version_compare($unraid['version'],$min,'<')) {
+    echo "plugin: installed unRAID version is too low, require at least version $min\n";
+    exit(1);
+  }
+  $max = plugin("max", $plugin_file, $error);
+  if ($max && version_compare($unraid['version'],$max,'>')) {
+    echo "plugin: installed unRAID version is too high, require at most version $max\n";
+    exit(1);
+  }
   $plugin = basename($plugin_file);
-
   // check for re-install
   $installed_plugin_file = @readlink("/var/log/plugins/$plugin");
   if ($installed_plugin_file !== false) {
@@ -418,13 +439,12 @@ if ($method == "install") {
       exit(1);
     }
     // do not re-install if same plugin already installed or has higher version
-    if (strcmp($version, $installed_version) <= 0) {
-      if (strcmp($version, $installed_version) < 0) {
-        echo "plugin: not installing older version\n";
-      }
-      if (strcmp($plugin_version, $installed_version) == 0) {
-        echo "plugin: not reinstalling same version\n";
-      }
+    if (strcmp($version, $installed_version) < 0) {
+      echo "plugin: not installing older version\n";
+      exit(1);
+    }
+    if (strcmp($version, $installed_version) == 0) {
+      echo "plugin: not reinstalling same version\n";
       exit(1);
     }
     if (plugin("install", $plugin_file, $error) === false) {
@@ -445,9 +465,8 @@ if ($method == "install") {
       exit(1);
     }
   }
-
   // register successful install
-  // Bergware change: add user or system plugin selection
+  // Bergware change: add user or system plugin selection - deprecated
   $plugintype = plugin("plugintype", $plugin_file, $error);
   $target = $plugintype != "system" ? "/boot/config/plugins/$plugin" : "/boot/plugins/$plugin";
   if ($target != $plugin_file) copy($plugin_file, $target);
@@ -532,6 +551,17 @@ if ($method == "update") {
   if (!file_exists($plugin_file)) {
     echo "plugin: $plugin_file does not exist, check first\n";
     exit (1);
+  }
+  // bergware - check unRAID version dependency (if present)
+  $min = plugin("min", $plugin_file, $error);
+  if ($min && version_compare($unraid['version'],$min,'<')) {
+    echo "plugin: installed unRAID version is too low, require at least version $min\n";
+    exit(1);
+  }
+  $max = plugin("max", $plugin_file, $error);
+  if ($max && version_compare($unraid['version'],$max,'>')) {
+    echo "plugin: installed unRAID version is too high, require at most version $max\n";
+    exit(1);
   }
   // install the updated plugin
   if (plugin("install", $plugin_file, $error) === false) {
