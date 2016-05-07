@@ -347,7 +347,7 @@ $(function() {
   showNotice('Dynamix webGUI v<?=$version?> is available. <a>Download Now</a>','dynamix');
 <?endif;?>
 <?endif;?>
-  if (location.pathname.indexOf('/AddVM')==-1 && location.pathname.indexOf('/UpdateVM')==-1 && location.pathname.indexOf('/AddContainer')==-1 && location.pathname.indexOf('/UpdateContainer')==-1) {
+  if (location.pathname.search(/\/(AddVM|UpdateVM|AddContainer|UpdateContainer)/)==-1) {
     $('blockquote.inline_help').each(function(i) {
       $(this).attr('id','helpinfo'+i);
       var pin = $(this).prev();
