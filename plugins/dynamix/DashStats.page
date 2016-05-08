@@ -144,6 +144,7 @@ echo "<td>Array Status</td>".implode('',$row0);
 <?
 $row0 = array_fill(0,30,"<td>-</td>"); $i = 0;
 foreach ($disks as $disk) if ($disk['type']=='Cache' && $disk['status']!='DISK_NP') $row0[$i++] = "<td>Cache<br>&nbsp;".filter_var($disk['name'],FILTER_SANITIZE_NUMBER_INT)."&nbsp;</td>";
+foreach ($devs as $dev) $row0[$i++] = "<td>{$dev['device']}</td>";
 echo "<td>Array Status</td>".implode('',$row0);
 ?>
 </tr></thead>
