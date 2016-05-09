@@ -1,0 +1,74 @@
+#!/usr/bin/php -q
+<?PHP
+/* Copyright 2016, Bergware International.
+ * Copyright 2016, Lime Technology
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+$set = $ifname = $argv[1];
+$run = $set != 'none';
+$ini = parse_ini_file('/var/local/emhttp/network.ini',true); ksort($ini,SORT_NATURAL);
+$cfg = '/boot/config/network.cfg';
+
+if ($run && file_exists($cfg)) {
+  $old = parse_ini_file($cfg);
+  $i = preg_replace('/[^\d]/','',$set);
+  if (isset($old['SYSNICS'])) {
+    // new syntax
+    $ifname = isset($old['IFNAME'][$i]) ? $old['IFNAME'][$i] : $set;
+  } else {
+    // legacy syntax
+    if ($i==0) $ifname = $old['BRIDGING']=='yes' ? $old['BRNAME'] : ($old['BONDING']=='yes' ? $old['BONDNAME'] : $set);
+  }
+}
+
+// stop interface with existing (old) configuration
+// don't execute when only interface description has changed
+if ($run) exec("/etc/rc.d/rc.inet1 {$ifname}_stop >/dev/null");
+
+if ($bonding = isset($ini['eth0']) && $ini['eth0']['BONDING']=='yes') {
+  $ini['eth0']['BONDNICS'] = str_replace(',',' ',$ini['eth0']['BONDNICS']);
+  $members = explode(' ',trim(str_replace('eth0','',$ini['eth0']['BONDNICS'])));
+}
+
+// create configuration file for all available interfaces
+$index = 0;
+$new = []; $new[] = "# Generated settings:";
+foreach ($ini as $name => $port) {
+  if ($bonding && in_array($name,$members)) continue;
+  $bridging = $port['BRIDGING']=='yes';
+  $trunk = $port['TYPE']=='trunk';
+  $i = 0; $id0 = 0;
+  $iface = $bridging ? $port['BRNAME'] : ($bonding && $name=='eth0' ? $port['BONDNAME'] : $name);
+  $new[] = "IFNAME[$index]=\"$iface\"";
+  if ($set==$name) $ifname = $iface;
+  foreach ($port as $key => $val) {
+    if (preg_match('/^(TYPE|BONDING$|BRIDGING)/',$key)) continue;
+    if (!$bonding && preg_match('/^(BONDING_MODE|BONDING_MIIMON|BONDNICS|BONDNAME)/',$key)) continue;
+    if (!$bridging && preg_match('/^(BRSTP|BRFD|BRNICS|BRNAME)/',$key)) continue;
+    list($item,$id) = explode(':',$key,2);
+    if ($trunk && $id>0 && preg_match('/^(VLANID|USE_DHCP|IPADDR|NETMASK|DESCRIPTION)/',$key)) {
+      if ($id0 != $id) {$id0 = $id; $i++;}
+      $vlan = ",$i]";
+    } else $vlan = '';
+    if (!$vlan && preg_match('/^VLANID/',$key)) continue;
+    $new[] = $item.(preg_match('/^(GATEWAY|DNS_SERVER|DHCP_KEEPRESOLV)/',$key)?'':'['.$index.($vlan?'':']')).$vlan."=\"$val\"";
+  }
+  if ($trunk) $new[] = "VLANS[$index]=\"".($i+1)."\"";
+  $index++;
+}
+$new[] = "SYSNICS=\"$index\"";
+
+file_put_contents($cfg,implode("\r\n",$new)."\r\n");
+// start interface with updated (new) configuration
+// don't execute when only interface description has changed
+if ($run) exec("/etc/rc.d/rc.inet1 {$ifname}_start >/dev/null &");
+exit(0);
+?>
