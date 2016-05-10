@@ -69,6 +69,6 @@ $new[] = "SYSNICS=\"$index\"";
 file_put_contents($cfg,implode("\r\n",$new)."\r\n");
 // start interface with updated (new) configuration
 // don't execute when only interface description has changed
-if ($run) exec("/etc/rc.d/rc.inet1 {$ifname}_start >/dev/null &");
+if ($run) exec("/etc/rc.d/rc.inet1 {$ifname}_start >/dev/null");
 exit(0);
 ?>

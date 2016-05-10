@@ -40,7 +40,6 @@ $sec_nfs = parse_ini_file('state/sec_nfs.ini',true);
 $sec_afp = parse_ini_file('state/sec_afp.ini',true);
 
 // Read network settings
-exec("/usr/local/sbin/create_network_ini");
 extract(parse_ini_file('state/network.ini',true));
 
 // Merge SMART settings
