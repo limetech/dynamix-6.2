@@ -96,6 +96,15 @@ function prepareSettings(form) {
       return false;
     }
   }
+  $(form).find('select[name^="USE_DHCP:"]').each(function() {
+    if ($(this).prop('disabled')==false && $(this).val()=='yes') {
+      var ipaddr = $(this).prop('name').replace('USE_DHCP','IPADDR');
+      $(form).find('input[name="'+ipaddr+'"]').val('Obtaining IP address...');
+    }
+  });
+  if ($(form).find('select[name="DHCP_KEEPRESOLV"]').val()=='no') {
+    $(form).find('input[name^="DNS_SERVER"]').val('Obtaining DNS server...');
+  }
   form.BRNAME.value = 'br'+$(form).find('input[name="#section"]').val().substr(3);
   return true;
 }
@@ -104,10 +113,11 @@ function checkNetworkSettings(form,index) {
     $(form).find('select[name^="USE_DHCP:"]').each(function() {
       var i = $(this).attr('name').substr(9);
       var disabled = $(this).val()!='no';
-      $(form).find('input[name="IPADDR:'+i+'"]').prop('disabled',disabled).prop('required',!disabled);
+      var ipaddr = $(form).find('input[name="IPADDR:'+i+'"]');
       var netmask = $(form).find('select[name="NETMASK:'+i+'"]');
+      ipaddr.prop('disabled',disabled).prop('required',!disabled);
       netmask.prop('disabled',disabled);
-      if (disabled) netmask.append('<option value="none" selected="selected"></option>');
+      if (ipaddr.val()=='') netmask.append('<option value="none" selected="selected"></option>');
       if (i==0 && form.GATEWAY !== undefined) {form.GATEWAY.disabled = disabled; form.GATEWAY.required = !disabled;}
     });
   } else {
@@ -301,6 +311,7 @@ IP address:
 
 Network mask:
 : <select name="NETMASK:<?=$i?>" size="1">
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.0.0", "255.255.0.0");?>
   <?=mk_option($eth0["NETMASK:$i"], "255.255.252.0", "255.255.252.0");?>
   <?=mk_option($eth0["NETMASK:$i"], "255.255.254.0", "255.255.254.0");?>
   <?=mk_option($eth0["NETMASK:$i"], "255.255.255.0", "255.255.255.0");?>
@@ -380,6 +391,7 @@ IP address:
 
 Network mask:
 : <select name="NETMASK:INDEX" size="1">
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.0.0", "255.255.0.0");?>
   <?=mk_option($eth0["NETMASK:INDEX"], "255.255.252.0", "255.255.252.0");?>
   <?=mk_option($eth0["NETMASK:INDEX"], "255.255.254.0", "255.255.254.0");?>
   <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.0", "255.255.255.0");?>

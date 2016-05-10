@@ -101,6 +101,7 @@ IP address:
 
 Network mask:
 : <select name="NETMASK:<?=$i?>" size="1">
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.0.0", "255.255.0.0");?>
   <?=mk_option($ethX["NETMASK:$i"], "255.255.252.0", "255.255.252.0");?>
   <?=mk_option($ethX["NETMASK:$i"], "255.255.254.0", "255.255.254.0");?>
   <?=mk_option($ethX["NETMASK:$i"], "255.255.255.0", "255.255.255.0");?>
@@ -147,6 +148,7 @@ IP address:
 
 Network mask:
 : <select name="NETMASK:INDEX" size="1">
+  <?=mk_option($ethX["NETMASK:INDEX"], "255.255.0.0", "255.255.0.0");?>
   <?=mk_option($ethX["NETMASK:INDEX"], "255.255.252.0", "255.255.252.0");?>
   <?=mk_option($ethX["NETMASK:INDEX"], "255.255.254.0", "255.255.254.0");?>
   <?=mk_option($ethX["NETMASK:INDEX"], "255.255.255.0", "255.255.255.0");?>
