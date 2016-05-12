@@ -247,7 +247,7 @@ class DockerTemplates {
 		$WebUI = $this->getTemplateValue($Repository, "WebUI");
 
 		if (preg_match("%\[IP\]%", $WebUI)) {
-			$WebUI = preg_replace("%\[IP\]%", $var["IPADDR"], $WebUI);
+			$WebUI = preg_replace("%\[IP\]%", $eth0["IPADDR:0"], $WebUI);
 		}
 		if (preg_match("%\[PORT:(\d+)\]%", $WebUI, $matches)) {
 			$ConfigPort = $matches[1];
