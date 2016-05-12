@@ -844,7 +844,7 @@
 
 
 	function getNetworkBridges() {
-		exec("brctl show | awk -F'\t' 'FNR > 1 {print \$1}' | awk 'NF > 0'", $arrValidBridges);
+		exec("brctl show|grep -Po '^(vir)?br\d\S*'", $arrValidBridges);
 
 		if (!is_array($arrValidBridges)) {
 			$arrValidBridges = [];
