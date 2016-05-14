@@ -30,6 +30,7 @@ if (!isset($var)) {
 	$var = @parse_ini_file("/usr/local/emhttp/state/var.ini");
 }
 if (!isset($eth0) && is_file("/usr/local/emhttp/state/network.ini")) {
+	extract(parse_ini_file('/usr/local/emhttp/state/network.ini',true));
 }
 
 $docker_cfg_defaults = [
