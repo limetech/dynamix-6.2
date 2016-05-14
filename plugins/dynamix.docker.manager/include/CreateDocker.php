@@ -896,6 +896,7 @@ $showAdditionalInfo = '';
     var mode = config.find("input[name='confMode[]']").val();
     toggleMode(popup.find("*[name=Type]:first"));
     popup.find("*[name=Mode]:first").val(mode);
+    $('select[name="Type"]').prop('disabled',true);
 
     // Add switchButton to checkboxes
     popup.find(".switch").switchButton({labels_placement:"right",on_label:'YES',off_label:'NO'});
@@ -987,7 +988,7 @@ $showAdditionalInfo = '';
       // Port
       mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='tcp'>TCP</option><option value='udp'>UDP</option></select></dd>");
       value.addClass("numbersOnly");
-      target.addClass("numbersOnly");
+      if (target.val()) target.prop('disabled',true); else target.addClass("numbersOnly");
     } else if (index == 3) {
       // Device
       targetDiv.css('display', 'none');
