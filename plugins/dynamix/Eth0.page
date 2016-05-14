@@ -45,7 +45,7 @@ foreach ($ports as $port) {
     $build = true;
   }
 }
-// enable when array is stopped
+// enable interface only when VMs are stopped
 $disabled = exec("virsh list|grep -om1 running") ? 'disabled' : '';
 
 // get VLAN interfaces

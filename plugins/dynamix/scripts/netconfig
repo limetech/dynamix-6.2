@@ -39,32 +39,31 @@ if ($bonding = isset($ini['eth0']) && $ini['eth0']['BONDING']=='yes') {
 }
 
 // create configuration file for all available interfaces
-$index = 0;
-$new = []; $new[] = "# Generated settings:";
+$i = 0; $new = []; $new[] = "# Generated settings:";
 foreach ($ini as $name => $port) {
   if ($bonding && in_array($name,$members)) continue;
   $bridging = $port['BRIDGING']=='yes';
   $trunk = $port['TYPE']=='trunk';
-  $i = 0; $id0 = 0;
+  $j = 0; $x0 = 0;
   $iface = $bridging ? $port['BRNAME'] : ($bonding && $name=='eth0' ? $port['BONDNAME'] : $name);
-  $new[] = "IFNAME[$index]=\"$iface\"";
+  $new[] = "IFNAME[$i]=\"$iface\"";
   if ($set==$name) $ifname = $iface;
   foreach ($port as $key => $val) {
     if (preg_match('/^(TYPE|BONDING$|BRIDGING)/',$key)) continue;
     if (!$bonding && preg_match('/^(BONDING_MODE|BONDING_MIIMON|BONDNICS|BONDNAME)/',$key)) continue;
     if (!$bridging && preg_match('/^(BRSTP|BRFD|BRNICS|BRNAME)/',$key)) continue;
-    list($item,$id) = explode(':',$key,2);
-    if ($trunk && $id>0 && preg_match('/^(VLANID|USE_DHCP|IPADDR|NETMASK|DESCRIPTION)/',$key)) {
-      if ($id0 != $id) {$id0 = $id; $i++;}
-      $vlan = ",$i]";
+    list($item,$x) = explode(':',$key,2);
+    if ($trunk && $x>0 && preg_match('/^(VLANID|USE_DHCP|IPADDR|NETMASK|DESCRIPTION)/',$key)) {
+      if ($x0 != $x) {$x0 = $x; $j++;}
+      $vlan = ",$j]";
     } else $vlan = '';
     if (!$vlan && preg_match('/^VLANID/',$key)) continue;
-    $new[] = $item.(preg_match('/^(GATEWAY|DNS_SERVER|DHCP_KEEPRESOLV)/',$key)?'':'['.$index.($vlan?'':']')).$vlan."=\"$val\"";
+    $new[] = $item.(preg_match('/^(GATEWAY|DNS_SERVER|DHCP_KEEPRESOLV)/',$key)?'':'['.$i.($vlan?'':']')).$vlan."=\"$val\"";
   }
-  if ($trunk) $new[] = "VLANS[$index]=\"".($i+1)."\"";
-  $index++;
+  if ($trunk) $new[] = "VLANS[$i]=\"".($j+1)."\"";
+  $i++;
 }
-$new[] = "SYSNICS=\"$index\"";
+$new[] = "SYSNICS=\"$i\"";
 
 file_put_contents($cfg,implode("\r\n",$new)."\r\n");
 // start interface with updated (new) configuration
