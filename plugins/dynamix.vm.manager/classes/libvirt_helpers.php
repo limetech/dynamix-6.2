@@ -19,6 +19,9 @@
 		$disks = @parse_ini_file("/usr/local/emhttp/state/disks.ini", true);
 		extract(parse_plugin_cfg("dynamix",true));
 	}
+	if (!isset($eth0) && is_file("/usr/local/emhttp/state/network.ini")) {
+		extract(parse_ini_file('/usr/local/emhttp/state/network.ini',true));
+	}
 
 	// Check if program is running and
 	$libvirt_running = trim(shell_exec( "[ -f /proc/`cat /var/run/libvirt/libvirtd.pid 2> /dev/null`/exe ] && echo 'yes' || echo 'no' 2> /dev/null" ));

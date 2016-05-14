@@ -29,6 +29,8 @@ if (!isset($var)) {
 	if (!is_file("/usr/local/emhttp/state/var.ini")) shell_exec("wget -qO /dev/null localhost:$(lsof -nPc emhttp | grep -Po 'TCP[^\d]*\K\d+')");
 	$var = @parse_ini_file("/usr/local/emhttp/state/var.ini");
 }
+if (!isset($eth0) && is_file("/usr/local/emhttp/state/network.ini")) {
+}
 
 $docker_cfg_defaults = [
 	"DOCKER_ENABLED" => "no",
@@ -232,7 +234,7 @@ class DockerTemplates {
 
 
 	public function getControlURL($name) {
-		global $var;
+		global $var,$eth0;
 		$DockerClient = new DockerClient();
 
 		$Repository = "";
