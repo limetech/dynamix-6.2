@@ -826,8 +826,8 @@ $showAdditionalInfo = '';
     popup.find(".switch").switchButton({labels_placement:"right",on_label:'YES',off_label:'NO'});
     popup.find(".switch-button-background").css("margin-top", "6px");
 
-    // Load Mode field if needed
-    toggleMode(popup.find("*[name=Type]:first"));
+    // Load Mode field if needed and enable field
+    toggleMode(popup.find("*[name=Type]:first"),false);
 
     // Start Dialog section
     popup.dialog({
@@ -851,10 +851,10 @@ $showAdditionalInfo = '';
           }
           Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
           if (Opts.Required == "true") {
-            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",false)'> Edit</button> ";
             Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
           } else {
-            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+",false)'> Edit</button> ";
             Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
           }
           Opts.Number      = confNum;
@@ -873,7 +873,7 @@ $showAdditionalInfo = '';
     $(".ui-button-text").css('padding','0px 5px');
   }
 
-  function editConfigPopup(num) {
+  function editConfigPopup(num,disabled) {
     var title = 'Edit Configuration';
     var popup = $("#dialogAddConfig");
 
@@ -894,9 +894,8 @@ $showAdditionalInfo = '';
 
     // Load Mode field if needed
     var mode = config.find("input[name='confMode[]']").val();
-    toggleMode(popup.find("*[name=Type]:first"));
+    toggleMode(popup.find("*[name=Type]:first"),disabled);
     popup.find("*[name=Mode]:first").val(mode);
-    $('select[name="Type"]').prop('disabled',true);
 
     // Add switchButton to checkboxes
     popup.find(".switch").switchButton({labels_placement:"right",on_label:'YES',off_label:'NO'});
@@ -920,10 +919,10 @@ $showAdditionalInfo = '';
           });
           Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
           if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
-            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+num+")'> Edit</button> ";
+            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+num+",false)'> Edit</button> ";
             Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button></span>";
           } else {
-            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+num+")'> Edit</button> ";
+            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+num+",false)'> Edit</button> ";
             Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button>";
           }
           Opts.Number      = num;
@@ -962,7 +961,7 @@ $showAdditionalInfo = '';
     return type + " "+i;
   }
 
-  function toggleMode(el) {
+  function toggleMode(el,disabled) {
     var mode       = $(el).parent().siblings('#Mode');
     var valueDiv   = $(el).parent().siblings('#Value');
     var defaultDiv = $(el).parent().siblings('#Default');
@@ -979,21 +978,31 @@ $showAdditionalInfo = '';
     targetDiv.css('display', '');
     mode.html('');
 
-    var index = $(el)[0].selectedIndex;
-    if (index == 0) {
-      // Path
-      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='rw'>Read/Write</option><option value='rw,slave'>RW/Slave</option><option value='ro'>Read Only</option><option value='ro,slave'>RO/Slave</option></select></dd>");
+    $(el).prop('disabled',disabled);
+    switch ($(el)[0].selectedIndex) {
+    case 0: // Path
+      mode.html("<dt>Access:</dt><dd><select name='Mode' class='narrow'><option value='rw'>Read/Write</option><option value='rw,slave'>RW/Slave</option><option value='ro'>Read Only</option><option value='ro,slave'>RO/Slave</option></select></dd>");
       value.bind("click", function(){openFileBrowser(this,$(this).val(), 'sh', true, false);});
-    } else if (index == 1) {
-      // Port
-      mode.html("<dt>Mode</dt><dd><select name='Mode'><option value='tcp'>TCP</option><option value='udp'>UDP</option></select></dd>");
+      targetDiv.find('#dt1').text('Inside path:');
+      valueDiv.find('#dt2').text('Outside path:');
+      break;
+    case 1: // Port
+      mode.html("<dt>Connection:</dt><dd><select name='Mode' class='narrow'><option value='tcp'>TCP</option><option value='udp'>UDP</option></select></dd>");
       value.addClass("numbersOnly");
       if (target.val()) target.prop('disabled',true); else target.addClass("numbersOnly");
-    } else if (index == 3) {
-      // Device
+      targetDiv.find('#dt1').text('Inside port:');
+      valueDiv.find('#dt2').text('Outside port:');
+      break;
+    case 2: // Variable
+      targetDiv.find('#dt1').text('Key:');
+      valueDiv.find('#dt2').text('Value:');
+      break;
+    case 3: // Device
       targetDiv.css('display', 'none');
       defaultDiv.css('display', 'none');
+      valueDiv.find('#dt2').text('Value:');
       value.bind("click", function(){openFileBrowser(this,$(this).val(), '', true, true);});
+      break;
     }
     reloadTriggers();
   }
@@ -1350,7 +1359,7 @@ $showAdditionalInfo = '';
   <dl>
     <dt>Config Type:</dt>
     <dd>
-      <select name="Type" class="narrow" onchange="toggleMode(this);">
+      <select name="Type" class="narrow" onchange="toggleMode(this,false);">
         <option value="Path">Path</option>
         <option value="Port">Port</option>
         <option value="Variable">Variable</option>
@@ -1360,11 +1369,11 @@ $showAdditionalInfo = '';
     <dt>Name:</dt>
     <dd><input type="text" name="Name" class="textPath"></dd>
     <div id="Target">
-      <dt>Target:</dt>
+      <dt id="dt1">Target:</dt>
       <dd><input type="text" name="Target" class="textPath"></dd>
     </div>
     <div id="Value">
-      <dt>Value:</dt>
+      <dt id="dt2">Value:</dt>
       <dd><input type="text" name="Value" class="textPath"></dd>
     </div>
     <div id="Default" class="advanced">
@@ -1500,10 +1509,10 @@ $showAdditionalInfo = '';
         Opts             = Settings.Config[i];
         Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
         if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
-          Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+          Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",true)'> Edit</button> ";
           Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
         } else {
-          Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+")'> Edit</button> ";
+          Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+",true)'> Edit</button> ";
           Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
         }
         Opts.Number      = confNum;
