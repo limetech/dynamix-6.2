@@ -374,8 +374,10 @@ function xmlToCommand($xml, $create_paths=false) {
       # Export ports as variable if Network is set to host
       if (strtolower($xml['Network']) == 'host') {
         $Variables[] = strtoupper(sprintf('"%s_PORT_%s"="%s"', $Mode, $containerConfig, $hostConfig));
-      } else {
+      # Export ports as port if Network is set to bridge
+      } elseif (strtolower($xml['Network']) == 'bridge') {
         $Ports[] = sprintf("%s:%s/%s", $hostConfig, $containerConfig, $Mode);
+      # No export of ports if Network is set to none
       }
     } elseif ($confType == "variable") {
       $Variables[] = sprintf('"%s"="%s"', $containerConfig, $hostConfig);
@@ -709,9 +711,7 @@ $showAdditionalInfo = '';
   .label-warning{background-color:#f89406;}
   .label-success{background-color:#468847;}
   .label-important{background-color:#b94a48;}
-  .selectVariable{
-    width: 320px;
-  }
+  .selectVariable{width:320px;}
 </style>
 <script src="/webGui/javascript/jquery.switchbutton.js"></script>
 <script src="/webGui/javascript/jquery.filetree.js"></script>
@@ -780,8 +780,10 @@ $showAdditionalInfo = '';
                                  opts.Mask,
                                  opts.Value,
                                  opts.Buttons,
-                                 (opts.Required == "true") ? "required" : ""
-                                 );
+                                 (opts.Required == "true") ? "required" : "",
+                                 opts.Reference,
+                                 opts.Label
+                                );
     newConfig = "<div id='ConfigNum"+opts.Number+"' class='config_"+opts.Display+"'' >"+newConfig+"</div>";
     newConfig = $($.parseHTML(newConfig));
     value     = newConfig.find("input[name='confValue[]']");
@@ -818,6 +820,7 @@ $showAdditionalInfo = '';
   function addConfigPopup() {
     var title = 'Add Configuration';
     var popup = $( "#dialogAddConfig" );
+    var network = $('select[name="contNetwork"]')[0].selectedIndex;
 
     // Load popup the popup with the template info
     popup.html($("#templatePopupConfig").html());
@@ -849,15 +852,17 @@ $showAdditionalInfo = '';
           if ( ! Opts["Name"] ){
             Opts["Name"] = makeName(Opts["Type"]);
           }
-          Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
+          var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
+          Opts.Reference = reference.replace('Variable','Key');
           if (Opts.Required == "true") {
-            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",false)'> Edit</button> ";
-            Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
+            Opts.Buttons  = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",false)'> Edit</button> ";
+            Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
           } else {
-            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+",false)'> Edit</button> ";
-            Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
+            Opts.Buttons  = "<button type='button' onclick='editConfigPopup("+confNum+",false)'> Edit</button> ";
+            Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
           }
-          Opts.Number      = confNum;
+          Opts.Number = confNum;
+          Opts.Label = Opts.Type != 'Variable' ? 'Host '+Opts.Name : Opts.Name;
           newConf = makeConfig(Opts);
           $("#configLocation").append(newConf);
           reloadTriggers();
@@ -876,6 +881,7 @@ $showAdditionalInfo = '';
   function editConfigPopup(num,disabled) {
     var title = 'Edit Configuration';
     var popup = $("#dialogAddConfig");
+    var network = $('select[name="contNetwork"]')[0].selectedIndex;
 
     // Load popup the popup with the template info
     popup.html($("#templatePopupConfig").html());
@@ -917,15 +923,17 @@ $showAdditionalInfo = '';
           ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
             Opts[e] = getVal(Element, e);
           });
-          Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
+          var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
+          Opts.Reference = reference.replace('Variable','Key');
           if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
-            Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+num+",false)'> Edit</button> ";
-            Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button></span>";
+            Opts.Buttons  = "<span class='advanced'><button type='button' onclick='editConfigPopup("+num+",true)'> Edit</button> ";
+            Opts.Buttons += "<button type='button' onclick='removeConfig("+num+");'> Remove</button></span>";
           } else {
-            Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+num+",false)'> Edit</button> ";
-            Opts.Buttons    += "<button type='button' onclick='removeConfig("+num+");'> Remove</button>";
+            Opts.Buttons  = "<button type='button' onclick='editConfigPopup("+num+",true)'> Edit</button> ";
+            Opts.Buttons += "<button type='button' onclick='removeConfig("+num+");'> Remove</button>";
           }
-          Opts.Number      = num;
+          Opts.Number = num;
+          Opts.Label = Opts.Type != 'Variable' ? 'Host '+Opts.Name : Opts.Name;
           newConf = makeConfig(Opts);
           if (config.hasClass("config_"+Opts.Display)) {
             config.html(newConf);
@@ -956,6 +964,16 @@ $showAdditionalInfo = '';
     $('#ConfigNum' + num).fadeOut("fast", function() { $(this).remove(); });
   }
 
+  function prepareConfig(form) {
+    var types = [], values = [], targets = [];
+    if ($('select[name="contNetwork"]').val()=='host') {
+      $(form).find('input[name="confType[]"]').each(function(){types.push($(this).val());});
+      $(form).find('input[name="confValue[]"]').each(function(){values.push($(this));});
+      $(form).find('input[name="confTarget[]"]').each(function(){targets.push($(this));});
+      for (var i=0; i < types.length; i++) if (types[i]=='Port') $(targets[i]).val($(values[i]).val());
+    }
+  }
+
   function makeName(type) {
     i = $("#configLocation input[name^='confType'][value='"+type+"']").length + 1;
     return type + " "+i;
@@ -969,6 +987,7 @@ $showAdditionalInfo = '';
 
     var value      = valueDiv.find('input[name=Value]');
     var target     = targetDiv.find('input[name=Target]');
+    var network    = $('select[name="contNetwork"]')[0].selectedIndex;
 
     value.unbind();
     target.unbind();
@@ -981,25 +1000,36 @@ $showAdditionalInfo = '';
     $(el).prop('disabled',disabled);
     switch ($(el)[0].selectedIndex) {
     case 0: // Path
-      mode.html("<dt>Access:</dt><dd><select name='Mode' class='narrow'><option value='rw'>Read/Write</option><option value='rw,slave'>RW/Slave</option><option value='ro'>Read Only</option><option value='ro,slave'>RO/Slave</option></select></dd>");
+      mode.html("<dt>Access Mode:</dt><dd><select name='Mode' class='narrow'><option value='rw'>Read/Write</option><option value='rw,slave'>RW/Slave</option><option value='ro'>Read Only</option><option value='ro,slave'>RO/Slave</option></select></dd>");
       value.bind("click", function(){openFileBrowser(this,$(this).val(), 'sh', true, false);});
-      targetDiv.find('#dt1').text('Inside path:');
-      valueDiv.find('#dt2').text('Outside path:');
+      targetDiv.find('#dt1').text('Container Path:');
+      valueDiv.find('#dt2').text('Host Path:');
       break;
     case 1: // Port
-      mode.html("<dt>Connection:</dt><dd><select name='Mode' class='narrow'><option value='tcp'>TCP</option><option value='udp'>UDP</option></select></dd>");
+      mode.html("<dt>Connection Type:</dt><dd><select name='Mode' class='narrow'><option value='tcp'>TCP</option><option value='udp'>UDP</option></select></dd>");
       value.addClass("numbersOnly");
-      if (target.val()) target.prop('disabled',true); else target.addClass("numbersOnly");
-      targetDiv.find('#dt1').text('Inside port:');
-      valueDiv.find('#dt2').text('Outside port:');
+      if (network==0) {
+        if (target.val()) target.prop('disabled',true); else target.addClass("numbersOnly");
+        targetDiv.find('#dt1').text('Container Port:');
+        targetDiv.show();
+      } else {
+        targetDiv.hide();
+      }
+      if (network==0 || network==1) {
+        valueDiv.find('#dt2').text('Host Port:');
+        valueDiv.show();
+      } else {
+        valueDiv.hide();
+        mode.html('');
+      }
       break;
     case 2: // Variable
       targetDiv.find('#dt1').text('Key:');
       valueDiv.find('#dt2').text('Value:');
       break;
     case 3: // Device
-      targetDiv.css('display', 'none');
-      defaultDiv.css('display', 'none');
+      targetDiv.hide();
+      defaultDiv.hide();
       valueDiv.find('#dt2').text('Value:');
       value.bind("click", function(){openFileBrowser(this,$(this).val(), '', true, true);});
       break;
@@ -1076,7 +1106,7 @@ $showAdditionalInfo = '';
 </form>
 
 <div id="canvas" style="z-index:1;margin-top:-21px;">
-  <form method="POST" autocomplete="off">
+  <form method="POST" autocomplete="off" onsubmit="prepareConfig(this)">
     <table>
       <? if ($xmlType == "edit"):
       if ($DockerClient->doesContainerExist($templateName)): echo "<input type='hidden' name='existingContainer' value='${templateName}'>\n"; endif;
@@ -1428,11 +1458,10 @@ $showAdditionalInfo = '';
   <input type="hidden" name="confMask[]" value="{8}">
   <table>
     <tr>
-      <td style="vertical-align: top; min-width: 150px; white-space: nowrap; padding-top: 17px;" class="{11}">{0}:</td>
+      <td style="vertical-align: top; min-width: 150px; white-space: nowrap; padding-top: 17px;" class="{11}">{13}:</td>
       <td style="width: 100%">
-        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11} > <button type="button" onclick="resetField(this);">Default</button>
-        {10}
-        <div style='color: #C98C21;line-height: 1.4em'>{4}</div>
+        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11} > <button type="button" onclick="resetField(this);">Default</button>{10}
+        <div style='color: #C98C21;line-height: 1.4em'>{12}</div>
       </td>
     </tr>
 <!--     <tr class='advanced'>
@@ -1504,18 +1533,21 @@ $showAdditionalInfo = '';
       }
 
       // Load config info
+      var network = $('select[name="contNetwork"]')[0].selectedIndex;
       for (var i = 0; i < Settings.Config.length; i++) {
         confNum += 1;
-        Opts             = Settings.Config[i];
-        Opts.Description = (Opts.Description.length) ? Opts.Description : "Container "+Opts.Type+": "+Opts.Target;
+        Opts = Settings.Config[i];
+        var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
+        Opts.Reference = reference.replace('Variable','Key');
         if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
-          Opts.Buttons     = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",true)'> Edit</button> ";
-          Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
+          Opts.Buttons  = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",true)'> Edit</button> ";
+          Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
         } else {
-          Opts.Buttons     = "<button type='button' onclick='editConfigPopup("+confNum+",true)'> Edit</button> ";
-          Opts.Buttons    += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
+          Opts.Buttons  = "<button type='button' onclick='editConfigPopup("+confNum+",true)'> Edit</button> ";
+          Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
         }
-        Opts.Number      = confNum;
+        Opts.Number = confNum;
+        Opts.Label = Opts.Type != 'Variable' ? 'Host '+Opts.Name : Opts.Name;
         newConf = makeConfig(Opts);
         if (Opts.Display == 'advanced' || Opts.Display == 'advanced-hide') {
           $("#configLocationAdvanced").append(newConf);
