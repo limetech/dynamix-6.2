@@ -646,36 +646,15 @@ $showAdditionalInfo = '';
 <link rel="stylesheet" type="text/css" href="/plugins/dynamix.docker.manager/styles/style-<?=$display['theme'];?>.css">
 <style>
   body{-webkit-overflow-scrolling:touch;}
+  table.settings tr>td+td{font-size:12px;white-space:normal;text-align:justify;padding-right:12px;}
   .fileTree{width:240px;height:150px;overflow:scroll;position:absolute;z-index:100;display:none;margin-bottom: 100px;}
   #TemplateSelect{width:255px;}
-  input.textTemplate,textarea.textTemplate{width:555px;}
+  textarea.textTemplate{width:90%;}
   option.list{padding:0 0 0 7px;font-size:11px;}
   optgroup.bold{font-weight:bold;font-size:12px;margin-top:5px;}
   optgroup.title{background-color:#625D5D;color:#FFFFFF;text-align:center;margin-top:10px;}
   .textPath{width:270px;}
-
-  table {
-    margin-top: 0;
-  }
-  table tr {
-    vertical-align:top;
-    line-height:24px;
-  }
-  table tr td:nth-child(odd) {
-    width: 150px;
-    text-align: right;
-    padding-right: 10px;
-    white-space: nowrap;
-  }
-  table tr td:nth-child(even) {
-    width: 80px;
-  }
-  table tr td:last-child {
-    width: inherit;
-  }
-
   .show{display:block;}
-  .inline_help{font-size:12px;font-weight: normal;}
   .desc{padding:6px;line-height:15px;width:inherit;}
   .toggleMode{cursor:pointer;color:#a3a3a3;letter-spacing:0;padding:0;padding-right:10px;font-family:arimo;font-size:12px;line-height:1.3em;font-weight:bold;margin:0;}
   .toggleMode:hover,.toggleMode:focus,.toggleMode:active,.toggleMode .active{color:#625D5D;}
@@ -683,18 +662,14 @@ $showAdditionalInfo = '';
   .advanced{display:none;}
   .noshow{display: none;}
   .required:after {content: " * ";color: #E80000}
-
+  .inline_help{font-weight:normal;}
   .switch-wrapper {
     display: inline-block;
     position: relative;
     top: 3px;
     vertical-align: middle;
   }
-  .switch-button-label.off {
-    color: inherit;
-  }
   .spacer{padding-right: 20px}
-
   .label-warning, .label-success, .label-important {
     padding: 1px 4px 2px;
     -webkit-border-radius: 3px;
@@ -866,6 +841,8 @@ $showAdditionalInfo = '';
           newConf = makeConfig(Opts);
           $("#configLocation").append(newConf);
           reloadTriggers();
+          // simulate change
+          $('input[name="contName"]').trigger('change');
         },
         Cancel: function() {
           $(this).dialog("close");
@@ -947,6 +924,8 @@ $showAdditionalInfo = '';
             }
           }
           reloadTriggers();
+          // simulate change
+          $('input[name="contName"]').trigger('change');
         },
         Cancel: function() {
           $(this).dialog("close");
@@ -962,6 +941,8 @@ $showAdditionalInfo = '';
 
   function removeConfig(num) {
     $('#ConfigNum' + num).fadeOut("fast", function() { $(this).remove(); });
+    //simulate change
+    $('input[name="contName"]').trigger('change');
   }
 
   function prepareConfig(form) {
@@ -1107,7 +1088,7 @@ $showAdditionalInfo = '';
 
 <div id="canvas" style="z-index:1;margin-top:-21px;">
   <form method="POST" autocomplete="off" onsubmit="prepareConfig(this)">
-    <table>
+    <table class="settings">
       <? if ($xmlType == "edit"):
       if ($DockerClient->doesContainerExist($templateName)): echo "<input type='hidden' name='existingContainer' value='${templateName}'>\n"; endif;
       else:?>
@@ -1156,12 +1137,18 @@ $showAdditionalInfo = '';
 
             <p>
               <b>Default templates</b><br>
-              When valid repositories are added to your Docker Repositories page, they will appear in a section on this drop down for you to choose (master categorized by author, then by application template).  After selecting a default template, the page will populate with new information about the application in the Description field, and will typically provide instructions for how to setup the container.  Select a default template when it is the first time you are configuring this application.
+              When valid repositories are added to your Docker Repositories page, they will appear in a section on this drop down for you to choose (master categorized by author, then by application template).
+              After selecting a default template, the page will populate with new information about the application in the Description field, and will typically provide instructions for how to setup the container.
+              Select a default template when it is the first time you are configuring this application.
             </p>
 
             <p>
               <b>User-defined templates</b><br>
-              Once you've added an application to your system through a Default template, the settings you specified are saved to your USB flash device to make it easy to rebuild your applications in the event an upgrade were to fail or if another issue occurred.  To rebuild, simply select the previously loaded application from the User-defined list and all the settings for the container will appear populated from your previous setup.  Clicking create will redownload the necessary files for the application and should restore you to a working state.  To delete a User-defined template, select it from the list above and click the red X to the right of it.
+              Once you've added an application to your system through a Default template,
+              the settings you specified are saved to your USB flash device to make it easy to rebuild your applications in the event an upgrade were to fail or if another issue occurred.
+              To rebuild, simply select the previously loaded application from the User-defined list and all the settings for the container will appear populated from your previous setup.
+              Clicking create will redownload the necessary files for the application and should restore you to a working state.
+              To delete a User-defined template, select it from the list above and click the red X to the right of it.
             </p>
           </blockquote>
         </td>
@@ -1180,11 +1167,11 @@ $showAdditionalInfo = '';
       </tr>
       <tr id="Overview" class="basic">
         <td>Overview:</td>
-        <td><div style="color: #3B5998; width:50%; line-height: 16px; padding-top: 4px;" name="contDescription"></div></td>
+        <td id="contDescription" style="color:#3B5998"></td>
       </tr>
       <tr id="Overview" class="advanced">
         <td>Overview:</td>
-        <td><textarea name="contOverview" rows="10" cols="71" class="textTemplate"></textarea></td>
+        <td><textarea name="contOverview" rows="10" class="textTemplate"></textarea></td>
       </tr>
       <tr>
         <td colspan="2" class="inline_help">
@@ -1200,7 +1187,8 @@ $showAdditionalInfo = '';
       <tr <?=$showAdditionalInfo?>>
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
-            <p>The repository for the application on the Docker Registry.  Format of authorname/appname.  Optionally you can add a : after appname and request a specific version for the container image.</p>
+            <p>The repository for the application on the Docker Registry.  Format of authorname/appname.
+            Optionally you can add a : after appname and request a specific version for the container image.</p>
           </blockquote>
         </td>
       </tr>
@@ -1300,7 +1288,8 @@ $showAdditionalInfo = '';
       <tr class="advanced">
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
-            <p>When you click on an application icon from the Docker Containers page, the WebUI option will link to the path in this field.  Use [IP} to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
+            <p>When you click on an application icon from the Docker Containers page, the WebUI option will link to the path in this field.
+            Use [IP} to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
           </blockquote>
         </td>
       </tr>
@@ -1311,7 +1300,10 @@ $showAdditionalInfo = '';
       <tr class="advanced">
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
-            <p>If you wish to append additional commands to your Docker container at run-time, you can specify them here.  For example, if you wish to pin an application to live on a specific CPU core, you can enter "--cpuset=0" in this field.  Change 0 to the core # on your system (starting with 0).  You can pin multiple cores by separation with a comma or a range of cores by separation with a dash.  For all possible Docker run-time commands, see here: <a href="https://docs.docker.com/reference/run/" target="_blank">https://docs.docker.com/reference/run/</a></p>
+            <p>If you wish to append additional commands to your Docker container at run-time, you can specify them here.
+            For example, if you wish to pin an application to live on a specific CPU core, you can enter "--cpuset=0" in this field.
+            Change 0 to the core # on your system (starting with 0).  You can pin multiple cores by separation with a comma or a range of cores by separation with a dash.
+            For all possible Docker run-time commands, see here: <a href="https://docs.docker.com/reference/run/" target="_blank">https://docs.docker.com/reference/run/</a></p>
           </blockquote>
         </td>
       </tr>
@@ -1328,48 +1320,50 @@ $showAdditionalInfo = '';
       <tr <?=$showAdditionalInfo?>>
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
-            <p>If the Bridge type is selected, the application’s network access will be restricted to only communicating on the ports specified in the port mappings section.  If the Host type is selected, the application will be given access to communicate using any port on the host that isn’t already mapped to another in-use application/service.  Generally speaking, it is recommended to leave this setting to its default value as specified per application template.</p>
+            <p>If the Bridge type is selected, the application’s network access will be restricted to only communicating on the ports specified in the port mappings section.
+            If the Host type is selected, the application will be given access to communicate using any port on the host that isn’t already mapped to another in-use application/service.
+            Generally speaking, it is recommended to leave this setting to its default value as specified per application template.</p>
             <p>IMPORTANT NOTE:  If adjusting port mappings, do not modify the settings for the Container port as only the Host port can be adjusted.</p>
           </blockquote>
         </td>
       </tr>
       <tr <?=$showAdditionalInfo?>>
-        <td>Privileged:</td>
-        <td style="line-height: 16px; vertical-align: middle;"><input type="checkbox" name="contPrivileged" class="switch-on-off">
-        </td>
+        <td style="line-height:40px">Privileged:</td>
+        <td><input type="checkbox" name="contPrivileged" class="switch-on-off"></td>
       </tr>
       <tr <?=$showAdditionalInfo?>>
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
-            <p>For containers that require the use of host-device access directly or need full exposure to host capabilities, this option will need to be selected.  For more information, see this link:  <a href="https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration" target="_blank">https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration</a></p>
+            <p>For containers that require the use of host-device access directly or need full exposure to host capabilities, this option will need to be selected.
+            <br>For more information, see this link: <a href="https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration" target="_blank">https://docs.docker.com/reference/run/#runtime-privilege-linux-capabilities-and-lxc-configuration</a></p>
           </blockquote>
         </td>
       </tr>
     </table>
-    <div id="configLocation"></div>
-    <table>
+    <div id="configLocation"></div><br>
+    <table class="settings">
       <tr>
         <td>&nbsp;</td>
         <td id="readmore_toggle" class="readmore_collapsed"><a onclick="toggleReadmore();" style="font-size: 1.2em;cursor: pointer;"><i class="fa fa-chevron-down"></i> Show advanced settings ...</a></td>
       </tr>
     </table>
-    <div id="configLocationAdvanced" style="display:none"></div>
-    <table>
+    <div id="configLocationAdvanced" style="display:none"></div><br>
+    <table class="settings">
       <tr>
         <td>&nbsp;</td>
         <td><a href="javascript:addConfigPopup();" style="font-size: 1.2em"><i class="fa fa-plus"></i> Add another Path, Port or Variable</a></td>
       </tr>
     </table>
     <br>
-    <table>
+    <table class="settings">
       <tr>
         <td>&nbsp;</td>
         <td>
-          <input type="submit" value="<?= ($xmlType != 'edit') ? 'Create' : 'Save and Apply' ?>">
+          <input type="submit" name="#apply" value="Apply">
           <?if ($authoringMode):?>
           <button type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Save Template</button>
           <?endif;?>
-          <input type="button" value="Cancel" onclick="done()">
+          <input type="button" value="Done" onclick="done()">
         </td>
       </tr>
     </table>
@@ -1413,7 +1407,7 @@ $showAdditionalInfo = '';
     <div id="Mode"></div>
     <dt>Description:</dt>
     <dd>
-      <textarea name="Description" rows="6" style="width: 304px;"></textarea>
+      <textarea name="Description" rows="6" style="width:304px;"></textarea>
     </dd>
     <div class="advanced">
       <dt>Display:</dt>
@@ -1456,11 +1450,11 @@ $showAdditionalInfo = '';
   <input type="hidden" name="confDisplay[]" value="{6}">
   <input type="hidden" name="confRequired[]" value="{7}">
   <input type="hidden" name="confMask[]" value="{8}">
-  <table>
+  <table class="settings">
     <tr>
       <td style="vertical-align: top; min-width: 150px; white-space: nowrap; padding-top: 17px;" class="{11}">{13}:</td>
       <td style="width: 100%">
-        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11} > <button type="button" onclick="resetField(this);">Default</button>{10}
+        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11}>&nbsp;{10}
         <div style='color: #C98C21;line-height: 1.4em'>{12}</div>
       </td>
     </tr>
@@ -1500,7 +1494,7 @@ $showAdditionalInfo = '';
   function load_contOverview() {
     var new_overview = $("textarea[name='contOverview']").val();
     new_overview = new_overview.replaceAll("[","<").replaceAll("]",">");
-    $("div[name='contDescription']").html(new_overview);
+    $("#contDescription").html(new_overview);
   }
   $(function() {
     // Load container info on page load
@@ -1520,6 +1514,7 @@ $showAdditionalInfo = '';
           }
         }
       }
+      load_contOverview();
 
       // Load the confCategory input into the s1 select
       categories=$("input[name='contCategory']").val().split(" ");
