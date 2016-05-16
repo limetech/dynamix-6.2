@@ -164,7 +164,7 @@ foreach ($sPorts as $port) {
   } else {
     unset($info);
     exec("ethtool $port|grep -Po '^\s+(Speed|Duplex|Link\sdetected): \K[^U\\n]+'",$info);
-    echo (array_pop($info)=='yes' && $info[0]) ? "$port: ".str_replace('M',' M',$info[0]).", ".strtolower($info[1])." duplex, mtu $mtu" : "$port: not connected";
+    echo (array_pop($info)=='yes' && $info[0]) ? "$port: ".str_replace(['M','G'],[' M',' G'],$info[0]).", ".strtolower($info[1])." duplex, mtu $mtu" : "$port: not connected";
   }
 }
 ?>
