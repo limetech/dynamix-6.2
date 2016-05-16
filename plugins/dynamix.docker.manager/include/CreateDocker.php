@@ -429,6 +429,7 @@ function getUsedPorts() {
   global $dockerManPaths;
   $docker = new DockerClient();
   $docker = $docker->getDockerContainers();
+  if (!$docker) $docker = [];
   $names = $ports = [];
   foreach ($docker as $ct) $names[] = strtolower($ct['Name']);
   foreach (glob($dockerManPaths['templates-user'].'/*.xml',GLOB_NOSORT) as $file) {
