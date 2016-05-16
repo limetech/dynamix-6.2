@@ -437,6 +437,7 @@ function getUsedPorts() {
     if (!in_array($name,$names)) continue;
     $list = []; $p = 0;
     $list['Name'] = $name;
+    $list['Port'] = '';
     while ($port = getXmlVal($file,'HostPort',null,$p++)) $list['Port'] .= $port.' ';
     $ports[] = $list;
   }
