@@ -189,7 +189,7 @@ case 'port':
       } else {
         unset($info);
         exec("ethtool $port|grep -Po '^\s+(Speed|Duplex|Link\sdetected): \K[^U\\n]+'",$info);
-        $ports[$i++] = (array_pop($info)=='yes' && $info[0]) ? "{$info[0]}, ".strtolower($info[1])." duplex, mtu $mtu" : "not connected";
+        $ports[$i++] = (array_pop($info)=='yes' && $info[0]) ? str_replace('M',' M',$info[0]).", ".strtolower($info[1])." duplex, mtu $mtu" : "not connected";
       }
     }
   break;
