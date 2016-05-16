@@ -83,16 +83,14 @@ IP address assignment:
 : <select name="USE_DHCP:<?=$i?>" size="1" onchange="checkNetworkSettings(this.form,<?=$i?>)">
   <?=mk_option($ethX["USE_DHCP:$i"], 'yes', 'Automatic');?>
   <?=mk_option($ethX["USE_DHCP:$i"], 'no', 'Static');?>
-<?if ($i>0):?>
   <?=mk_option($ethX["USE_DHCP:$i"], '', 'None');?>
-<?endif;?>
   </select>
 
 > The following settings are possible:
 >
 > *Automatic* - the server will attempt to obtain its IP address from the local DHCP server<br>
 > *Static* - the IP address is manually set for this interface<br>
-> *None* - no IP address is assigned to the interface (only available for VLANs)
+> *None* - no IP address is assigned to the interface
 
 IP address:
 : <input type="text" name="IPADDR:<?=$i?>" maxlength="40" value="<?=$ethX["IPADDR:$i"]?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
