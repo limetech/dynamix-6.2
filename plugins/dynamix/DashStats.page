@@ -25,13 +25,13 @@ foreach ($shares as $share) {
   $names .= $share['name'];
 }
 
-exec("awk '/^MemTotal/{print $2*1024/1.048576}' /proc/meminfo",$total);
+$total = exec("awk '/^MemTotal/{print $2*1024/1.048576}' /proc/meminfo");
 exec("ifconfig -s|awk '/^(bond|eth|lo)/{print $1}'",$ports);
 
-$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'");
+$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'")/1024;
 $memory_maximum = exec("dmidecode -t 16 | awk -F: '/^\tMaximum Capacity: [0-9]+ GB$/{t+=$2} END{print t}'");
 // If maximum < installed then roundup maximum to the next power of 2 size of installed. E.g. 6 -> 8 or 12 -> 16
-if ($memory_maximum*1024 < $memory_installed) $memory_maximum = pow(2,ceil(log($memory_installed/1024)/log(2)));
+if ($memory_maximum < $memory_installed) $memory_maximum = pow(2,ceil(log($memory_installed)/log(2)));
 
 function init_row($label) {
   echo "<tr><td>$label</td>".str_repeat("<td></td>",30)."</tr>";
@@ -206,8 +206,8 @@ $dck = exec("df /var/lib/docker|grep -om1 '^/'");
 <tr class='wide'><td>Memory usage</td><td colspan='3'><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td></tr>
 <tr class='wide'><td>flash : log : docker</td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div></td>
 <td><?if ($dck):?><div class='usage-disk sys'><span id='sys4' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
-<tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total[0],$unit,0)." $unit"?></td></tr>
-<tr><td>installed</td><td colspan='2' class='blue'><?=my_scale($memory_installed*1000*1000,$unit,0)." $unit (max. ".$memory_maximum." GB)"?></td></tr>
+<tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total,$unit,0)." $unit"?></td></tr>
+<tr><td>installed</td><td colspan='2' class='blue'><?="$memory_installed GB (max. $memory_maximum GB)"?></td></tr>
 <?if (count($ports)>1):?><tr class='view1'><td rowspan='<?=count($ports)?>'><?else:?><tr class='view1 wide'><td><?endif;?>Network</td>
 <?
 $display['scale'] = $scale;
