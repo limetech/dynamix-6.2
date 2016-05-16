@@ -140,16 +140,16 @@ echo $size;
 <div><span style="width:90px; display:inline-block"><strong>Memory:</strong></span>
 <?
 // Memory Device (16) will get us each ram chip. By matching on MB it'll filter out Flash/Bios chips
-// Sum up all the Memory Devices to get the amount of system memory installed
-$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'");
+// Sum up all the Memory Devices to get the amount of system memory installed. Convert MB to GB
+$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'")/1024;
 // Physical Memory Array (16) usually one of these for a desktop-class motherboard but higher-end xeon motherboards
 // might have two or more of these.  The trick is to filter out any Flash/Bios types by matching on GB
 // Sum up all the Physical Memory Arrays to get the motherboard's total memory capacity
 $memory_maximum = exec("dmidecode -t 16 | awk -F: '/^\tMaximum Capacity: [0-9]+ GB$/{t+=$2} END{print t}'");
 $star = "";
 // If maximum < installed then roundup maximum to the next power of 2 size of installed. E.g. 6 -> 8 or 12 -> 16
-if ($memory_maximum*1024 < $memory_installed) {$memory_maximum = pow(2,ceil(log($memory_installed/1024)/log(2))); $star = "*";}
-echo "$memory_installed  MB (max. installable capacity $memory_maximum GB)".$star;
+if ($memory_maximum < $memory_installed) {$memory_maximum = pow(2,ceil(log($memory_installed)/log(2))); $star = "*";}
+echo "$memory_installed GB (max. installable capacity $memory_maximum GB)$star";
 ?>
 </div>
 <div><span style="width:90px; display:inline-block"><strong>Network:</strong></span>
