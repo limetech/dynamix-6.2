@@ -2,6 +2,8 @@
 /* Copyright 2015, Lime Technology
  * Copyright 2015, Guilherme Jardim, Eric Schultz, Jon Panozzo.
  *
+ * Adaptations by Bergware International (May 2016)
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
  * as published by the Free Software Foundation.
@@ -423,6 +425,22 @@ function setXmlVal(&$xml, $value, $el, $attr = null, $pos = 0) {
   $xml = $dom->saveXML();
 }
 
+function getUsedPorts() {
+  global $dockerManPaths;
+  $docker = new DockerClient();
+  $docker = $docker->getDockerContainers();
+  $names = $ports = [];
+  foreach ($docker as $ct) $names[] = strtolower($ct['Name']);
+  foreach (glob($dockerManPaths['templates-user'].'/*.xml',GLOB_NOSORT) as $file) {
+    $name = strtolower(getXmlVal($file,'Name'));
+    if (!in_array($name,$names)) continue;
+    $list = []; $p = 0;
+    $list['Name'] = $name;
+    while ($port = getXmlVal($file,'HostPort',null,$p++)) $list['Port'] .= $port.' ';
+    $ports[] = $list;
+  }
+  return $ports;
+}
 
 #    ██████╗ ██████╗ ██████╗ ███████╗
 #   ██╔════╝██╔═══██╗██╔══██╗██╔════╝
@@ -635,10 +653,10 @@ if ($_GET['xmlTemplate']) {
     echo "<script>var Settings=".json_encode($xml).";</script>";
   }
 }
+echo "<script>var UsedPorts=".json_encode(getUsedPorts()).";</script>";
 $authoringMode = ($dockercfg["DOCKER_AUTHORING_MODE"] == "yes") ? true : false;
 $authoring     = $authoringMode ? 'advanced' : 'noshow';
 $showAdditionalInfo = '';
-
 ?>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.ui.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.switchbutton.css">
@@ -706,7 +724,7 @@ $showAdditionalInfo = '';
     }
     $('#tab'+this_tab).bind({click:function(){$('#'+elementId).show();}});
     for (var x=1; x<=last; x++) if(x != this_tab) $('#tab'+x).bind({click:function(){$('#'+elementId).hide();}});
-      <?endif;?>
+    <?endif;?>
     $('.advanced-switch').switchButton({ labels_placement: "left", on_label: 'Advanced View', off_label: 'Basic View'});
     $('.advanced-switch').change(function () {
       var status = $(this).is(':checked');
@@ -743,7 +761,7 @@ $showAdditionalInfo = '';
   // Create config nodes using templateDisplayConfig
   function makeConfig(opts) {
     confNum += 1;
-    newConfig = $("#templateDisplayConfig").html();
+    var newConfig = $("#templateDisplayConfig").html();
     newConfig = newConfig.format(opts.Name,
                                  opts.Target,
                                  opts.Default,
@@ -781,6 +799,15 @@ $showAdditionalInfo = '';
       value.prop("type", "password");
     }
     return newConfig.prop('outerHTML');
+  }
+
+  function makeUsedPorts(container,current) {
+    var html = [];
+    for (var i=0; i < container.length; i++) {
+      var highlight = container[i].Name.toLowerCase()==current.toLowerCase() ? "color:#F0000C" : "";
+      html.push($("#templateUsedPorts").html().format(highlight,container[i].Name,container[i].Port));
+    }
+    return html.join('');
   }
 
   function getVal(el, name) {
@@ -841,8 +868,7 @@ $showAdditionalInfo = '';
           newConf = makeConfig(Opts);
           $("#configLocation").append(newConf);
           reloadTriggers();
-          // simulate change
-          $('input[name="contName"]').trigger('change');
+          $('input[name="contName"]').trigger('change'); // signal change
         },
         Cancel: function() {
           $(this).dialog("close");
@@ -923,9 +949,8 @@ $showAdditionalInfo = '';
               $("#configLocation").append(newConf);
             }
           }
-          reloadTriggers();
-          // simulate change
-          $('input[name="contName"]').trigger('change');
+         reloadTriggers();
+          $('input[name="contName"]').trigger('change'); // signal change
         },
         Cancel: function() {
           $(this).dialog("close");
@@ -941,8 +966,7 @@ $showAdditionalInfo = '';
 
   function removeConfig(num) {
     $('#ConfigNum' + num).fadeOut("fast", function() { $(this).remove(); });
-    //simulate change
-    $('input[name="contName"]').trigger('change');
+    $('input[name="contName"]').trigger('change'); // signal change
   }
 
   function prepareConfig(form) {
@@ -1289,7 +1313,7 @@ $showAdditionalInfo = '';
         <td colspan="2" class="inline_help">
           <blockquote class="inline_help">
             <p>When you click on an application icon from the Docker Containers page, the WebUI option will link to the path in this field.
-            Use [IP} to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
+            Use [IP] to identify the IP of your host and [PORT:####] replacing the #'s for your port.</p>
           </blockquote>
         </td>
       </tr>
@@ -1343,25 +1367,32 @@ $showAdditionalInfo = '';
     <div id="configLocation"></div><br>
     <table class="settings">
       <tr>
-        <td>&nbsp;</td>
-        <td id="readmore_toggle" class="readmore_collapsed"><a onclick="toggleReadmore();" style="font-size: 1.2em;cursor: pointer;"><i class="fa fa-chevron-down"></i> Show advanced settings ...</a></td>
+        <td></td>
+        <td id="readmore_toggle" class="readmore_collapsed"><a onclick="toggleReadmore()" style="font-size: 1.2em;cursor: pointer"><i class="fa fa-chevron-down"></i> Show advanced settings ...</a></td>
       </tr>
     </table>
     <div id="configLocationAdvanced" style="display:none"></div><br>
     <table class="settings">
       <tr>
-        <td>&nbsp;</td>
-        <td><a href="javascript:addConfigPopup();" style="font-size: 1.2em"><i class="fa fa-plus"></i> Add another Path, Port or Variable</a></td>
+        <td></td>
+        <td id="portsused_toggle" class="portsused_collapsed"><a onclick="togglePortsUsed()" style="font-size: 1.2em;cursor: pointer"><i class="fa fa-chevron-down"></i> Show deployed host ports ...</a></td>
+      </tr>
+    </table>
+    <div id="configLocationPorts" style="display:none"></div><br>
+    <table class="settings">
+      <tr>
+        <td></td>
+        <td><a href="javascript:addConfigPopup()" style="font-size: 1.2em"><i class="fa fa-plus"></i> Add another Path, Port or Variable</a></td>
       </tr>
     </table>
     <br>
     <table class="settings">
       <tr>
-        <td>&nbsp;</td>
+        <td></td>
         <td>
-          <input type="submit" name="#apply" value="Apply">
+          <input type="submit" value="<?=$xmlType=='edit' ? 'Apply' : ' Apply '?>">
           <?if ($authoringMode):?>
-          <button type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Save Template</button>
+          <button type="submit" name="dryRun" value="true" onclick="$('*[required]').prop('required', null);">Save</button>
           <?endif;?>
           <input type="button" value="Done" onclick="done()">
         </td>
@@ -1379,7 +1410,7 @@ $showAdditionalInfo = '';
 #   ╚█████╔╝███████║       ██║   ███████╗██║ ╚═╝ ██║██║     ███████╗██║  ██║   ██║   ███████╗███████║
 #    ╚════╝ ╚══════╝       ╚═╝   ╚══════╝╚═╝     ╚═╝╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝
 ?>
-<div id="templatePopupConfig" style="display: none">
+<div id="templatePopupConfig" style="display:none">
   <dl>
     <dt>Config Type:</dt>
     <dd>
@@ -1414,9 +1445,9 @@ $showAdditionalInfo = '';
       <dd>
         <select name="Display" class="narrow">
           <option value="always" selected>Always</option>
-          <option value="always-hide">Always - Hide Edit Buttons</option>
+          <option value="always-hide">Always - Hide Buttons</option>
           <option value="advanced">Advanced</option>
-          <option value="advanced-hide">Advanced - Hide Edit Buttons</option>
+          <option value="advanced-hide">Advanced - Hide Buttons</option>
         </select>
       </dd>
       <dt>Required:</dt>
@@ -1436,11 +1467,10 @@ $showAdditionalInfo = '';
         </dd>
       </div>
     </div>
-
   </dl>
 </div>
 
-<div id="templateDisplayConfig" style="display: none;">
+<div id="templateDisplayConfig" style="display:none">
   <input type="hidden" name="confName[]" value="{0}">
   <input type="hidden" name="confTarget[]" value="{1}">
   <input type="hidden" name="confDefault[]" value="{2}">
@@ -1451,13 +1481,10 @@ $showAdditionalInfo = '';
   <input type="hidden" name="confRequired[]" value="{7}">
   <input type="hidden" name="confMask[]" value="{8}">
   <table class="settings">
-    <tr>
-      <td style="vertical-align: top; min-width: 150px; white-space: nowrap; padding-top: 17px;" class="{11}">{13}:</td>
-      <td style="width: 100%">
-        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11}>&nbsp;{10}
-        <div style='color: #C98C21;line-height: 1.4em'>{12}</div>
-      </td>
-    </tr>
+  <tr>
+    <td class="{11}">{13}:</td>
+    <td><input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11}>&nbsp;{10}<div style='color:#C98C21;line-height:1.4em'>{12}</div></td>
+  </tr>
 <!--     <tr class='advanced'>
       <td style="padding-top: 0px;">
         <div style="color: #3B5998;">
@@ -1472,6 +1499,11 @@ $showAdditionalInfo = '';
   </table>
 </div>
 
+<div id="templateUsedPorts" style="display:none">
+<table class='settings'>
+  <tr><td></td><td style="{0}"><span style="width:120px;display:inline-block;padding-left:20px">{1}</span>{2}</td></tr>
+</table>
+</div>
 
 <script type="text/javascript">
   function reloadTriggers() {
@@ -1489,6 +1521,18 @@ $showAdditionalInfo = '';
       $('#configLocationAdvanced').slideUp('fast');
       readm.removeClass('readmore_expanded').addClass('readmore_collapsed');
       readm.find('a').html('<i class="fa fa-chevron-down"></i> Show advanced settings ...');
+    }
+  }
+  function togglePortsUsed() {
+    var readm = $('#portsused_toggle');
+    if ( readm.hasClass('portsused_collapsed') ) {
+      readm.removeClass('portsused_collapsed').addClass('portsused_expanded');
+      $('#configLocationPorts').slideDown('fast');
+      readm.find('a').html('<i class="fa fa-chevron-up"></i> Hide deployed host ports ...');
+    } else {
+      $('#configLocationPorts').slideUp('fast');
+      readm.removeClass('portsused_expanded').addClass('portsused_collapsed');
+      readm.find('a').html('<i class="fa fa-chevron-down"></i> Show deployed host ports ...');
     }
   }
   function load_contOverview() {
@@ -1515,7 +1559,6 @@ $showAdditionalInfo = '';
         }
       }
       load_contOverview();
-
       // Load the confCategory input into the s1 select
       categories=$("input[name='contCategory']").val().split(" ");
       for (var i = 0; i < categories.length; i++) {
@@ -1553,6 +1596,9 @@ $showAdditionalInfo = '';
     } else {
       $('#canvas').find('#Overview:first').hide();
     }
+
+    // Add list of deployed host ports
+    $("#configLocationPorts").html(makeUsedPorts(UsedPorts,$('input[name="contName"]').val()));
 
     // Add switchButton
     $('.switch-on-off').each(function(){var checked = $(this).is(":checked");$(this).switchButton({labels_placement: "right", checked:checked});});
