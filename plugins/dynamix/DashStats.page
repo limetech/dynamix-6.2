@@ -199,18 +199,15 @@ if ($fans>0):
     echo "</tr>";
   endfor;
 endif;
-$scale = $display['scale'];
-$display['scale'] = 2;
 $dck = exec("df /var/lib/docker|grep -om1 '^/'");
 ?>
 <tr class='wide'><td>Memory usage</td><td colspan='3'><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td></tr>
 <tr class='wide'><td>flash : log : docker</td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div></td>
 <td><?if ($dck):?><div class='usage-disk sys'><span id='sys4' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
-<tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total,$unit,0)." $unit"?></td></tr>
+<tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total,$unit,3)." $unit"?></td></tr>
 <tr><td>installed</td><td colspan='2' class='blue'><?="$memory_installed GB (max. capacity $memory_maximum GB)"?></td></tr>
 <?if (count($ports)>1):?><tr class='view1'><td rowspan='<?=count($ports)?>'><?else:?><tr class='view1 wide'><td><?endif;?>Network</td>
 <?
-$display['scale'] = $scale;
 $c = 0;
 foreach ($ports as $port):
   if ($c) echo "<tr class='view1'>";
