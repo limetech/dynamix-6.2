@@ -25,6 +25,6 @@ foreach ($lines as $line) {
   if (strpos($line,'disk_log')!==false) continue;
   $span = "span";
   foreach ($match as $type) foreach ($type['text'] as $text) if (preg_match("/$text/i",$line)) {$span = "span class='{$type['class']}'"; break 2;}
-  echo "<$span>".htmlentities($line)."</span>\n";
+  echo "<$span>".htmlentities($line)."\n</span>";
 }
 ?>
