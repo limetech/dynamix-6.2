@@ -154,7 +154,7 @@ echo "$memory_installed GB (max. installable capacity $memory_maximum GB)$star";
 </div>
 <div><span style="width:90px; display:inline-block"><strong>Network:</strong></span>
 <?
-exec("ifconfig -s|grep -Po '^(bond|eth)\d+'",$sPorts);
+exec("ls /sys/class/net|grep -Po '^(bond|eth)\d+$'",$sPorts);
 $i = 0;
 foreach ($sPorts as $port) {
   $mtu = file_get_contents("/sys/class/net/$port/mtu");

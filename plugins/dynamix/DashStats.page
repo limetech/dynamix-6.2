@@ -26,7 +26,7 @@ foreach ($shares as $share) {
 }
 
 $total = exec("awk '/^MemTotal/{print $2*1024/1.048576}' /proc/meminfo");
-exec("ifconfig -s|awk '/^(bond|eth|lo)/{print $1}'",$ports);
+exec("ls /sys/class/net|grep -Po '^(lo|(bond|eth)\d+)$'",$ports);
 
 $memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'")/1024;
 $memory_maximum = exec("dmidecode -t 16 | awk -F: '/^\tMaximum Capacity: [0-9]+ GB$/{t+=$2} END{print t}'");
