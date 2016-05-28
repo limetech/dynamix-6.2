@@ -27,11 +27,11 @@ $bond_ethX = isset($eth0['BONDNICS']) ? in_array('ethX',explode(',',$eth0['BONDN
 ?>
 <script>
 $(function() {
-  checkNetworkAccess(document.ethX_settings,'ethX');
+  var form = document.ethX_settings;
+  checkNetworkAccess(form,'ethX');
+  checkNetworkSettings(form);
 <?if ($disabled || $bond_ethX):?>
-  disableForm(document.ethX_settings);
-<?else:?>
-  checkNetworkSettings(document.ethX_settings);
+  disableForm(form);
 <?endif;?>
 });
 </script>

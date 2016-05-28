@@ -190,21 +190,22 @@ function exitCode(form,key) {
   }
 }
 $(function() {
+  var form = document.eth0_settings;
 <?if ($tabbed && !$disabled):?>
   $('#tab1').bind({click:function(){
     $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:130});
-    checkBondingSettings(document.eth0_settings,true);
+    checkBondingSettings(form,true);
   }});
 <?endif;?>
   $('#bond0').dropdownchecklist({emptyText:'None', width:130});
-  checkBondingSettings(document.eth0_settings,true);
-  checkNetworkAccess(document.eth0_settings,'eth0');
+  checkBondingSettings(form,true);
+  checkNetworkAccess(form,'eth0');
+  checkNetworkSettings(form);
 <?if ($disabled):?>
-  disableForm(document.eth0_settings);
+  disableForm(form);
   $('#bond0').dropdownchecklist('disable');
 <?else:?>
-  checkNetworkSettings(document.eth0_settings);
-  checkDNSSettings(document.eth0_settings);
+  checkDNSSettings(form);
 <?endif;?>
 });
 </script>
