@@ -228,7 +228,7 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 	<dl>
 		<dt>Default network bridge:</dt>
 		<dd>
-			<select id="bridge" name="BRNAME">
+			<select id="bridge" name="BRNAME" class="narrow">
 			<?
 				foreach ($arrValidBridges as $strBridge) {
 					echo mk_option($domain_cfg['BRNAME'], $strBridge, $strBridge);
