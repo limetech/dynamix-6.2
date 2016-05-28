@@ -30,7 +30,7 @@ select[disabled]{background-color:#F8F8F8;cursor:default;box-shadow:0 2px 0 #F0F
 select[name=enter_view]{padding:0;float:right;}
 select[name=enter_share]{padding:0;float:right;}
 select.narrow{min-width:69px;}
-input.narrow{width:136px;}
+input.narrow{width:132px;}
 #header{height:90px;}
 #header.image{background-size:1270px 90px; border-radius:5px;color:#202020;}
 #header .logo{float:left;margin-top:20px;margin-left:20px;}

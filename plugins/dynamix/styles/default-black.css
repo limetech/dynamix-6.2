@@ -31,7 +31,7 @@ select[name=enter_view]{padding:0;float:right;}
 select[name=enter_share]{padding:0;float:right;}
 select option{background-color:#000000;}
 select.narrow{min-width:69px;}
-input.narrow{width:136px;}
+input.narrow{width:132px;}
 #header{height:90px;}
 #header.image{background:background-size:1270px 90px; border-radius:5px;color:#D0D0D0;}
 #header .logo{float:left;margin-top:20px;margin-left:20px;}
