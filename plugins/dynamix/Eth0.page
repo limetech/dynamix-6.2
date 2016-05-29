@@ -193,7 +193,7 @@ $(function() {
   var form = document.eth0_settings;
 <?if ($tabbed && !$disabled):?>
   $('#tab1').bind({click:function(){
-    $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:130});
+    $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
     checkBondingSettings(form,true);
   }});
 <?endif;?>
