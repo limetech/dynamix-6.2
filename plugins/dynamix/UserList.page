@@ -15,7 +15,7 @@ Title="Users"
 ?>
 <?
 $submenu = !empty($display['users']) && substr($display['users'],0,5)!='Tasks';
-if ($submenu) $path = '/Settings/Users';
+if ($submenu) $path = './Users';
 ?>
 <?foreach ($users as $user):?>
 <?$img = "/boot/config/plugins/dynamix/users/{$user['name']}.png"?>
