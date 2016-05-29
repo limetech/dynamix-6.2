@@ -139,7 +139,7 @@ Time zone:
 > in the drop-down list. To do this, copy your time zone file to your flash device, with name `config/timezone`.
 
 Use NTP:
-: <select name="USE_NTP" size="1" onchange="checkDateTimeSettings(this.form)">
+: <select name="USE_NTP" size="1" class="narrow" onchange="checkDateTimeSettings(this.form)">
   <?=mk_option($var['USE_NTP'], "yes", "Yes")?>
   <?=mk_option($var['USE_NTP'], "no", "No")?>
   </select>
