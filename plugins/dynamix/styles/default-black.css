@@ -35,7 +35,7 @@ select.auto{min-width:auto;}
 input.narrow{width:132px;}
 input.trim{width:50px;}
 #header{height:90px;}
-#header.image{background:background-size:1270px 90px; border-radius:5px;color:#D0D0D0;}
+#header.image{background-size:1270px 90px; border-radius:5px;color:#D0D0D0;}
 #header .logo{float:left;margin-top:20px;margin-left:20px;}
 #header .logo img{margin:0 0 2px 1px;}
 #header .logo a{color:#478406;font-size:18px;}
