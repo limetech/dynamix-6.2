@@ -86,7 +86,7 @@ function assignment(&$disk) {
 }
 function fs_info(&$disk) {
   global $display;
-  if ($disk['type']=='Parity' || $disk['fsStatus']=='-') {
+  if ($disk['fsStatus']=='-') {
     echo "<td colspan='5'></td>";
     return;
   } else if ($disk['fsStatus']=='Mounted') {
