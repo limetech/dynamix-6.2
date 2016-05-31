@@ -143,17 +143,18 @@ function day_count($time) {
 function plus($val, $word, $last) {
   return $val>0 ? (($val || $last) ? ($val.' '.$word.($val!=1?'s':'').($last ?'':', ')) : '') : '';
 }
-function read_parity_log($epoch) {
+function read_parity_log($epoch,$busy=false) {
   $log = '/boot/config/parity-checks.log';
   if (file_exists($log)) {
     $timestamp = str_replace(['.0','.'],['  ',' '],date('M.d H:i:s',$epoch));
     $handle = fopen($log, 'r');
     while (($line = fgets($handle)) !== false) {
       if (strpos($line,$timestamp)!==false) break;
+      if ($busy) $last = $line;
     }
     fclose($handle);
   }
-  return $line ? $line : '0|0|0|0';
+  return $line ? $line : ($last ? $last : '0|0|0|0');
 }
 function urlencode_path($path) {
   return str_replace("%2F", "/", urlencode($path));

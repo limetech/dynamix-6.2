@@ -59,12 +59,6 @@ function my_clock($time) {
 function plus($val,$word,$last) {
   return $val>0?(($val||$last)?($val.' '.$word.($val!=1?'s':'').($last ?'':', ')):''):'';
 }
-function mhz($speed) {
-  return "$speed MHz";
-}
-function rpm($speed) {
-  return "$speed RPM";
-}
 function active_disks($disk) {
   return $disk['status']!='DISK_NP' && preg_match('/^(Parity|Data|Cache)$/',$disk['type']);
 }
@@ -169,12 +163,11 @@ case 'sys':
   echo "{$cpu}%#{$mem}%#".implode('#',$sys);
 break;
 case 'cpu':
-  exec("grep -Po '^cpu MHz\s+: \K\d+' /proc/cpuinfo",$speeds);
-  echo implode('#',array_map('mhz',$speeds));
+  echo str_replace("\n"," MHz#",@file_get_contents('state/cpufreq.ini'));
 break;
 case 'fan':
   exec("sensors -uA 2>/dev/null|grep -Po 'fan\d_input: \K\d+'",$rpms);
-  echo implode('#',array_map('rpm',$rpms));
+  echo implode(' RPM#',$rpms).' RPM';
 break;
 case 'port':
   switch ($_POST['view']) {
