@@ -175,7 +175,7 @@ echo "<td>Array Status</td>".implode('',$row0);
 </td></tr><tr><td colspan='4'><center>Load Statistics</center></td></tr></thead>
 <tbody>
 <tr class='wide'><td>Avg. CPU load</td><td colspan='3'><div class='usage-disk sys'><span id='cpu' style='width:0'></span></div></td></tr>
-<?if (count($cores)>1):?><tr><td rowspan='<?=count($cores)?>'><?else:?><tr class='wide'><td><?endif;?>Per CORE load</td>
+<?if (count($cores)>1):?><tr><td rowspan='<?=count($cores)?>'><?else:?><tr class='wide'><td><?endif;?>Per CPU load</td>
 <?
 $tr = false;
 foreach ($cores as $pair):
