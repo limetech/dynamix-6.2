@@ -158,16 +158,15 @@ break;
 case 'sys':
   exec("grep -Po '^Mem(Total|Available):\s+\K\d+' /proc/meminfo",$memory);
   exec("df /boot /var/log /var/lib/docker|grep -Po '\d+%'",$sys);
-  $cpu = min(@file_get_contents('state/cpuload.ini'),100);
   $mem = max(round((1-$memory[1]/$memory[0])*100),0);
-  echo "{$cpu}%#{$mem}%#".implode('#',$sys);
+  echo "{$mem}%#".implode('#',$sys);
 break;
 case 'cpu':
-  echo str_replace("\n"," MHz#",@file_get_contents('state/cpufreq.ini'));
+  echo @file_get_contents('state/cpuload.ini');
 break;
 case 'fan':
   exec("sensors -uA 2>/dev/null|grep -Po 'fan\d_input: \K\d+'",$rpms);
-  echo implode(' RPM#',$rpms).' RPM';
+  if ($rpms) echo implode(' RPM#',$rpms).' RPM';
 break;
 case 'port':
   switch ($_POST['view']) {

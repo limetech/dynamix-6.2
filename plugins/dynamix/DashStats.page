@@ -174,17 +174,17 @@ echo "<td>Array Status</td>".implode('',$row0);
 </select>
 </td></tr><tr><td colspan='4'><center>Load Statistics</center></td></tr></thead>
 <tbody>
-<tr class='wide'><td>CPU utilization</td><td colspan='3'><div class='usage-disk sys'><span id='sys0' style='width:0'></span></div></td></tr>
-<?if (count($cores)>1):?><tr><td rowspan='<?=count($cores)?>'><?else:?><tr class='wide'><td><?endif;?>CPU speed</td>
+<tr class='wide'><td>Avg. CPU load</td><td colspan='3'><div class='usage-disk sys'><span id='cpu' style='width:0'></span></div></td></tr>
+<?if (count($cores)>1):?><tr><td rowspan='<?=count($cores)?>'><?else:?><tr class='wide'><td><?endif;?>Per CORE load</td>
 <?
 $tr = false;
 foreach ($cores as $pair):
   list($core1, $core2) = preg_split('/[,-]/',$pair);
   if ($tr) echo "<tr>";
   if (isset($core2))
-    echo "<td>core $core1 / $core2</td><td class='blue' id='cpu{$core1}'>"."</td><td class='blue' id='cpu{$core2}'></td>";
+    echo "<td>core $core1 / $core2</td><td><div class='usage-disk sys'><span id='cpu$core1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='cpu$core2' style='width:0'></span></div></td>";
   else
-    echo "<td>core $core1</td><td colspan='2' class='blue' id='cpu{$core1}'>";
+    echo "<td>core $core1</td><td colspan='2'><div class='usage-disk sys'><span id='cpu$core1' style='width:0'></span></div></td>";
   echo "</tr>";
   $tr = true;
 endforeach;
@@ -202,9 +202,9 @@ if ($fans>0):
 endif;
 $dck = exec("df /var/lib/docker|grep -om1 '^/'");
 ?>
-<tr class='wide'><td>Memory usage</td><td colspan='3'><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td></tr>
-<tr class='wide'><td>flash : log : docker</td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div></td>
-<td><?if ($dck):?><div class='usage-disk sys'><span id='sys4' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
+<tr class='wide'><td>Memory usage</td><td colspan='3'><div class='usage-disk sys'><span id='sys0' style='width:0'></span></div></td></tr>
+<tr class='wide'><td>flash : log : docker</td><td><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td>
+<td><?if ($dck):?><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
 <tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total,$unit,3)." $unit"?></td></tr>
 <tr><td>installed</td><td colspan='2' class='blue'><?="$memory_installed GB (max. capacity $memory_maximum GB)"?></td></tr>
 <?if (count($ports)>1):?><tr class='view1'><td rowspan='<?=count($ports)?>'><?else:?><tr class='view1 wide'><td><?endif;?>Network</td>
@@ -393,12 +393,6 @@ function changeView(item) {
   clearTimeout(timer30);
   update30();
 }
-function update1() {
-  $.post('<?=$url?>',{cmd:'cpu'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#cpu'+k).html(v);});
-    setTimeout(update1,1000);
-  });
-}
 function update3() {
   var tag = $('.smb').is(':visible') ? 'smb' : $('.afp').is(':visible') ? 'afp' : $('.nfs').is(':visible') ? 'nfs' : '';
 <?if ($var['fsState']=='Started'):?>
@@ -412,7 +406,13 @@ function update3() {
   });
 <?endif;?>
   $.post('<?=$url?>',{cmd:'sys'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css("overflow","visible");}}).text(v);});
+    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css('overflow','visible');}}).text(v);});
+  });
+  $.post('<?=$url?>',{cmd:'cpu'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {
+      var c = k==0 ? '' : k-1;
+      $('#cpu'+c).animate({width:v},{step:function(){$('#cpu'+c).css('overflow','visible');}}).text(v);
+    });
     setTimeout(update3,3000);
   });
 }
@@ -485,7 +485,6 @@ function dropdown(menu) {
 $(function() {
   dropdown('enter_share');
   dropdown('enter_view');
-  update1();
   update3();
   update60();
   update30();
