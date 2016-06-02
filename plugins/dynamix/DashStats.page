@@ -14,7 +14,7 @@ Title="Statistics"
 */
 ?>
 <?
-exec('cat /sys/devices/system/cpu/*/topology/thread_siblings_list|sort -nu', $cores);
+exec('cat /sys/devices/system/cpu/*/topology/thread_siblings_list|sort -nu', $cpus);
 $fans  = exec("sensors -uA 2>/dev/null|grep -c 'fan[0-9]_input'");
 $group = $var['shareSMBEnabled']=='yes' | $var['shareAFPEnabled']=='yes' | $var['shareNFSEnabled']=='yes';
 $names = "";
@@ -175,16 +175,16 @@ echo "<td>Array Status</td>".implode('',$row0);
 </td></tr><tr><td colspan='4'><center>Load Statistics</center></td></tr></thead>
 <tbody>
 <tr class='wide'><td>Avg. CPU load</td><td colspan='3'><div class='usage-disk sys'><span id='cpu' style='width:0'></span></div></td></tr>
-<?if (count($cores)>1):?><tr><td rowspan='<?=count($cores)?>'><?else:?><tr class='wide'><td><?endif;?>Per CPU load</td>
+<?if (count($cpus)>1):?><tr><td rowspan='<?=count($cpus)?>'><?else:?><tr class='wide'><td><?endif;?>Per CPU load</td>
 <?
 $tr = false;
-foreach ($cores as $pair):
-  list($core1, $core2) = preg_split('/[,-]/',$pair);
+foreach ($cpus as $pair):
+  list($cpu1, $cpu2) = preg_split('/[,-]/',$pair);
   if ($tr) echo "<tr>";
-  if (isset($core2))
-    echo "<td>core $core1 / $core2</td><td><div class='usage-disk sys'><span id='cpu$core1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='cpu$core2' style='width:0'></span></div></td>";
+  if (isset($cpu2))
+    echo "<td>cpu $cpu1 / $cpu2</td><td><div class='usage-disk sys'><span id='cpu$cpu1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='cpu$cpu2' style='width:0'></span></div></td>";
   else
-    echo "<td>core $core1</td><td colspan='2'><div class='usage-disk sys'><span id='cpu$core1' style='width:0'></span></div></td>";
+    echo "<td>cpu $cpu1</td><td colspan='2'><div class='usage-disk sys'><span id='cpu$cpu1' style='width:0'></span></div></td>";
   echo "</tr>";
   $tr = true;
 endforeach;
