@@ -198,7 +198,7 @@ Split level:
 > created on the same disk where the parent directory exists.
 >
 > **Manual: do not automatically split directories**
-> When a new file or subdirectory needs to be created in a share, unRAID OS will only condider disks where the
+> When a new file or subdirectory needs to be created in a share, unRAID OS will only consider disks where the
 > parent directory already exists.
 
 Included disk(s):
