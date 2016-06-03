@@ -167,7 +167,7 @@ echo "<td>Array Status</td>".implode('',$row0);
 </table>
 <table class='share_status dash line'>
 <thead><tr><td colspan='3'>System Status</td><td>
-<select name="enter_view" size="1" onchange="changeView(this.value);" style="min-width:0">
+<select name="enter_view" size="1" class="auto" onchange="changeView(this.value)">
 <?=mk_option("", "0", "General")?>
 <?=mk_option("", "1", "Counters")?>
 <?=mk_option("", "2", "Errors")?>
@@ -302,7 +302,7 @@ endforeach;
 <table class='share_status dash m36'>
 <thead><tr><td colspan='3'>Shares List</td><td>
 <?if ($group):?>
-<select name="enter_share" size="1" onchange="changeMode(this.value);" style="min-width:0">
+<select name="enter_share" size="1" class="auto" onchange="changeMode(this.value)">
 <?if ($var['shareSMBEnabled']=='yes'):?>
 <?=mk_option("", "0", "SMB")?>
 <?endif;?>
