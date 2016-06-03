@@ -141,14 +141,15 @@ class DockerTemplates {
 		$urls = @file($Urls, FILE_IGNORE_NEW_LINES);
 		if (!is_array($urls)) return false;
 		$this->debug("\nURLs:\n   " . implode("\n   ", $urls));
-		$api_regexes = [
+		$github_api_regexes = [
 			'%/.*github.com/([^/]*)/([^/]*)/tree/([^/]*)/(.*)$%i',
 			'%/.*github.com/([^/]*)/([^/]*)/tree/([^/]*)$%i',
 			'%/.*github.com/([^/]*)/(.*).git%i',
 			'%/.*github.com/([^/]*)/(.*)%i'
 		];
 		foreach ($urls as $url) {
-			foreach ($api_regexes as $api_regex) {
+			$github_api = ['url' => ''];
+			foreach ($github_api_regexes as $api_regex) {
 				if (preg_match($api_regex, $url, $matches)) {
 					$github_api['user']   = (isset($matches[1])) ? $matches[1] : "";
 					$github_api['repo']   = (isset($matches[2])) ? $matches[2] : "";
@@ -157,6 +158,34 @@ class DockerTemplates {
 					$github_api['url']    = sprintf("https://github.com/%s/%s/archive/%s.tar.gz", $github_api['user'], $github_api['repo'], $github_api['branch']);
 					break;
 				}
+			}
+			// if after above we don't have a valid url, check for GitLab
+			if (empty($github_api['url'])) {
+				$source = file_get_contents($url);
+				// the following should always exist for GitLab Community Edition or GitLab Enterprise Edition
+				if (preg_match("/<meta content='GitLab (Community|Enterprise) Edition' name='description'>/", $source) > 0) {
+					$parse = parse_url($url);
+					$custom_api_regexes = [
+						'%/'.$parse['host'].'/([^/]*)/([^/]*)/tree/([^/]*)/(.*)$%i',
+						'%/'.$parse['host'].'/([^/]*)/([^/]*)/tree/([^/]*)$%i',
+						'%/'.$parse['host'].'/([^/]*)/(.*).git%i',
+						'%/'.$parse['host'].'/([^/]*)/(.*)%i',
+					];
+					foreach ($custom_api_regexes as $api_regex) {
+						if (preg_match($api_regex, $url, $matches)) {
+							$github_api['user']   = (isset($matches[1])) ? $matches[1] : "";
+							$github_api['repo']   = (isset($matches[2])) ? $matches[2] : "";
+							$github_api['branch'] = (isset($matches[3])) ? $matches[3] : "master";
+							$github_api['path']   = (isset($matches[4])) ? $matches[4] : "";
+							$github_api['url']    = sprintf("https://".$parse['host']."/%s/%s/repository/archive.tar.gz?ref=%s", $github_api['user'], $github_api['repo'], $github_api['branch']);
+							break;
+						}
+					}
+				}
+			}
+			if (empty($github_api['url'])) {
+				$this->debug("\n Cannot parse URL ".$url." for Templates.");
+				continue;
 			}
 			if ($this->download_url($github_api['url'], "$tmp_dir.tar.gz") === false) {
 				$this->debug("\n Download ".$github_api['url']." has failed.");
