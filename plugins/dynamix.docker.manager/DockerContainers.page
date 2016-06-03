@@ -74,7 +74,7 @@ img.stopped{opacity:0.3;}
 		$info = $DockerTemplates->getAllInfo();
 		$contextMenus = [];
 
-		$IP = $var["IPADDR"];
+		$IP = $eth0["IPADDR:0"];
 		foreach ($all_containers as $ct) {
 			$name           = $ct["Name"];
 			$is_autostart   = ($info[$name]['autostart']) ? 'true' : 'false';

@@ -39,6 +39,9 @@ $shares  = parse_ini_file('state/shares.ini',true);
 $sec_nfs = parse_ini_file('state/sec_nfs.ini',true);
 $sec_afp = parse_ini_file('state/sec_afp.ini',true);
 
+// Read network settings
+extract(parse_ini_file('state/network.ini',true));
+
 // Merge SMART settings
 require_once 'include/CustomMerge.php';
 

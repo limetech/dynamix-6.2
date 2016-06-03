@@ -14,7 +14,7 @@ Title="Statistics"
 */
 ?>
 <?
-exec('cat /sys/devices/system/cpu/*/topology/thread_siblings_list|sort -nu', $cores);
+exec('cat /sys/devices/system/cpu/*/topology/thread_siblings_list|sort -nu', $cpus);
 $fans  = exec("sensors -uA 2>/dev/null|grep -c 'fan[0-9]_input'");
 $group = $var['shareSMBEnabled']=='yes' | $var['shareAFPEnabled']=='yes' | $var['shareNFSEnabled']=='yes';
 $names = "";
@@ -25,13 +25,13 @@ foreach ($shares as $share) {
   $names .= $share['name'];
 }
 
-exec("awk '/^MemTotal/{print $2*1024/1.048576}' /proc/meminfo",$total);
-exec("ifconfig -s|awk '/^(bond|eth|lo)/{print $1}'",$ports);
+$total = exec("awk '/^MemTotal/{print $2*1024/1.048576}' /proc/meminfo");
+exec("ls /sys/class/net|grep -Po '^(lo|(bond|eth)\d+)$'",$ports);
 
-$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'");
+$memory_installed = exec("dmidecode -t 17 | awk -F: '/^\tSize: [0-9]+ MB$/{t+=$2} /^\tSize: [0-9]+ GB$/{t+=$2*1024} END{print t}'")/1024;
 $memory_maximum = exec("dmidecode -t 16 | awk -F: '/^\tMaximum Capacity: [0-9]+ GB$/{t+=$2} END{print t}'");
 // If maximum < installed then roundup maximum to the next power of 2 size of installed. E.g. 6 -> 8 or 12 -> 16
-if ($memory_maximum*1024 < $memory_installed) $memory_maximum = pow(2,ceil(log($memory_installed/1024)/log(2)));
+if ($memory_maximum < $memory_installed) $memory_maximum = pow(2,ceil(log($memory_installed)/log(2)));
 
 function init_row($label) {
   echo "<tr><td>$label</td>".str_repeat("<td></td>",30)."</tr>";
@@ -74,10 +74,11 @@ function parity_status() {
       return;
     }
     if ($var['sbSynced2']==0) {
-      list($entry,$duration,$speed,$status) = explode('|', read_parity_log($var['sbSynced']));
+      $idle = $var['mdResync']==0;
+      list($entry,$duration,$speed,$status) = explode('|', read_parity_log($var['sbSynced'],!$idle));
       if ($status==0) {
-        echo "<tr><td>Last checked on <strong>".my_time($var['sbSynced']).day_count($var['sbSynced'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
-        echo "<br><i class='fa fa-clock-o icon'></i><em>Duration: ".my_check($duration,$speed)."</em></td><td id='parity'></td></tr>";
+        echo "<tr><td>".($idle ? "Last checked on " : "Activity started on ")."<strong>".my_time($var['sbSynced']).day_count($var['sbSynced'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
+        echo "<br><i class='fa fa-clock-o icon'></i><em>".($idle ? "Duration: " : "Last result: ").my_check($duration,$speed)."</em></td><td id='parity'></td></tr>";
       } else {
         echo "<tr><td>Last check incomplete on <strong>".my_time($var['sbSynced']).day_count($var['sbSynced'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
         echo "<br><i class='fa fa-dot-circle-o icon'></i><em>Error code: $status</em></td><td id='parity'></td></tr>";
@@ -173,17 +174,17 @@ echo "<td>Array Status</td>".implode('',$row0);
 </select>
 </td></tr><tr><td colspan='4'><center>Load Statistics</center></td></tr></thead>
 <tbody>
-<tr class='wide'><td>CPU utilization</td><td colspan='3'><div class='usage-disk sys'><span id='sys0' style='width:0'></span></div></td></tr>
-<?if (count($cores)>1):?><tr><td rowspan='<?=count($cores)?>'><?else:?><tr class='wide'><td><?endif;?>CPU speed</td>
+<tr class='wide'><td>Avg. CPU load</td><td colspan='3'><div class='usage-disk sys'><span id='cpu' style='width:0'></span></div></td></tr>
+<?if (count($cpus)>1):?><tr><td rowspan='<?=count($cpus)?>'><?else:?><tr class='wide'><td><?endif;?>Per CPU load</td>
 <?
 $tr = false;
-foreach ($cores as $pair):
-  list($core1, $core2) = preg_split('/[,-]/',$pair);
+foreach ($cpus as $pair):
+  list($cpu1, $cpu2) = preg_split('/[,-]/',$pair);
   if ($tr) echo "<tr>";
-  if (isset($core2))
-    echo "<td>core $core1 / $core2</td><td class='blue' id='cpu{$core1}'>"."</td><td class='blue' id='cpu{$core2}'></td>";
+  if (isset($cpu2))
+    echo "<td>cpu $cpu1 / $cpu2</td><td><div class='usage-disk sys'><span id='cpu$cpu1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='cpu$cpu2' style='width:0'></span></div></td>";
   else
-    echo "<td>core $core1</td><td colspan='2' class='blue' id='cpu{$core1}'>";
+    echo "<td>cpu $cpu1</td><td colspan='2'><div class='usage-disk sys'><span id='cpu$cpu1' style='width:0'></span></div></td>";
   echo "</tr>";
   $tr = true;
 endforeach;
@@ -199,18 +200,15 @@ if ($fans>0):
     echo "</tr>";
   endfor;
 endif;
-$scale = $display['scale'];
-$display['scale'] = 2;
 $dck = exec("df /var/lib/docker|grep -om1 '^/'");
 ?>
-<tr class='wide'><td>Memory usage</td><td colspan='3'><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td></tr>
-<tr class='wide'><td>flash : log : docker</td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div></td>
-<td><?if ($dck):?><div class='usage-disk sys'><span id='sys4' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
-<tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total[0],$unit,0)." $unit"?></td></tr>
-<tr><td>installed</td><td colspan='2' class='blue'><?=my_scale($memory_installed*1000*1000,$unit,0)." $unit (max. ".$memory_maximum." GB)"?></td></tr>
+<tr class='wide'><td>Memory usage</td><td colspan='3'><div class='usage-disk sys'><span id='sys0' style='width:0'></span></div></td></tr>
+<tr class='wide'><td>flash : log : docker</td><td><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td>
+<td><?if ($dck):?><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
+<tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total,$unit,3)." $unit"?></td></tr>
+<tr><td>installed</td><td colspan='2' class='blue'><?="$memory_installed GB (max. capacity $memory_maximum GB)"?></td></tr>
 <?if (count($ports)>1):?><tr class='view1'><td rowspan='<?=count($ports)?>'><?else:?><tr class='view1 wide'><td><?endif;?>Network</td>
 <?
-$display['scale'] = $scale;
 $c = 0;
 foreach ($ports as $port):
   if ($c) echo "<tr class='view1'>";
@@ -402,19 +400,20 @@ function update3() {
     if (data) $.each(data.split('#'),function(k,v) {$('#share'+(k+1)).html(v);});
   });
 <?endif;?>
-  $.post('<?=$url?>',{cmd:'sys'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css("overflow","visible");}}).text(v);});
-  });
 <?if ($fans>0):?>
   $.post('<?=$url?>',{cmd:'fan'},function(data) {
     if (data) $.each(data.split('#'),function(k,v) {$('#fan'+k).html(v);});
   });
 <?endif;?>
+  $.post('<?=$url?>',{cmd:'sys'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css('overflow','visible');}}).text(v);});
+  });
   $.post('<?=$url?>',{cmd:'cpu'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#cpu'+k).html(v);});
-<?if ($update):?>
-    setTimeout(update3,<?=max(abs($display['refresh']),3000)?>);
-<?endif;?>
+    if (data) $.each(data.split('#'),function(k,v) {
+      var c = k==0 ? '' : k-1;
+      $('#cpu'+c).animate({width:v},{step:function(){$('#cpu'+c).css('overflow','visible');}}).text(v);
+    });
+    setTimeout(update3,3000);
   });
 }
 function update30() {
@@ -442,18 +441,14 @@ function update30() {
       if (view == 'alert') opts.push({text:'Acknowledge',icon:'fa-check-square-o',action:function(e){e.preventDefault();acknowledge(disk);}});
       context.attach(id,opts);
     });
-<?if ($update):?>
-    timer30 = setTimeout(update30,<?=max(abs($display['refresh']),30000)?>);
-<?endif;?>
+    timer30 = setTimeout(update30,30000);
   });
 }
 function update60() {
 <?if ($var['mdNumInvalid']==0 && $var['mdResync']>0):?>
   $.post('<?=$url?>',{cmd:'parity'},function(data) {
     if (data) $('#parity').html(data);
-<?if ($update):?>
-    setTimeout(update60,<?=max(abs($display['refresh']),60000)?>);
-<?endif;?>
+    setTimeout(update60,60000);
   });
 <?endif;?>
 }

@@ -59,12 +59,6 @@ function my_clock($time) {
 function plus($val,$word,$last) {
   return $val>0?(($val||$last)?($val.' '.$word.($val!=1?'s':'').($last ?'':', ')):''):'';
 }
-function mhz($speed) {
-  return "$speed MHz";
-}
-function rpm($speed) {
-  return "$speed RPM";
-}
 function active_disks($disk) {
   return $disk['status']!='DISK_NP' && preg_match('/^(Parity|Data|Cache)$/',$disk['type']);
 }
@@ -164,17 +158,15 @@ break;
 case 'sys':
   exec("grep -Po '^Mem(Total|Available):\s+\K\d+' /proc/meminfo",$memory);
   exec("df /boot /var/log /var/lib/docker|grep -Po '\d+%'",$sys);
-  $cpu = min(@file_get_contents('state/cpuload.ini'),100);
   $mem = max(round((1-$memory[1]/$memory[0])*100),0);
-  echo "{$cpu}%#{$mem}%#".implode('#',$sys);
+  echo "{$mem}%#".implode('#',$sys);
 break;
 case 'cpu':
-  exec("grep -Po '^cpu MHz\s+: \K\d+' /proc/cpuinfo",$speeds);
-  echo implode('#',array_map('mhz',$speeds));
+  echo @file_get_contents('state/cpuload.ini');
 break;
 case 'fan':
   exec("sensors -uA 2>/dev/null|grep -Po 'fan\d_input: \K\d+'",$rpms);
-  echo implode('#',array_map('rpm',$rpms));
+  if ($rpms) echo implode(' RPM#',$rpms).' RPM';
 break;
 case 'port':
   switch ($_POST['view']) {
@@ -189,7 +181,7 @@ case 'port':
       } else {
         unset($info);
         exec("ethtool $port|grep -Po '^\s+(Speed|Duplex|Link\sdetected): \K[^U\\n]+'",$info);
-        $ports[$i++] = (array_pop($info)=='yes' && $info[0]) ? "{$info[0]}, ".strtolower($info[1])." duplex, mtu $mtu" : "not connected";
+        $ports[$i++] = (array_pop($info)=='yes' && $info[0]) ? str_replace(['M','G'],[' M',' G'],$info[0]).", ".strtolower($info[1])." duplex, mtu $mtu" : "not connected";
       }
     }
   break;

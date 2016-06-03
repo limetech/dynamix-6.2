@@ -1,0 +1,85 @@
+Menu="NetworkSettings"
+Title="Interface Rules"
+Cond="file_exists('/boot/config/network-rules.cfg')"
+---
+<?PHP
+/* Copyright 2016, Lime Technology
+ * Copyright 2016, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+$cfg = '/boot/config/network-rules.cfg';
+
+function strip($item) {
+  list($key,$val) = explode('"',$item);
+  return $val;
+}
+
+exec("awk '/NAME=\"eth/{print $4 $8}' $cfg",$rules);
+exec("grep -Po '^# \K.*' $cfg",$info);
+
+$link = []; $i = 0;
+foreach ($rules as $rule) {
+  list($mac,$eth) = array_map('strip',explode(',',$rule));
+  $link[$eth]['mac'] = $mac;
+  $link[$eth]['info'] = $info[$i++];
+}
+ksort($link,SORT_NATURAL);
+?>
+<script>
+var info = {};
+<?foreach ($link as $eth => $val):?>
+info['<?='_'.str_replace(':','',$val['mac'])?>'] = "<?=$val['info']?>";
+<?endforeach;?>
+
+function check_rules(form) {
+  var mac = [];
+  $(form).find('select[name^="eth"]').each(function(){mac.push($(this).val());});
+  if (mac.dups()) {
+    swal('MAC address mismatch','Rules contain duplicate MAC address assignments','error');
+    return false;
+  } else {
+    return true;
+  }
+}
+function update_info(id,mac) {
+  $('#info-'+id).html(info['_'+mac.replace(/:/g,'')]);
+}
+</script>
+<form markdown="1" name="network_rules" method="POST" action="/update.php" target="progressFrame" onsubmit="return check_rules(this)">
+<input type="hidden" name="#file" value="not-used">
+<input type="hidden" name="#include" value="/webGui/include/update.rules.php">
+<input type="hidden" name="#cfg" value="<?=$cfg?>">
+<?foreach ($link as $eth => $file):?>
+
+Interface <?=$eth?>:
+: <select name="<?=$eth?>" size="1" onchange="update_info(this.name,this.value)">
+  <?foreach ($link as $my => $val):?>
+  <?=mk_option($file['mac'],$val['mac'],strtoupper($val['mac']));?>
+  <?endforeach;?>
+  </select><span id="info-<?=$eth?>"><?=$file['info']?></span>
+
+<?endforeach;?>
+
+&nbsp;
+: <input type="submit" value="Apply"><input type="button" value="Done" onclick="done()">
+</form>
+
+> The interface assignment rules can be changed here and might be necessary to set the preferred interface for managing unRAID - *use with care, usually there is no need to change*.
+>
+> **eth0** is the main interface used to manage the unRAID system. The other interfaces are optional and may be used as desired.
+> Every interface must be uniquely identified by its MAC (hardware) address.
+>
+> The interface assignment is stored on the flash device under */config/network-rules.cfg*. This file can be viewed with any editor, but it is recommended to make changes via the webGUI only.<br>
+> Deleting the file *network-rules.cfg* from the flash device will restore automatic interface assignment after a system reboot.
+
+<?if (file_exists('/tmp/network-rules.tmp')):?>
+<br><span class="error" style="font-size:13px;text-align:center;padding:12px 0">Please <b>REBOOT</b> system to make new rules active</span>
+<?endif;?>
