@@ -29,6 +29,9 @@ if (!isset($var)) {
 	if (!is_file("/usr/local/emhttp/state/var.ini")) shell_exec("wget -qO /dev/null localhost:$(lsof -nPc emhttp | grep -Po 'TCP[^\d]*\K\d+')");
 	$var = @parse_ini_file("/usr/local/emhttp/state/var.ini");
 }
+if (!isset($eth0) && is_file("/usr/local/emhttp/state/network.ini")) {
+	extract(parse_ini_file('/usr/local/emhttp/state/network.ini',true));
+}
 
 $docker_cfg_defaults = [
 	"DOCKER_ENABLED" => "no",
@@ -232,7 +235,7 @@ class DockerTemplates {
 
 
 	public function getControlURL($name) {
-		global $var;
+		global $var,$eth0;
 		$DockerClient = new DockerClient();
 
 		$Repository = "";
@@ -247,7 +250,7 @@ class DockerTemplates {
 		$WebUI = $this->getTemplateValue($Repository, "WebUI");
 
 		if (preg_match("%\[IP\]%", $WebUI)) {
-			$WebUI = preg_replace("%\[IP\]%", $var["IPADDR"], $WebUI);
+			$WebUI = preg_replace("%\[IP\]%", $eth0["IPADDR:0"], $WebUI);
 		}
 		if (preg_match("%\[PORT:(\d+)\]%", $WebUI, $matches)) {
 			$ConfigPort = $matches[1];

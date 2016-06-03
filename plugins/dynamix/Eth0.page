@@ -1,0 +1,411 @@
+Menu="NetworkSettings"
+Title="Interface eth0"
+Png="ethernet.png"
+---
+<?PHP
+/* Copyright 2015-2016, Lime Technology
+ * Copyright 2015-2016, Bergware International.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2,
+ * as published by the Free Software Foundation.
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+?>
+<?
+$build = false;
+$template = '/usr/local/emhttp/webGui/EthX.page';
+$ini = '/var/local/emhttp/network.ini';
+$validIP = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)';
+
+function normalize($name) {
+  return ucfirst(trim($name));
+}
+
+// get available ethernet ports (excluding eth0)
+exec("ip -br addr|grep -Po '^eth[1-9]+\s'",$ports);
+$ports = array_map('normalize', $ports);
+
+// remove non-existing ethernet ports
+foreach (glob('/usr/local/emhttp/webGui/Eth[1-9]*.page',GLOB_NOSORT) as $port) {
+  if (!in_array(basename($port,'.page'), $ports)) {
+    @unlink($port);
+    $build = true;
+  }
+}
+// add new ethernet ports
+foreach ($ports as $port) {
+  $file = "/usr/local/emhttp/webGui/$port.page";
+  if (!file_exists($file)) {
+    copy($template, $file);
+    $eth = strtolower($port);
+    exec("sed -i 's/x-settings/NetworkSettings/;s/ethX/$eth/g' $file");
+    $build = true;
+  }
+}
+// enable interface only when VMs are stopped
+$disabled = exec("virsh list|grep -om1 running") ? 'disabled' : '';
+
+// get VLAN interfaces
+$vlan_eth0 = [0];
+if (isset($eth0)) foreach ($eth0 as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_eth0[] = substr($key,7);
+?>
+<style>
+span.pin{margin:0;padding:0;font-size:16px;cursor:pointer;}
+span.no-int{color:#E68A00;}
+div.shade-white{background-color:#F8F8F8;}
+div.shade-black{background-color:#0C0C0C;}
+</style>
+<script>
+<?if ($build):?>
+refresh(); // automatically include new ethernet ports
+<?endif;?>
+Array.prototype.dups = function(){return this.sort().filter(function(v,i,o){return i&&v===o[i-1]?v:0;}).length;}
+
+function prepareSettings(form) {
+  var bonding = form.BONDING !== undefined;
+  if (bonding) {
+    var member = '';
+    for (var i=0,item; item=form.BONDNICS.options[i]; i++) {
+      if (item.selected) {
+        if (member.length) member += ',';
+        member += item.value;
+        item.selected = false;
+      }
+    }
+    item = form.BONDNICS.options[0];
+    item.value = member;
+    item.selected = true;
+    item.disabled = false;
+    form.BONDNICS.disabled = false;
+    if (form.BONDING.value=='yes') form.BRNICS.value = form.BONDNAME.value;
+  }
+  if (form.TYPE.value == 'access') {
+    $(form).find('input[name^="VLANID:"]').prop('disabled',true);
+    $(form).find('input[name^="DESCRIPTION:"]').not('input[name$=":0"]').prop('disabled',true);
+    $(form).find('select[name^="USE_DHCP:"]').not('select[name$=":0"]').prop('disabled',true);
+    $(form).find('input[name^="IPADDR:"]').not('input[name$=":0"]').prop('disabled',true);
+    $(form).find('select[name^="NETMASK:"]').not('select[name$=":0"]').prop('disabled',true);
+  } else {
+    var vlans = [];
+    $(form).find('input[name^="VLANID:"]').each(function(){vlans.push($(this).val());});
+    if (vlans.dups()) {
+      swal('VLAN mismatch','List contains duplicate VLAN numbers','error');
+      return false;
+    }
+  }
+  $(form).find('select[name^="USE_DHCP:"]').each(function() {
+    if ($(this).prop('disabled')==false && $(this).val()=='yes') {
+      var ipaddr = $(this).prop('name').replace('USE_DHCP','IPADDR');
+      $(form).find('input[name="'+ipaddr+'"]').val('Obtaining IP address...');
+    }
+  });
+  if ($(form).find('select[name="DHCP_KEEPRESOLV"]').val()=='no') {
+    $(form).find('input[name^="DNS_SERVER"]').val('Obtaining DNS server...');
+  }
+  form.BRNAME.value = 'br'+$(form).find('input[name="#section"]').val().substr(3);
+  return true;
+}
+function checkNetworkSettings(form,index) {
+  if (index == null) {
+    $(form).find('select[name^="USE_DHCP:"]').each(function() {
+      var i = $(this).attr('name').substr(9);
+      var disabled = $(this).val()!='no';
+      var ipaddr = $(form).find('input[name="IPADDR:'+i+'"]');
+      var netmask = $(form).find('select[name="NETMASK:'+i+'"]');
+      ipaddr.prop('disabled',disabled).prop('required',!disabled);
+      netmask.prop('disabled',disabled);
+      if (ipaddr.val()=='') netmask.append('<option value="none" selected="selected"></option>');
+      if (i==0 && form.GATEWAY !== undefined) {form.GATEWAY.disabled = disabled; form.GATEWAY.required = !disabled;}
+    });
+  } else {
+    var disabled = $(form).find('select[name="USE_DHCP:'+index+'"]').val()!='no';
+    $(form).find('input[name="IPADDR:'+index+'"]').prop('disabled',disabled).prop('required',!disabled);
+    var netmask = $(form).find('select[name="NETMASK:'+index+'"]');
+    netmask.prop('disabled',disabled);
+    if (!disabled) {
+      var none = netmask.find('option[value="none"]');
+      if (none.length) {netmask.val('255.255.255.0'); none.remove();}
+    }
+    if (form.GATEWAY !== undefined) {form.GATEWAY.disabled = disabled; form.GATEWAY.required = !disabled;}
+    if (!disabled && form.DHCP_KEEPRESOLV !== undefined) {form.DHCP_KEEPRESOLV.value = 'yes'; checkDNSSettings(form);}
+  }
+}
+function checkDNSSettings(form) {
+  var disabled = form.DHCP_KEEPRESOLV.value=='no';
+  form.DNS_SERVER1.disabled = disabled;
+  form.DNS_SERVER1.required = !disabled;
+  form.DNS_SERVER2.disabled = disabled;
+  form.DNS_SERVER3.disabled = disabled;
+}
+function checkBondingSettings(form,ctrl) {
+  var disabled = form.BONDING.value=='no';
+  var mode = form.BONDING_MODE.value;
+  if (ctrl) {
+    form.BONDING_MODE.disabled = disabled;
+    form.BONDNICS.disabled = disabled;
+    $('#bond0').dropdownchecklist(disabled?'disable':'enable');
+  }
+  if (mode==1 || mode>4 || disabled) {$('#attention0').hide();} else {$('#attention0').show();}
+}
+function checkNetworkAccess(form,port) {
+  if (form.TYPE.value=='access') {
+    $('.access-'+port).hide();
+    $(form).find('input[name^="VLANID:"]').prop('required',false);
+  } else {
+    $('.access-'+port).show();
+    $(form).find('input[name^="VLANID:"]').prop('required',true);
+  }
+}
+function addVLAN(port,disabled) {
+  if (disabled) return;
+  var index = 1;
+  while ($('#index-'+port+'-'+index).length) index++;
+  var template = $($('<div/>').loadTemplate($('#network-template-'+port)).html().replace(/INDEX/g,index));
+  var element = $('[id^="index-'+port+'-"]').last();
+  $(element).after(template);
+  checkNetworkSettings($('form[name="'+$(element).parent().attr('name')+'"]'));
+  $(element).find('input').first().trigger('change');
+}
+function removeVLAN(element,disabled) {
+  if (disabled) return;
+  var id = $(element).attr('id').split('-');
+  $(element).remove();
+  $('#index-'+id[1]+'-0').find('select').first().trigger('change');
+}
+function disableForm(form) {
+  $(form).find('input,select').not('input[value="Done"]').prop('disabled',true);
+}
+var stopEvent = false;
+function exitCode(form,key) {
+  if (stopEvent) {stopEvent = false; return;}
+  var arg1 = $(form).find('input[name="#arg[1]"]');
+  if (!key) {
+    arg1.val($(form).find('input[name="#section"]').val());
+  } else {
+    if (arg1.val()=='') arg1.val('none');
+    stopEvent = true;
+  }
+}
+$(function() {
+  var form = document.eth0_settings;
+<?if ($tabbed && !$disabled):?>
+  $('#tab1').bind({click:function(){
+    $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
+    checkBondingSettings(form,true);
+  }});
+<?endif;?>
+  $('#bond0').dropdownchecklist({emptyText:'None', width:130});
+  checkBondingSettings(form,true);
+  checkNetworkAccess(form,'eth0');
+  checkNetworkSettings(form);
+<?if ($disabled):?>
+  disableForm(form);
+  $('#bond0').dropdownchecklist('disable');
+<?else:?>
+  checkDNSSettings(form);
+<?endif;?>
+});
+</script>
+<form markdown="1" name="eth0_settings" method="POST" action="/update.php" target="progressFrame" onchange="exitCode(this,false)" onsubmit="return prepareSettings(this)">
+<input type="hidden" name="#file" value="<?=$ini?>">
+<input type="hidden" name="#include" value="/webGui/include/update.ethernet.php">
+<input type="hidden" name="#section" value="eth0">
+<input type="hidden" name="#command" value="/webGui/scripts/netconfig">
+<input type="hidden" name="#arg[1]" value="">
+<input type="hidden" name="BONDNAME" value="bond0">
+<input type="hidden" name="BONDING_MIIMON" value="100">
+<input type="hidden" name="BRNAME" value="">
+<input type="hidden" name="BRNICS" value="eth0">
+<input type="hidden" name="BRSTP" value="no">
+<input type="hidden" name="BRFD" value="0">
+<?foreach ($vlan_eth0 as $i):?>
+<div id="index-eth0-<?=$i?>" markdown="1">
+<?if ($i==0):?>
+MAC address:
+: <?=strtoupper(exec("ip link show eth0|grep -Pom1 'ether \K\S+'"))?>
+
+> This is the hardware address of the interface.
+> When tagging is enabled all VLANs on this interface will share the same hardware address.
+
+Enable bonding:
+: <select name="BONDING" size="1" onchange="checkBondingSettings(this.form,true)">
+  <?=mk_option($eth0['BONDING'], "no", "No");?>
+  <?=mk_option($eth0['BONDING'], "yes", "Yes");?>
+  </select>
+
+> Bonding is a feature that combines multiple physical Ethernet interfaces into a single *bonded* interface named **bond0**.
+> This can be used to improve the connection redundancy and/or throughput of the system.
+> Different bonding modes are supported (see below), but some modes require proper switch support.
+
+Bonding mode:
+: <select name="BONDING_MODE" size="1" onchange="checkBondingSettings(this.form,false)">
+  <?=mk_option($eth0['BONDING_MODE'], "0", "balance-rr (0)");?>
+  <?=mk_option($eth0['BONDING_MODE'], "1", "active-backup (1)",isset($eth0['BONDING_MODE'])?'':'selected');?>
+  <?=mk_option($eth0['BONDING_MODE'], "2", "balance-xor (2)");?>
+  <?=mk_option($eth0['BONDING_MODE'], "3", "broadcast (3)");?>
+  <?=mk_option($eth0['BONDING_MODE'], "4", "802.3ad (4)");?>
+  <?=mk_option($eth0['BONDING_MODE'], "5", "balance-tlb (5)");?>
+  <?=mk_option($eth0['BONDING_MODE'], "6", "balance-alb (6)");?>
+  </select><span id="attention0" style="display:none"><b>Attention:</b> this mode requires a network switch with proper setup and support...</span>
+
+> Mode 1 (active-backup) is the recommended default. Other modes allow you to set up a specific environment, but may require proper switch support.
+> Choosing a unsupported mode can result in a disrupted communication. Use with caution.
+
+Bonding members:
+: <select id="bond0" name="BONDNICS" size="1" multiple="multiple" style="display:none">
+  <?=mk_option($eth0['BONDNICS'],'eth0','Eth0','selected disabled')?>
+  <?foreach ($ports as $port):?>
+  <?=mk_option_check($eth0['BONDNICS'],strtolower($port),$port)?>
+  <?endforeach;?>
+  </select>
+
+> Select which interfaces are member of the *bonded* interface. By default eth0 is a member, while other interfaces are optional.
+
+Enable bridging:
+: <select name="BRIDGING" size="1">
+  <?=mk_option($eth0['BRIDGING'], "no", "No");?>
+  <?=mk_option($eth0['BRIDGING'], "yes", "Yes");?>
+  </select>
+
+> Bridging is a feature which creates a virtual bridge and allows VMs to communicate directly with the physical Ethernet port.
+> Both bonding and bridging can be combined to let VMs communicate over a *bonded* interface.
+
+Type of access:
+: <select name="TYPE" size="1" onchange="checkNetworkAccess(this.form,'eth0')">
+  <?=mk_option($eth0['TYPE'], 'access', 'Untagged');?>
+  <?=mk_option($eth0['TYPE'], 'trunk', 'Tagged');?>
+  </select><span class="access-eth0 pin" title="Add VLAN" style="display:none" onclick="addVLAN('eth0',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i></span>
+<?else:?>
+<div class="access-eth0 shade-<?=$display['theme']?>" style="display:none" markdown="1">
+VLAN number:
+: <input type="number" name="VLANID:<?=$i?>" min="1" max="4095" value="<?=$eth0["VLANID:$i"]?>" class="narrow" required>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i></span>
+<?endif;?>
+
+Interface description:
+: <input type="text" name="DESCRIPTION:<?=$i?>" maxlength="40" value="<?=$eth0["DESCRIPTION:$i"]?>" onchange="exitCode(this.form,true)">
+
+> Use this optional field to provide addditional information about the purpose of the connection.
+
+IP address assignment:
+: <select name="USE_DHCP:<?=$i?>" size="1" onchange="checkNetworkSettings(this.form,<?=$i?>)">
+  <?=mk_option($eth0["USE_DHCP:$i"], 'yes', 'Automatic');?>
+  <?=mk_option($eth0["USE_DHCP:$i"], 'no', 'Static');?>
+<?if ($i>0):?>
+  <?=mk_option($eth0["USE_DHCP:$i"], '', 'None');?>
+<?endif;?>
+  </select>
+
+> The following settings are possible:
+>
+> *Automatic* - the server will attempt to obtain its IP address from the local DHCP server<br>
+> *Static* - the IP address is manually set for this interface<br>
+> *None* - no IP address is assigned to the interface (only available for VLANs)
+
+IP address:
+: <input type="text" name="IPADDR:<?=$i?>" maxlength="40" value="<?=$eth0["IPADDR:$i"]?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+> Greyed out when using DHCP server. Otherwise specify here the IP address of the system.
+
+Network mask:
+: <select name="NETMASK:<?=$i?>" size="1">
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.0.0", "255.255.0.0");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.252.0", "255.255.252.0");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.254.0", "255.255.254.0");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.255.0", "255.255.255.0");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.255.128", "255.255.255.128");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.255.192", "255.255.255.192");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.255.224", "255.255.255.224");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.255.240", "255.255.255.240");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.255.248", "255.255.255.248");?>
+  <?=mk_option($eth0["NETMASK:$i"], "255.255.255.252", "255.255.255.252");?>
+  </select>
+
+> Greyed out when using DHCP server. Otherwise specify here the associated network mask, by default 255.255.255.0 is selected.
+
+<?if ($i==0):?>
+Default gateway:
+: <input type="text" name="GATEWAY" maxlength="40" value="<?=$eth0['GATEWAY']?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+> Greyed out when using DHCP server. Otherwise specify here the IP address of your router.
+
+DNS server assignment:
+: <select name="DHCP_KEEPRESOLV" size="1" onchange="checkDNSSettings(this.form)">
+  <?=mk_option($eth0['DHCP_KEEPRESOLV'], "no", "Automatic");?>
+  <?=mk_option($eth0['DHCP_KEEPRESOLV'], "yes", "Static");?>
+  </select>
+
+> If set to *Automatic* the server will use DNS server IP address returned by the local DHCP server.<br>
+> If set to *Static* you may enter your own list.
+>
+> This is useful in Active Directory configurations where you need to set the first DNS Server entry to the IP address of your AD Domain server.
+
+DNS server 1:
+: <input type="text" name="DNS_SERVER1" maxlength="80" value="<?=$eth0['DNS_SERVER1'];?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+> This is the primary DNS server to use. Enter a FQDN or an IP address.
+>
+> Note: for *Active Directory* you **must** ensure this is set to the IP address of your AD Domain server.
+
+DNS server 2:
+: <input type="text" name="DNS_SERVER2" maxlength="80" value="<?=$eth0['DNS_SERVER2'];?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+> This is the DNS server to use when DNS Server 1 is down.
+
+DNS server 3:
+: <input type="text" name="DNS_SERVER3" maxlength="80" value="<?=$eth0['DNS_SERVER3'];?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+> This is the DNS server to use when DNS Servers 1 and 2 are both down.
+
+Desired MTU:
+: <input type="number" name="MTU" min="68" max="9198" value="<?=$eth0['MTU']?>" class="narrow">
+
+> This is the MTU size to use on the physical Ethernet interface.
+> If left blank, the MTU will automatically be determined (by default 1500 bytes).
+
+<?else:?>
+</div>
+<?endif;?>
+</div>
+<?endforeach;?>
+
+<script type="text/html" id="network-template-eth0" markdown="1">
+<div id="index-eth0-INDEX" class="access-eth0 shade-<?=$display['theme']?>" markdown="1">
+VLAN number:
+: <input type="number" name="VLANID:INDEX" min="1" max="4095" value="<?=$eth0["VLANID:INDEX"]?>" class="narrow" required><span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-INDEX'),false)"><i class="fa fa-minus-circle red"></i></span>
+
+Interface description:
+: <input type="text" name="DESCRIPTION:INDEX" maxlength="40" value="<?=$eth0["DESCRIPTION:INDEX"]?>" onchange="exitCode(this.form,true)">
+
+IP address assignment:
+: <select name="USE_DHCP:INDEX" size="1" onchange="checkNetworkSettings(this.form,INDEX)">
+  <?=mk_option($eth0["USE_DHCP:INDEX"], 'yes', 'Automatic');?>
+  <?=mk_option($eth0["USE_DHCP:INDEX"], 'no', 'Static');?>
+  <?=mk_option($eth0["USE_DHCP:INDEX"], '', 'None');?>
+  </select>
+
+IP address:
+: <input type="text" name="IPADDR:INDEX" maxlength="40" value="<?=$eth0["IPADDR:INDEX"]?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+Network mask:
+: <select name="NETMASK:INDEX" size="1">
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.0.0", "255.255.0.0");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.252.0", "255.255.252.0");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.254.0", "255.255.254.0");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.0", "255.255.255.0");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.128", "255.255.255.128");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.192", "255.255.255.192");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.224", "255.255.255.224");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.240", "255.255.255.240");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.248", "255.255.255.248");?>
+  <?=mk_option($eth0["NETMASK:INDEX"], "255.255.255.252", "255.255.255.252");?>
+  </select>
+</div>
+</script>
+
+&nbsp;
+: <input type="submit" value="Apply"><input type="button" value="Done" onclick="done()"><?=$disabled ? "VMs must be <b>Stopped</b> to change" : ""?>
+</form>

@@ -13,15 +13,15 @@ Title="Users"
  * all copies or substantial portions of the Software.
  */
 ?>
-
+<?
+$submenu = !empty($display['users']) && substr($display['users'],0,5)!='Tasks';
+if ($submenu) $path = './Users';
+?>
 <?foreach ($users as $user):?>
 <?$img = "/boot/config/plugins/dynamix/users/{$user['name']}.png"?>
   <div class="user-list"><center><a class="<?=(!empty($user['desc']) ? 'info' : '')?>" href="<?=$path?>/UserEdit?name=<?=$user['name'];?>"><img src="<?=(file_exists($img) ? autov($img) : '/webGui/images/user.png')?>" class="picture" border="0" width="48" height="48"><br><?=$user['name']?><span><?=$user['desc']?></span></a></center></div>
 <?endforeach;?>
 <div style='clear:both'></div>
 <form method="GET" action="<?=$path?>/UserAdd">
-<input type="submit" value="Add User">
-<?if (!empty($display['users']) && substr($display['users'],0,5)!='Tasks'):?>
-<input type="button" value="Done" onclick="done()">
-<?endif;?>
+<input type="submit" value="Add User"><?if ($submenu):?><input type="button" value="Done" onclick="done()"><?endif;?>
 </form>

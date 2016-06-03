@@ -20,8 +20,8 @@ Icon="share-settings.png"
 
 <script>
 $(function() {
-  $("#s1").dropdownchecklist({emptyText:'All', width:300, explicitClose:'...close'});
-  $("#s2").dropdownchecklist({emptyText:'None', width:300, explicitClose:'...close'});
+  $("#s1").dropdownchecklist({emptyText:'All', width:131, explicitClose:'...close'});
+  $("#s2").dropdownchecklist({emptyText:'None', width:131, explicitClose:'...close'});
   presetShare(document.share_settings);
 });
 // Simulate the original input field

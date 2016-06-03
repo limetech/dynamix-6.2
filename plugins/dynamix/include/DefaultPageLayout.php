@@ -227,7 +227,7 @@ for (var i=0,mobile; mobile=mobiles[i]; i++) {
    </div>
    <div class="block">
     <span class="text-left">Server<br/>Description<br/>Version<br/>Uptime</span>
-    <span class="text-right"><?=$var['NAME'].($var['IPADDR'] ? " &bullet; {$var['IPADDR']}" : "")?><br/><?=$var['COMMENT']?><br/><?=$var['version']?><br/><span id="uptime"></span></span>
+    <span class="text-right"><?=$var['NAME']." &bullet; ".$eth0['IPADDR:0']?><br/><?=$var['COMMENT']?><br/><?=$var['version']?><br/><span id="uptime"></span></span>
    </div>
   </div>
 <?
