@@ -46,7 +46,7 @@ foreach ($ports as $port) {
   }
 }
 // enable interface only when VMs are stopped
-$disabled = exec("virsh list|grep -om1 running") ? 'disabled' : '';
+$disabled = (file_exists('/var/run/libvirt/libvirt-sock') && exec("virsh list|grep -om1 running")) ? 'disabled' : '';
 
 // get VLAN interfaces
 $vlan_eth0 = [0];
