@@ -394,20 +394,11 @@ function changeView(item) {
   update30();
 }
 function update3() {
-  var tag = $('.smb').is(':visible') ? 'smb' : $('.afp').is(':visible') ? 'afp' : $('.nfs').is(':visible') ? 'nfs' : '';
-<?if ($var['fsState']=='Started'):?>
-  $.post('<?=$url?>',{cmd:'shares',com:tag,names:'<?=addslashes($names)?>'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#share'+(k+1)).html(v);});
-  });
-<?endif;?>
 <?if ($fans>0):?>
   $.post('<?=$url?>',{cmd:'fan'},function(data) {
     if (data) $.each(data.split('#'),function(k,v) {$('#fan'+k).html(v);});
   });
 <?endif;?>
-  $.post('<?=$url?>',{cmd:'sys'},function(data) {
-    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css('overflow','visible');}}).text(v);});
-  });
   $.post('<?=$url?>',{cmd:'cpu'},function(data) {
     if (data) $.each(data.split('#'),function(k,v) {
       var c = k==0 ? '' : k-1;
@@ -415,6 +406,15 @@ function update3() {
     });
     setTimeout(update3,3000);
   });
+}
+function update15() {
+<?if ($var['fsState']=='Started'):?>
+  var tag = $('.smb').is(':visible') ? 'smb' : $('.afp').is(':visible') ? 'afp' : $('.nfs').is(':visible') ? 'nfs' : '';
+  $.post('<?=$url?>',{cmd:'shares',com:tag,names:'<?=addslashes($names)?>'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#share'+(k+1)).html(v);});
+    setTimeout(update15,15000);
+  });
+<?endif;?>
 }
 function update30() {
   var tag = $('.view1').is(':visible') ? 'main' : $('.view2').is(':visible') ? 'port' : $('.view3').is(':visible') ? 'link' : '';
@@ -448,9 +448,12 @@ function update60() {
 <?if ($var['mdNumInvalid']==0 && $var['mdResync']>0):?>
   $.post('<?=$url?>',{cmd:'parity'},function(data) {
     if (data) $('#parity').html(data);
-    setTimeout(update60,60000);
   });
 <?endif;?>
+  $.post('<?=$url?>',{cmd:'sys'},function(data) {
+    if (data) $.each(data.split('#'),function(k,v) {$('#sys'+k).animate({width:v},{step:function(){$('#sys'+k).css('overflow','visible');}}).text(v);});
+    setTimeout(update60,60000);
+  });
 }
 function heatAlarm() {
   if ($('.heat-img').length) {
@@ -488,6 +491,7 @@ $(function() {
   update3();
   update60();
   update30();
+  update15();
 <?if ($display['refresh']==0 || ($display['refresh']<0 && $var['mdResync']>0)):?>
   $('.tabs').append("<span class='status vhshift'><input type='button' value='Refresh' onclick='refresh()'></span>");
 <?endif;?>
