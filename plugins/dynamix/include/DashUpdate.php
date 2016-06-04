@@ -213,7 +213,7 @@ case 'shares':
      $counts = array_count_values($lsof); $count = [];
      foreach ($names as $name) $count[] =  isset($counts[$name]) ? $counts[$name] : 0;
      echo implode('#',$count);
-	 break;
+   break;
    case 'afp':
    case 'nfs':
    // not available
