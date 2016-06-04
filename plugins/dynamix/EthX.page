@@ -23,7 +23,7 @@ $vlan_ethX = [0];
 if (isset($ethX)) foreach ($ethX as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_ethX[] = substr($key,7);
 
 // get bond membership
-$bond_ethX = isset($eth0['BONDNICS']) ? in_array('ethX',explode(',',$eth0['BONDNICS'])) : false;
+$bond_ethX = $eth0['BONDING']=='yes' ? in_array('ethX',explode(',',$eth0['BONDNICS'])) : false;
 ?>
 <script>
 $(function() {
