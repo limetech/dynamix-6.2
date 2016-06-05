@@ -17,12 +17,20 @@ $run = $set != 'none';
 $ini = parse_ini_file('/var/local/emhttp/network.ini',true); ksort($ini,SORT_NATURAL);
 $cfg = '/boot/config/network.cfg';
 
+function ifname($name) {
+  global $old;
+  for ($i=0; $i<$old['SYSNICS']; $i++) {
+    $nics = $old['BONDNICS'][$i] ?: $old['BRNICS'][$i];
+    if (strpos("$nics ","$name ")!==false) return $old['IFNAME'][$i];
+  }
+  return $name;
+}
+
 if ($run && file_exists($cfg)) {
   $old = parse_ini_file($cfg);
-  $i = preg_replace('/[^\d]/','',$set);
   if (isset($old['SYSNICS'])) {
     // new syntax
-    $ifname = isset($old['IFNAME'][$i]) ? $old['IFNAME'][$i] : $set;
+    $ifname = ifname($set);
   } else {
     // legacy syntax
     if ($i==0) $ifname = $old['BRIDGING']=='yes' ? $old['BRNAME'] : ($old['BONDING']=='yes' ? $old['BONDNAME'] : $set);
@@ -33,25 +41,41 @@ if ($run && file_exists($cfg)) {
 // don't execute when only interface description has changed
 if ($run) exec("/etc/rc.d/rc.inet1 {$ifname}_stop >/dev/null");
 
-if ($bonding = isset($ini['eth0']) && $ini['eth0']['BONDING']=='yes') {
+if ($bonding = $ini['eth0']['BONDING']=='yes') {
   $ini['eth0']['BONDNICS'] = str_replace(',',' ',$ini['eth0']['BONDNICS']);
-  $members = explode(' ',trim(str_replace('eth0','',$ini['eth0']['BONDNICS'])));
+  $bond0 = explode(' ',trim(str_replace('eth0','',$ini['eth0']['BONDNICS'])));
+// ensure additional NICs in bond are set free
+  if ($run && $set=='eth0') foreach ($bond0 as $nic) {
+    if (isset($old['SYSNICS'])) $nic = ifname($nic);
+    exec("/etc/rc.d/rc.inet1 {$nic}_stop >/dev/null");
+  }
+}
+
+if ($bridging = $ini['eth0']['BRIDGING']=='yes') {
+  $ini['eth0']['BRNICS'] = str_replace(',',' ',$ini['eth0']['BRNICS']);
+  $br0 = explode(' ',trim(str_replace('eth0','',$ini['eth0']['BRNICS'])));
+// ensure additional NICs in bridge are set free
+  if ($run && $set=='eth0') foreach ($br0 as $nic) {
+    if (isset($old['SYSNICS'])) $nic = ifname($nic);
+    exec("/etc/rc.d/rc.inet1 {$nic}_stop >/dev/null");
+  }
 }
 
 // create configuration file for all available interfaces
 $i = 0; $new = []; $new[] = "# Generated settings:";
 foreach ($ini as $name => $port) {
-  if ($bonding && in_array($name,$members)) continue;
-  $bridging = $port['BRIDGING']=='yes';
+  if ($bonding && in_array($name,$bond0)) continue;
+  if ($bridging && in_array($name,$br0)) continue;
+  $bridge = $port['BRIDGING']=='yes';
   $trunk = $port['TYPE']=='trunk';
   $j = 0; $x0 = 0;
-  $iface = $bridging ? $port['BRNAME'] : ($bonding && $name=='eth0' ? $port['BONDNAME'] : $name);
+  $iface = $bridge ? $port['BRNAME'] : ($bonding && $name=='eth0' ? $port['BONDNAME'] : $name);
   $new[] = "IFNAME[$i]=\"$iface\"";
   if ($set==$name) $ifname = $iface;
   foreach ($port as $key => $val) {
     if (preg_match('/^(TYPE|BONDING$|BRIDGING)/',$key)) continue;
     if (!$bonding && preg_match('/^(BONDING_MODE|BONDING_MIIMON|BONDNICS|BONDNAME)/',$key)) continue;
-    if (!$bridging && preg_match('/^(BRSTP|BRFD|BRNICS|BRNAME)/',$key)) continue;
+    if (!$bridge && preg_match('/^(BRSTP|BRFD|BRNICS|BRNAME)/',$key)) continue;
     list($item,$x) = explode(':',$key,2);
     if ($trunk && $x>0 && preg_match('/^(VLANID|USE_DHCP|IPADDR|NETMASK|DESCRIPTION)/',$key)) {
       if ($x0 != $x) {$x0 = $x; $j++;}

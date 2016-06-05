@@ -24,14 +24,36 @@ if (isset($ethX)) foreach ($ethX as $key => $val) if (substr($key,0,6)=='VLANID'
 
 // get bond membership
 $bond_ethX = $eth0['BONDING']=='yes' ? in_array('ethX',explode(',',$eth0['BONDNICS'])) : false;
+
+// get bridge membership
+$bridge_ethX = $eth0['BRIDGING']=='yes' ? in_array('ethX',explode(',',$eth0['BRNICS'])) : false;
+
+if ($disabled)
+  $locked = "VMs must be <b>STOPPED</b> to change";
+elseif ($bond_ethX)
+  $locked = "Interface must be <i>removed</i> as <b>Bonding member</b> to change";
+elseif ($bridge_ethX)
+  $locked = "Interface must be <i>removed</i> as <b>Bridging member</b> to change";
+else
+  $locked = "";
 ?>
 <script>
+<?if ($tabbed):?>
+  var waitid = '#wait_eth0';
+<?else:?>
+  var waitid = '#wait_ethX';
+<?endif;?>
 $(function() {
   var form = document.ethX_settings;
   checkNetworkAccess(form,'ethX');
   checkNetworkSettings(form);
-<?if ($disabled || $bond_ethX):?>
+<?if ($locked):?>
   disableForm(form);
+<?endif;?>
+<?if (!$tabbed):?>
+  $('div[id=title]').each(function(){
+    if ($(this).text().indexOf('Interface ethX')==0) $(this).append("<span id='wait_ethX' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>");
+  });
 <?endif;?>
 });
 </script>
@@ -161,5 +183,5 @@ Network mask:
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply"><input type="button" value="Done" onclick="done()"><?=$bond_ethX ? "Interface must be <b>Unbonded</b> to change" : ($disabled ? "VMs must be <b>Stopped</b> to change" : "")?>
+: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><?=$locked?>
 </form>

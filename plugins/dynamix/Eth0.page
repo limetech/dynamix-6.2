@@ -65,8 +65,7 @@ refresh(); // automatically include new ethernet ports
 Array.prototype.dups = function(){return this.sort().filter(function(v,i,o){return i&&v===o[i-1]?v:0;}).length;}
 
 function prepareSettings(form) {
-  var bonding = form.BONDING !== undefined;
-  if (bonding) {
+  if (form.BONDING !== undefined) {
     var member = '';
     for (var i=0,item; item=form.BONDNICS.options[i]; i++) {
       if (item.selected) {
@@ -79,8 +78,19 @@ function prepareSettings(form) {
     item.value = member;
     item.selected = true;
     item.disabled = false;
-    form.BONDNICS.disabled = false;
-    if (form.BONDING.value=='yes') form.BRNICS.value = form.BONDNAME.value;
+    var member = '';
+    for (var i=0,item; item=form.BRNICS.options[i]; i++) {
+      if (item.selected) {
+        if (member.length) member += ',';
+        member += item.value;
+        item.selected = false;
+      }
+    }
+    item = form.BRNICS.options[0];
+    item.value = form.BONDING.value=='yes' ? form.BONDNAME.value : member;
+    item.selected = true;
+    item.disabled = false;
+    if (member.indexOf(',')>0) form.BRSTP.value = 'yes';
   }
   if (form.TYPE.value == 'access') {
     $(form).find('input[name^="VLANID:"]').prop('disabled',true);
@@ -143,12 +153,26 @@ function checkDNSSettings(form) {
 function checkBondingSettings(form,ctrl) {
   var disabled = form.BONDING.value=='no';
   var mode = form.BONDING_MODE.value;
-  if (ctrl) {
-    form.BONDING_MODE.disabled = disabled;
-    form.BONDNICS.disabled = disabled;
-    $('#bond0').dropdownchecklist(disabled?'disable':'enable');
+  if (ctrl>=0) {
+    var me = ctrl==0 ? null : 'slow';
+    if (disabled) {
+      $('#bond-members').hide(me);
+    } else {
+      $('#bond-members').show(me);
+      $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
+    }
+    if (ctrl==1) checkBridgingSettings(form,1);
   }
   if (mode==1 || mode>4 || disabled) {$('#attention0').hide();} else {$('#attention0').show();}
+}
+function checkBridgingSettings(form,ctrl) {
+  var me = ctrl==0 ? null : 'slow';
+  if (form.BRIDGING.value=='yes' && form.BONDING.value=='no') {
+    $('#bridge-members').show(me);
+    $('#bridge0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
+  } else {
+    $('#bridge-members').hide(me);
+  }
 }
 function checkNetworkAccess(form,port) {
   if (form.TYPE.value=='access') {
@@ -190,22 +214,25 @@ function exitCode(form,key) {
   }
 }
 $(function() {
+  var ctrl = "<span id='wait_eth0' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>";
   var form = document.eth0_settings;
-<?if ($tabbed && !$disabled):?>
-  $('#tab1').bind({click:function(){
-    $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
-    checkBondingSettings(form,true);
-  }});
-<?endif;?>
   $('#bond0').dropdownchecklist({emptyText:'None', width:130});
-  checkBondingSettings(form,true);
+  $('#bridge0').dropdownchecklist({emptyText:'None', width:130});
+  checkBondingSettings(form,0);
+  checkBridgingSettings(form,0);
   checkNetworkAccess(form,'eth0');
   checkNetworkSettings(form);
 <?if ($disabled):?>
   disableForm(form);
   $('#bond0').dropdownchecklist('disable');
+  $('#bridge0').dropdownchecklist('disable');
 <?else:?>
   checkDNSSettings(form);
+<?endif;?>
+<?if ($tabbed):?>
+  $('.tabs').append(ctrl);
+<?else:?>
+  $('div[id=title]').append(ctrl);
 <?endif;?>
 });
 </script>
@@ -218,7 +245,6 @@ $(function() {
 <input type="hidden" name="BONDNAME" value="bond0">
 <input type="hidden" name="BONDING_MIIMON" value="100">
 <input type="hidden" name="BRNAME" value="">
-<input type="hidden" name="BRNICS" value="eth0">
 <input type="hidden" name="BRSTP" value="no">
 <input type="hidden" name="BRFD" value="0">
 <?foreach ($vlan_eth0 as $i):?>
@@ -231,7 +257,7 @@ MAC address:
 > When tagging is enabled all VLANs on this interface will share the same hardware address.
 
 Enable bonding:
-: <select name="BONDING" size="1" onchange="checkBondingSettings(this.form,true)">
+: <select name="BONDING" size="1" onchange="checkBondingSettings(this.form,1)">
   <?=mk_option($eth0['BONDING'], "no", "No");?>
   <?=mk_option($eth0['BONDING'], "yes", "Yes");?>
   </select>
@@ -240,8 +266,9 @@ Enable bonding:
 > This can be used to improve the connection redundancy and/or throughput of the system.
 > Different bonding modes are supported (see below), but some modes require proper switch support.
 
+<div id="bond-members" style="display:none" markdown="1">
 Bonding mode:
-: <select name="BONDING_MODE" size="1" onchange="checkBondingSettings(this.form,false)">
+: <select name="BONDING_MODE" size="1" onchange="checkBondingSettings(this.form,-1)">
   <?=mk_option($eth0['BONDING_MODE'], "0", "balance-rr (0)");?>
   <?=mk_option($eth0['BONDING_MODE'], "1", "active-backup (1)",isset($eth0['BONDING_MODE'])?'':'selected');?>
   <?=mk_option($eth0['BONDING_MODE'], "2", "balance-xor (2)");?>
@@ -264,8 +291,9 @@ Bonding members:
 
 > Select which interfaces are member of the *bonded* interface. By default eth0 is a member, while other interfaces are optional.
 
+</div>
 Enable bridging:
-: <select name="BRIDGING" size="1">
+: <select name="BRIDGING" size="1" onchange="checkBridgingSettings(this.form,1)">
   <?=mk_option($eth0['BRIDGING'], "no", "No");?>
   <?=mk_option($eth0['BRIDGING'], "yes", "Yes");?>
   </select>
@@ -273,6 +301,18 @@ Enable bridging:
 > Bridging is a feature which creates a virtual bridge and allows VMs to communicate directly with the physical Ethernet port.
 > Both bonding and bridging can be combined to let VMs communicate over a *bonded* interface.
 
+<div id="bridge-members" style="display:none" markdown="1">
+Bridging members:
+: <select id="bridge0" name="BRNICS" size="1" multiple="multiple" style="display:none">
+  <?=mk_option($eth0['BRNICS'],'eth0','Eth0','selected disabled')?>
+  <?foreach ($ports as $port):?>
+  <?=mk_option_check($eth0['BRNICS'],strtolower($port),$port)?>
+  <?endforeach;?>
+  </select>
+
+> Select which interfaces are member of the *bridged* interface. By default eth0 is a member, while other interfaces are optional.
+
+</div>
 Type of access:
 : <select name="TYPE" size="1" onchange="checkNetworkAccess(this.form,'eth0')">
   <?=mk_option($eth0['TYPE'], 'access', 'Untagged');?>
@@ -407,5 +447,5 @@ Network mask:
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply"><input type="button" value="Done" onclick="done()"><?=$disabled ? "VMs must be <b>Stopped</b> to change" : ""?>
+: <input type="submit" value="Apply" onclick="$('#wait_eth0').show()"><input type="button" value="Done" onclick="done()"><?=$disabled ? "VMs must be <b>Stopped</b> to change" : ""?>
 </form>
