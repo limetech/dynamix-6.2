@@ -222,7 +222,6 @@ $(function() {
   $('#tab1').bind({click:function(){
     $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
     $('#bridge0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
-    checkBondingSettings(form,0);
   }});
 <?endif;?>
   $('#bond0').dropdownchecklist({emptyText:'None', width:131});
