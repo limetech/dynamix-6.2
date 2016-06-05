@@ -502,5 +502,5 @@ Network mask:
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply" onclick="$('#wait_eth0').show()"><input type="button" value="Done" onclick="done()"><?=$disabled ? "VMs must be <b>Stopped</b> to change" : ""?>
+: <input type="submit" value="Apply" onclick="$('#wait_eth0').show()"><input type="button" value="Done" onclick="done()"><?=$disabled ? "VMs must be <b>STOPPED</b> to change" : ""?>
 </form>
