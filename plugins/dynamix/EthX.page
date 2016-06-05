@@ -16,7 +16,7 @@ Png="ethernet.png"
 ?>
 <?
 // get interface configuration state
-$down = strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0;
+$down = empty($ethX) || strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0;
 
 // get VLAN interfaces
 $vlan_ethX = [0];
@@ -24,14 +24,36 @@ if (isset($ethX)) foreach ($ethX as $key => $val) if (substr($key,0,6)=='VLANID'
 
 // get bond membership
 $bond_ethX = $eth0['BONDING']=='yes' ? in_array('ethX',explode(',',$eth0['BONDNICS'])) : false;
+
+// get bridge membership
+$bridge_ethX = $eth0['BRIDGING']=='yes' ? in_array('ethX',explode(',',$eth0['BRNICS'])) : false;
+
+if ($disabled)
+  $locked = "VMs must be <b>STOPPED</b> to change";
+elseif ($bond_ethX)
+  $locked = "Interface must be <i>removed</i> as <b>Bonding member</b> to change";
+elseif ($bridge_ethX)
+  $locked = "Interface must be <i>removed</i> as <b>Bridging member</b> to change";
+else
+  $locked = "";
 ?>
 <script>
+<?if ($tabbed):?>
+  var waitid = '#wait_eth0';
+<?else:?>
+  var waitid = '#wait_ethX';
+<?endif;?>
 $(function() {
   var form = document.ethX_settings;
   checkNetworkAccess(form,'ethX');
   checkNetworkSettings(form);
-<?if ($disabled || $bond_ethX):?>
+<?if ($locked):?>
   disableForm(form);
+<?endif;?>
+<?if (!$tabbed):?>
+  $('div[id=title]').each(function(){
+    if ($(this).text().indexOf('Interface ethX')==0) $(this).append("<span id='wait_ethX' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>");
+  });
 <?endif;?>
 });
 </script>
@@ -61,18 +83,6 @@ Enable bridging:
   </select>
 
 > Bridging is a feature which creates a virtual bridge and allows VMs to communicate directly with the physical Ethernet port.
-
-Type of access:
-: <select name="TYPE" size="1" onchange="checkNetworkAccess(this.form,'ethX')">
-  <?=mk_option($ethX['TYPE'], 'access', 'Untagged');?>
-  <?=mk_option($ethX['TYPE'], 'trunk', 'Tagged');?>
-  </select><span class="access-ethX pin" title="Add VLAN" style="display:none" onclick="addVLAN('ethX',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i></span>
-<?else:?>
-<div class="access-ethX shade-<?=$display['theme']?>" style="display:none" markdown="1">
-VLAN number:
-: <input type="number" name="VLANID:<?=$i?>" min="1" max="4095" value="<?=$ethX["VLANID:$i"]?>" class="narrow" required>
-  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i></span>
-<?endif;?>
 
 Interface description:
 : <input type="text" name="DESCRIPTION:<?=$i?>" maxlength="40" value="<?=$ethX["DESCRIPTION:$i"]?>" onchange="exitCode(this.form,true)">
@@ -113,14 +123,65 @@ Network mask:
 
 > Greyed out when using DHCP server. Otherwise specify here the associated network mask, by default 255.255.255.0 is selected.
 
-<?if ($i==0):?>
 Desired MTU:
 : <input type="number" name="MTU" min="68" max="9198" value="<?=$ethX['MTU']?>" class="narrow">
 
 > This is the MTU size to use on the physical Ethernet interface.
 > If left blank, the MTU will automatically be determined (by default 1500 bytes).
 
-<?else:;?>
+Enable VLANs:
+: <select name="TYPE" size="1" onchange="checkNetworkAccess(this.form,'ethX')">
+  <?=mk_option($ethX['TYPE'], 'access', 'No');?>
+  <?=mk_option($ethX['TYPE'], 'trunk', 'Yes');?>
+  </select>
+  <span class="pin access-ethX" title="Add VLAN" style="display:none" onclick="addVLAN('ethX',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i><em>press to add VLAN</em></span>
+<?else:?>
+<div class="access-ethX shade-<?=$display['theme']?>" style="display:none" markdown="1">
+VLAN number:
+: <input type="number" name="VLANID:<?=$i?>" min="1" max="4095" value="<?=$ethX["VLANID:$i"]?>" class="narrow" required>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
+
+> Give each VLAN a unique identifier. Numbers range from 1 to 4095.
+
+Interface description:
+: <input type="text" name="DESCRIPTION:<?=$i?>" maxlength="40" value="<?=$ethX["DESCRIPTION:$i"]?>" onchange="exitCode(this.form,true)">
+
+> Use this field to give addditional information about the purpose of the connection.
+
+IP address assignment:
+: <select name="USE_DHCP:<?=$i?>" size="1" onchange="checkNetworkSettings(this.form,<?=$i?>)">
+  <?=mk_option($ethX["USE_DHCP:$i"], 'yes', 'Automatic');?>
+  <?=mk_option($ethX["USE_DHCP:$i"], 'no', 'Static');?>
+  <?=mk_option($ethX["USE_DHCP:$i"], '', 'None');?>
+  </select>
+
+> The following settings are possible:
+>
+> *Automatic* - the server will attempt to obtain its IP address from the local DHCP server<br>
+> *Static* - the IP address is manually set for this interface<br>
+> *None* - no IP address is assigned to the interface
+
+IP address:
+: <input type="text" name="IPADDR:<?=$i?>" maxlength="40" value="<?=$ethX["IPADDR:$i"]?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+> Greyed out when using DHCP server or NONE assignment. Otherwise specify here the IP address of the interface.
+
+Network mask:
+: <select name="NETMASK:<?=$i?>" size="1">
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.0.0", "255.255.0.0");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.252.0", "255.255.252.0");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.254.0", "255.255.254.0");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.255.0", "255.255.255.0");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.255.128", "255.255.255.128");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.255.192", "255.255.255.192");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.255.224", "255.255.255.224");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.255.240", "255.255.255.240");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.255.248", "255.255.255.248");?>
+  <?=mk_option($ethX["NETMASK:$i"], "255.255.255.252", "255.255.255.252");?>
+  </select>
+
+> Greyed out when using DHCP server or NONE assignment. Otherwise specify here the associated network mask, by default 255.255.255.0 is selected.
+
 </div>
 <?endif;?>
 </div>
@@ -129,10 +190,15 @@ Desired MTU:
 <script type="text/html" id="network-template-ethX" markdown="1">
 <div id="index-ethX-INDEX" class="access-ethX shade-<?=$display['theme']?>" markdown="1">
 VLAN number:
-: <input type="number" name="VLANID:INDEX" min="1" max="4095" value="<?=$ethX["VLANID:INDEX"]?>" class="narrow" required><span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-INDEX'),false)"><i class="fa fa-minus-circle red"></i></span>
+: <input type="number" name="VLANID:INDEX" min="1" max="4095" value="<?=$ethX["VLANID:INDEX"]?>" class="narrow" required>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-INDEX'),false)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
+
+> Give each VLAN a unique identifier. Numbers range from 1 to 4095.
 
 Interface description:
 : <input type="text" name="DESCRIPTION:INDEX" maxlength="40" value="<?=$ethX["DESCRIPTION:INDEX"]?>" onchange="exitCode(this.form,true)">
+
+> Use this field to give addditional information about the purpose of the connection.
 
 IP address assignment:
 : <select name="USE_DHCP:INDEX" size="1" onchange="checkNetworkSettings(this.form,INDEX)">
@@ -141,8 +207,16 @@ IP address assignment:
   <?=mk_option($ethX["USE_DHCP:INDEX"], '', 'None');?>
   </select>
 
+> The following settings are possible:
+>
+> *Automatic* - the server will attempt to obtain its IP address from the local DHCP server<br>
+> *Static* - the IP address is manually set for this interface<br>
+> *None* - no IP address is assigned to the interface
+
 IP address:
 : <input type="text" name="IPADDR:INDEX" maxlength="40" value="<?=$ethX["IPADDR:INDEX"]?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
+
+> Greyed out when using DHCP server or NONE assignment. Otherwise specify here the IP address of the interface.
 
 Network mask:
 : <select name="NETMASK:INDEX" size="1">
@@ -157,9 +231,12 @@ Network mask:
   <?=mk_option($ethX["NETMASK:INDEX"], "255.255.255.248", "255.255.255.248");?>
   <?=mk_option($ethX["NETMASK:INDEX"], "255.255.255.252", "255.255.255.252");?>
   </select>
+
+> Greyed out when using DHCP server or NONE assignment. Otherwise specify here the associated network mask, by default 255.255.255.0 is selected.
+
 </div>
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply"><input type="button" value="Done" onclick="done()"><?=$bond_ethX ? "Interface must be <b>Unbonded</b> to change" : ($disabled ? "VMs must be <b>Stopped</b> to change" : "")?>
+: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><?=$locked?>
 </form>
