@@ -16,7 +16,7 @@ Png="ethernet.png"
 ?>
 <?
 // get interface configuration state
-$down = strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0;
+$down = empty($ethX) || strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0;
 
 // get VLAN interfaces
 $vlan_ethX = [0];
