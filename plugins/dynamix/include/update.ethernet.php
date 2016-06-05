@@ -11,5 +11,15 @@
  */
 ?>
 <?
-if ($_POST['#arg'][1] != 'none') unset($keys[$_POST['#section']]); // do nothing when only description has changed
+if ($_POST['#arg'][1] != 'none') {
+  if ($_POST['BONDING']=='yes') {
+    $nics = explode(',',str_replace('eth0','',$_POST['BONDNICS']));
+    foreach ($nics as $nic) if ($nic) unset($keys[$nic]);
+  }
+  if ($_POST['BRIDGING']=='yes') {
+    $nics = explode(',',str_replace('eth0','',$_POST['BRNICS']));
+    foreach ($nics as $nic) if ($nic) unset($keys[$nic]);
+  }
+  unset($keys[$_POST['#section']]);
+}
 ?>
