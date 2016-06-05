@@ -33,7 +33,7 @@ if ($run && file_exists($cfg)) {
     $ifname = ifname($set);
   } else {
     // legacy syntax
-    if ($i==0) $ifname = $old['BRIDGING']=='yes' ? $old['BRNAME'] : ($old['BONDING']=='yes' ? $old['BONDNAME'] : $set);
+    if ($set=='eth0') $ifname = $old['BRIDGING']=='yes' ? $old['BRNAME'] : ($old['BONDING']=='yes' ? $old['BONDNAME'] : $set);
   }
 }
 
