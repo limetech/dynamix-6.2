@@ -139,7 +139,7 @@ Enable VLANs:
 <div class="access-ethX shade-<?=$display['theme']?>" style="display:none" markdown="1">
 VLAN number:
 : <input type="number" name="VLANID:<?=$i?>" min="1" max="4095" value="<?=$ethX["VLANID:$i"]?>" class="narrow" required>
-  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i>><em>press to remove VLAN</em></span>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
 
 > Give each VLAN a unique identifier. Numbers range from 1 to 4095.
 
