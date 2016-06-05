@@ -47,7 +47,7 @@ if ($bonding = $ini['eth0']['BONDING']=='yes') {
 // ensure additional NICs in bond are set free
   if ($run && $set=='eth0') foreach ($bond0 as $nic) {
     if (isset($old['SYSNICS'])) $nic = ifname($nic);
-    exec("/etc/rc.d/rc.inet1 {$nic}_stop >/dev/null");
+    if ($nic) exec("/etc/rc.d/rc.inet1 {$nic}_stop >/dev/null");
   }
 }
 
@@ -57,7 +57,7 @@ if ($bridging = $ini['eth0']['BRIDGING']=='yes') {
 // ensure additional NICs in bridge are set free
   if ($run && $set=='eth0') foreach ($br0 as $nic) {
     if (isset($old['SYSNICS'])) $nic = ifname($nic);
-    exec("/etc/rc.d/rc.inet1 {$nic}_stop >/dev/null");
+    if ($nic) exec("/etc/rc.d/rc.inet1 {$nic}_stop >/dev/null");
   }
 }
 
