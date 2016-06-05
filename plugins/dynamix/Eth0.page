@@ -149,8 +149,8 @@ function checkDNSSettings(form) {
   form.DNS_SERVER1.required = !disabled;
   form.DNS_SERVER2.disabled = disabled;
   form.DNS_SERVER3.disabled = disabled;
-  if (!form.DNS_SERVER2.value && disabled) $('#dns-server2').hide(); else $('#dns-server2').show();
-  if (!form.DNS_SERVER3.value && disabled) $('#dns-server3').hide(); else $('#dns-server3').show();
+  if (!form.DNS_SERVER2.value && disabled) $('#dnsserver2').hide(); else $('#dnsserver2').show();
+  if (!form.DNS_SERVER3.value && disabled) $('#dnsserver3').hide(); else $('#dnsserver3').show();
 }
 function checkBondingSettings(form,ctrl) {
   var disabled = form.BONDING.value=='no';
@@ -377,14 +377,14 @@ DNS server:
 >
 > Note: for *Active Directory* you **must** ensure this is set to the IP address of your AD Domain server.
 
-<div id="dns-server2" style="display:none" markdown="1">
+<div id="dnsserver2" style="display:none" markdown="1">
 DNS server 2:
 : <input type="text" name="DNS_SERVER2" maxlength="80" value="<?=$eth0['DNS_SERVER2'];?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
 
 > This is the DNS server to use when DNS Server 1 is down.
 
 </div>
-<div id="dns-server3" style="display:none" markdown="1">
+<div id="dnsserver3" style="display:none" markdown="1">
 DNS server 3:
 : <input type="text" name="DNS_SERVER3" maxlength="80" value="<?=$eth0['DNS_SERVER3'];?>" class="narrow" pattern="<?=$validIP?>" title="IP address A.B.C.D">
 
