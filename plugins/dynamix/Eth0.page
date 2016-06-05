@@ -53,7 +53,7 @@ $vlan_eth0 = [0];
 if (isset($eth0)) foreach ($eth0 as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_eth0[] = substr($key,7);
 ?>
 <style>
-span.pin{font-size:16px;cursor:pointer;}
+span.pin i{font-size:16px;cursor:pointer;}
 span.no-int{color:#E68A00;}
 div.shade-white{background-color:#F8F8F8;}
 div.shade-black{background-color:#0C0C0C;}
@@ -396,12 +396,12 @@ Enable VLANs:
   <?=mk_option($eth0['TYPE'], 'access', 'No');?>
   <?=mk_option($eth0['TYPE'], 'trunk', 'Yes');?>
   </select>
-  <span class="access-eth0 pin" title="Add VLAN" style="display:none" onclick="addVLAN('eth0',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i></span>
+  <span class="access-eth0 pin" title="Add VLAN" style="display:none" onclick="addVLAN('eth0',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i><em>press to add VLAN</em></span>
 <?else:?>
 <div class="access-eth0 shade-<?=$display['theme']?>" style="display:none" markdown="1">
 VLAN number:
 : <input type="number" name="VLANID:<?=$i?>" min="1" max="4095" value="<?=$eth0["VLANID:$i"]?>" class="narrow" required>
-  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i></span>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
 
 > Give each VLAN a unique identifier. Numbers range from 1 to 4095.
 
@@ -455,7 +455,7 @@ Network mask:
 <div id="index-eth0-INDEX" class="access-eth0 shade-<?=$display['theme']?>" markdown="1">
 VLAN number:
 : <input type="number" name="VLANID:INDEX" min="1" max="4095" value="<?=$eth0["VLANID:INDEX"]?>" class="narrow" required>
-  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-INDEX'),false)"><i class="fa fa-minus-circle red"></i></span>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-INDEX'),false)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
 
 > Give each VLAN a unique identifier. Numbers range from 1 to 4095.
 

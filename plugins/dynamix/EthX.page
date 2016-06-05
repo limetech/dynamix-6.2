@@ -134,12 +134,12 @@ Enable VLANs:
   <?=mk_option($ethX['TYPE'], 'access', 'No');?>
   <?=mk_option($ethX['TYPE'], 'trunk', 'Yes');?>
   </select>
-  <span class="pin access-ethX" title="Add VLAN" style="display:none" onclick="addVLAN('ethX',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i></span>
+  <span class="pin access-ethX" title="Add VLAN" style="display:none" onclick="addVLAN('ethX',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i><em>press to add VLAN</em></span>
 <?else:?>
 <div class="access-ethX shade-<?=$display['theme']?>" style="display:none" markdown="1">
 VLAN number:
 : <input type="number" name="VLANID:<?=$i?>" min="1" max="4095" value="<?=$ethX["VLANID:$i"]?>" class="narrow" required>
-  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i></span>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i>><em>press to remove VLAN</em></span>
 
 > Give each VLAN a unique identifier. Numbers range from 1 to 4095.
 
@@ -191,7 +191,7 @@ Network mask:
 <div id="index-ethX-INDEX" class="access-ethX shade-<?=$display['theme']?>" markdown="1">
 VLAN number:
 : <input type="number" name="VLANID:INDEX" min="1" max="4095" value="<?=$ethX["VLANID:INDEX"]?>" class="narrow" required>
-  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-INDEX'),false)"><i class="fa fa-minus-circle red"></i></span>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-ethX-INDEX'),false)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
 
 > Give each VLAN a unique identifier. Numbers range from 1 to 4095.
 
