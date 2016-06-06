@@ -215,7 +215,7 @@ function show_totals($text) {
   echo "<td>".my_number($sum['numErrors'])."</td>";
   echo "<td></td>";
   if (strstr($text,'Array') && ($var['startMode']=='Normal')) {
-    echo "<td>".my_scale($sum['fsSize']*1024,$unit)." $unit</td>";
+    echo "<td>".my_scale($sum['fsSize']*1024,$unit,0)." $unit</td>";
     if ($display['text']%10==0) {
       echo "<td>".my_scale($sum['fsUsed']*1024,$unit)." $unit</td>";
     } else {
