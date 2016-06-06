@@ -74,13 +74,14 @@ function read_write_parity_log($epoch,$duration,$speed,$status) {
   $timestamp = str_replace(['.0','.'],['  ',' '],date('M.d H:i:s',$epoch));
   if (file_exists($log)) {
     $handle = fopen($log, 'r');
-    while (($line = fgets($handle)) !== false) {
+    while (($line = fgets($handle))!==false) {
       if (strpos($line,$timestamp)!==false) break;
     }
     fclose($handle);
   }
   if (empty($line)) {
-    $line = "$timestamp|$duration|$speed|$status";
+    $year = date('Y',$epoch);
+    $line = "$year $timestamp|$duration|$speed|$status";
     file_put_contents($log,"$line\n",FILE_APPEND);
   }
   return $line;

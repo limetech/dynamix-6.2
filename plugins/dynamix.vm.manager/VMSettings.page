@@ -81,7 +81,7 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 		display: none;
 	}
 	.basic{display:block;}
-	.advanced{display:none;white-space:nowrap;}
+	.advanced{display:none;}
 	#winvirtio{display:none;}
 	#download_status {
 		margin-left: 5px;
@@ -238,10 +238,10 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 		</dd>
 	</dl>
 	<blockquote class="inline_help">
-		<p>Enter the name of the network bridge you wish to use for your VMs here, otherwise leave the field blank and libvirt will create a bridge that will utilize NAT (network address translation) and act as a DHCP server to hand out IP addresses to virtual machines directly.</p>
-		<p>NOTE:  You can also specify an network bridge on a per-VM basis.</p>
+		<p>Select the name of the network bridge you wish to use as default for your VMs, the setting 'virbr0' will let libvirt create a virtual bridge that utilizes NAT (network address translation) and act as a DHCP server to hand out IP addresses to virtual machines directly.</p>
+		<p>More optional selections are present when virtual bridges are created under network settings.</p>
+		<p>NOTE: You can also specify a network bridge on a per-VM basis.</p>
 	</blockquote>
-
 	<dl>
 		<dt>Enable PCIe ACS Override:</dt>
 		<dd>
