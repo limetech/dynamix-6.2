@@ -215,6 +215,12 @@ function exitCode(form,key) {
     stopEvent = true;
   }
 }
+function checkPort() {
+  $.post('/webGui/include/CheckPort.php',{port:'eth0'},function(text) {
+    showNotice(text);
+    setTimeout(checkPort,15000);
+  });
+}
 $(function() {
   var ctrl = "<span id='wait_eth0' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>";
   var form = document.eth0_settings;
@@ -242,6 +248,7 @@ $(function() {
 <?else:?>
   $('div[id=title]').append(ctrl);
 <?endif;?>
+  checkPort();
 });
 </script>
 <form markdown="1" name="eth0_settings" method="POST" action="/update.php" target="progressFrame" onchange="exitCode(this,false)" onsubmit="return prepareSettings(this)">
