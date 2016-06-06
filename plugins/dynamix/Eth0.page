@@ -215,11 +215,23 @@ function exitCode(form,key) {
     stopEvent = true;
   }
 }
+function checkPort() {
+  $.post('/webGui/include/CheckPort.php',{port:'eth0'},function(text) {
+    showNotice(text);
+    setTimeout(checkPort,15000);
+  });
+}
 $(function() {
   var ctrl = "<span id='wait_eth0' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>";
   var form = document.eth0_settings;
-  $('#bond0').dropdownchecklist({emptyText:'None', width:130});
-  $('#bridge0').dropdownchecklist({emptyText:'None', width:130});
+<?if ($tabbed && !$disabled):?>
+  $('#tab1').bind({click:function(){
+    $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
+    $('#bridge0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
+  }});
+<?endif;?>
+  $('#bond0').dropdownchecklist({emptyText:'None', width:131});
+  $('#bridge0').dropdownchecklist({emptyText:'None', width:131});
   checkBondingSettings(form,0);
   checkBridgingSettings(form,0);
   checkNetworkAccess(form,'eth0');
@@ -236,6 +248,7 @@ $(function() {
 <?else:?>
   $('div[id=title]').append(ctrl);
 <?endif;?>
+  checkPort();
 });
 </script>
 <form markdown="1" name="eth0_settings" method="POST" action="/update.php" target="progressFrame" onchange="exitCode(this,false)" onsubmit="return prepareSettings(this)">
