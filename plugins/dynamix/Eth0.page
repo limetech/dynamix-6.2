@@ -45,8 +45,9 @@ foreach ($ports as $port) {
     $build = true;
   }
 }
-// enable interface only when VMs are stopped
-$disabled = exec("virsh list|grep -om1 running") ? 'disabled' : '';
+// enable interface only when VMs and Docker are stopped
+$service = exec("pgrep libvirt") ? 'VMs' : '';
+$service .= exec("pgrep docker") ? ($service ? ' and ' : '').'Docker' : '';
 
 // get VLAN interfaces
 $vlan_eth0 = [0];
@@ -224,7 +225,7 @@ function checkPort() {
 $(function() {
   var ctrl = "<span id='wait_eth0' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>";
   var form = document.eth0_settings;
-<?if ($tabbed && !$disabled):?>
+<?if ($tabbed && !$service):?>
   $('#tab1').bind({click:function(){
     $('#bond0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
     $('#bridge0').dropdownchecklist('destroy').dropdownchecklist({emptyText:'None', width:131});
@@ -236,7 +237,7 @@ $(function() {
   checkBridgingSettings(form,0);
   checkNetworkAccess(form,'eth0');
   checkNetworkSettings(form);
-<?if ($disabled):?>
+<?if ($service):?>
   disableForm(form);
   $('#bond0').dropdownchecklist('disable');
   $('#bridge0').dropdownchecklist('disable');
@@ -415,12 +416,12 @@ Enable VLANs:
   <?=mk_option($eth0['TYPE'], 'access', 'No');?>
   <?=mk_option($eth0['TYPE'], 'trunk', 'Yes');?>
   </select>
-  <span class="access-eth0 pin" title="Add VLAN" style="display:none" onclick="addVLAN('eth0',<?=$disabled?'true':'false'?>)"><i class="fa fa-plus-circle green"></i><em>press to add VLAN</em></span>
+  <span class="access-eth0 pin" title="Add VLAN" style="display:none" onclick="addVLAN('eth0',<?=$service?'true':'false'?>)"><i class="fa fa-plus-circle green"></i><em>press to add VLAN</em></span>
 <?else:?>
 <div class="access-eth0 shade-<?=$display['theme']?>" style="display:none" markdown="1">
 VLAN number:
 : <input type="number" name="VLANID:<?=$i?>" min="1" max="4095" value="<?=$eth0["VLANID:$i"]?>" class="narrow" required>
-  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-<?=$i?>'),<?=$disabled?'true':'false'?>)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
+  <span class="pin" title="Remove VLAN" onclick="removeVLAN($('#index-eth0-<?=$i?>'),<?=$service?'true':'false'?>)"><i class="fa fa-minus-circle red"></i><em>press to remove VLAN</em></span>
 
 > Give each VLAN a unique identifier. Numbers range from 1 to 4095.
 
@@ -521,5 +522,5 @@ Network mask:
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply" onclick="$('#wait_eth0').show()"><input type="button" value="Done" onclick="done()"><?=$disabled ? "VMs must be <b>STOPPED</b> to change" : ""?>
+: <input type="submit" value="Apply" onclick="$('#wait_eth0').show()"><input type="button" value="Done" onclick="done()"><?=$service ? "$service must be <b>STOPPED</b> to change" : ""?>
 </form>
