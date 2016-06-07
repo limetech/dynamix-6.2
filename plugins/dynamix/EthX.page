@@ -27,18 +27,24 @@ $locked = $bond_ethX || $bridge_ethX ;
 $vlan_ethX = [0];
 if (!$locked && isset($ethX)) foreach ($ethX as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_ethX[] = substr($key,7);
 
-if ($bond_ethX) {
+$cmd = 'Down';
+if (strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0) {
+  $more = true;
+  $reason = "Interface is shutdown (inactive)";
+  $class = 'blue';
+  $cmd = 'Up';
+} elseif ($bond_ethX) {
   $more = true;
   $reason = "Interface is member of ".$eth0['BONDNAME']." (see interface eth0)";
-  $class = 'member';
+  $class = 'green';
 } elseif ($bridge_ethX) {
   $more = true;
   $reason = "Interface is member of ".$eth0['BRNAME']." (see interface eth0)";
-  $class = 'member';
-} elseif (empty($ethX) || strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0) {
+  $class = 'green';
+} elseif (empty($ethX)) {
   $more = true;
   $reason = "Interface is not configured";
-  $class = 'unset';
+  $class = 'red';
 } else {
   $more = false;
 }
@@ -67,6 +73,9 @@ $(function() {
 <?endif;?>
 <?if ($locked):?>
   disableForm(form,true);
+<?endif;?>
+<?if (strlen(exec("ip link show eth0|grep -om1 ',UP[,>]'"))==0):?>
+  $('input[name="#shut"]').prop('disabled',true);
 <?endif;?>
   setTimeout(portcheck_ethX,Number('ethX'.substr(3))*1000);
 });
@@ -254,5 +263,5 @@ Network mask:
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><?if ($service) echo "$service must be <b>STOPPED</b> to change"?>
+: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><input type="button" name="#shut" value="Port <?=$cmd?>" onclick="portToggle('ethX','<?=$cmd?>')"><?if ($service) echo "$service must be <b>STOPPED</b> to change"?>
 </form>
