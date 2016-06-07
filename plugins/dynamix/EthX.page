@@ -74,6 +74,9 @@ $(function() {
 <?if ($locked):?>
   disableForm(form,true);
 <?endif;?>
+<?if (strlen(exec("ip link show eth0|grep -om1 ',UP[,>]'"))==0):?>
+  $('input[name="#shut"]').prop('disabled',true);
+<?endif;?>
   setTimeout(portcheck_ethX,Number('ethX'.substr(3))*1000);
 });
 </script>
