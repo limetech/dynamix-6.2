@@ -26,7 +26,7 @@ $ports = array_map('trim', $ports);
 
 // remove non-existing ethernet ports
 foreach (glob('/usr/local/emhttp/webGui/Eth[1-9]*.page',GLOB_NOSORT) as $port) {
-  if (!in_array(basename(strtolower($port),'.page'), $ports)) {
+  if (!in_array(strtolower(basename($port,'.page')), $ports)) {
     @unlink($port);
     $build = true;
   }
