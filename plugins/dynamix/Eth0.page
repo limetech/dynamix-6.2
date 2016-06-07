@@ -20,28 +20,23 @@ $template = '/usr/local/emhttp/webGui/EthX.page';
 $ini = '/var/local/emhttp/network.ini';
 $validIP = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)';
 
-function normalize($name) {
-  return ucfirst(trim($name));
-}
-
 // get available ethernet ports (excluding eth0)
 exec("ip -br addr|grep -Po '^eth[1-9]+\s'",$ports);
-$ports = array_map('normalize', $ports);
+$ports = array_map('trim', $ports);
 
 // remove non-existing ethernet ports
 foreach (glob('/usr/local/emhttp/webGui/Eth[1-9]*.page',GLOB_NOSORT) as $port) {
-  if (!in_array(basename($port,'.page'), $ports)) {
+  if (!in_array(basename(strtolower($port),'.page'), $ports)) {
     @unlink($port);
     $build = true;
   }
 }
 // add new ethernet ports
 foreach ($ports as $port) {
-  $file = "/usr/local/emhttp/webGui/$port.page";
+  $file = "/usr/local/emhttp/webGui/".ucfirst($port).".page";
   if (!file_exists($file)) {
     copy($template, $file);
-    $eth = strtolower($port);
-    exec("sed -i 's/x-settings/NetworkSettings/;s/ethX/$eth/g' $file");
+    exec("sed -i 's/x-settings/NetworkSettings/;s/ethX/$port/g' $file");
     $build = true;
   }
 }
@@ -55,7 +50,8 @@ if (isset($eth0)) foreach ($eth0 as $key => $val) if (substr($key,0,6)=='VLANID'
 ?>
 <style>
 span.pin i{font-size:16px;cursor:pointer;}
-span.no-int{color:#E68A00;}
+span.unset{color:#E68A00;}
+span.member{color:#00529B;}
 div.shade-white{background-color:#F8F8F8;}
 div.shade-black{background-color:#0C0C0C;}
 </style>
@@ -202,8 +198,9 @@ function removeVLAN(element,disabled) {
   $(element).remove();
   $('#index-'+id[1]+'-0').find('select').first().trigger('change');
 }
-function disableForm(form) {
+function disableForm(form,member) {
   $(form).find('input,select').not('input[value="Done"]').prop('disabled',true);
+  if (member) $(form).find('input[name^="DESCRIPTION"],input[name^="#"]').prop('disabled',false);
 }
 var stopEvent = false;
 function exitCode(form,key) {
@@ -216,10 +213,11 @@ function exitCode(form,key) {
     stopEvent = true;
   }
 }
-function checkPort() {
+function portcheck_eth0() {
   $.post('/webGui/include/CheckPort.php',{port:'eth0'},function(text) {
-    showNotice(text);
-    setTimeout(checkPort,15000);
+    var html = $('#user-notice').html();
+    if (!html || html.indexOf('eth0')>0) showNotice(text);
+    setTimeout(portcheck_eth0,10000);
   });
 }
 $(function() {
@@ -249,7 +247,7 @@ $(function() {
 <?else:?>
   $('div[id=title]').append(ctrl);
 <?endif;?>
-  checkPort();
+  portcheck_eth0();
 });
 </script>
 <form markdown="1" name="eth0_settings" method="POST" action="/update.php" target="progressFrame" onchange="exitCode(this,false)" onsubmit="return prepareSettings(this)">
@@ -300,9 +298,9 @@ Bonding mode:
 
 Bonding members:
 : <select id="bond0" name="BONDNICS" size="1" multiple="multiple" style="display:none">
-  <?=mk_option($eth0['BONDNICS'],'eth0','Eth0','selected disabled')?>
+  <?=mk_option($eth0['BONDNICS'],'eth0','eth0','selected disabled')?>
   <?foreach ($ports as $port):?>
-  <?=mk_option_check($eth0['BONDNICS'],strtolower($port),$port)?>
+  <?=mk_option_check($eth0['BONDNICS'],$port,$port)?>
   <?endforeach;?>
   </select>
 
@@ -321,9 +319,9 @@ Enable bridging:
 <div id="bridge-members" style="display:none" markdown="1">
 Bridging members:
 : <select id="bridge0" name="BRNICS" size="1" multiple="multiple" style="display:none">
-  <?=mk_option($eth0['BRNICS'],'eth0','Eth0','selected disabled')?>
+  <?=mk_option($eth0['BRNICS'],'eth0','eth0','selected disabled')?>
   <?foreach ($ports as $port):?>
-  <?=mk_option_check($eth0['BRNICS'],strtolower($port),$port)?>
+  <?=mk_option_check($eth0['BRNICS'],$port,$port)?>
   <?endforeach;?>
   </select>
 

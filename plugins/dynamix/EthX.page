@@ -15,27 +15,33 @@ Png="ethernet.png"
  */
 ?>
 <?
-// get interface configuration state
-$down = empty($ethX) || strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0;
-
-// get VLAN interfaces
-$vlan_ethX = [0];
-if (isset($ethX)) foreach ($ethX as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_ethX[] = substr($key,7);
-
 // get bond membership
 $bond_ethX = $eth0['BONDING']=='yes' ? in_array('ethX',explode(',',$eth0['BONDNICS'])) : false;
 
 // get bridge membership
 $bridge_ethX = $eth0['BRIDGING']=='yes' ? in_array('ethX',explode(',',$eth0['BRNICS'])) : false;
 
-if ($service)
-  $locked = "$service must be <b>STOPPED</b> to change";
-elseif ($bond_ethX)
-  $locked = "Interface must be <i>removed</i> as <b>Bonding member</b> to change";
-elseif ($bridge_ethX)
-  $locked = "Interface must be <i>removed</i> as <b>Bridging member</b> to change";
-else
-  $locked = "";
+$locked = $bond_ethX || $bridge_ethX ;
+
+// get VLAN interfaces
+$vlan_ethX = [0];
+if (!$locked && isset($ethX)) foreach ($ethX as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_ethX[] = substr($key,7);
+
+if ($bond_ethX) {
+  $more = true;
+  $reason = "Interface is member of ".$eth0['BONDNAME']." (see interface eth0)";
+  $class = 'member';
+} elseif ($bridge_ethX) {
+  $more = true;
+  $reason = "Interface is member of ".$eth0['BRNAME']." (see interface eth0)";
+  $class = 'member';
+} elseif (empty($ethX) || strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0) {
+  $more = true;
+  $reason = "Interface is not configured";
+  $class = 'unset';
+} else {
+  $more = false;
+}
 ?>
 <script>
 <?if ($tabbed):?>
@@ -43,18 +49,26 @@ else
 <?else:?>
   var waitid = '#wait_ethX';
 <?endif;?>
+function portcheck_ethX() {
+  $.post('/webGui/include/CheckPort.php',{port:'ethX'},function(text) {
+    var html = $('#user-notice').html();
+    if (!html || html.indexOf('ethX')>0) showNotice(text);
+    setTimeout(portcheck_ethX,10000);
+  });
+}
 $(function() {
   var form = document.ethX_settings;
   checkNetworkAccess(form,'ethX');
   checkNetworkSettings(form);
-<?if ($locked):?>
-  disableForm(form);
-<?endif;?>
 <?if (!$tabbed):?>
   $('div[id=title]').each(function(){
     if ($(this).text().indexOf('Interface ethX')==0) $(this).append("<span id='wait_ethX' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>");
   });
 <?endif;?>
+<?if ($locked):?>
+  disableForm(form,true);
+<?endif;?>
+  setTimeout(portcheck_ethX,Number('ethX'.substr(3))*1000);
 });
 </script>
 <form markdown="1" name="ethX_settings" method="POST" action="/update.php" target="progressFrame" onchange="exitCode(this,false)" onsubmit="return prepareSettings(this)">
@@ -71,11 +85,12 @@ $(function() {
 <div id="index-ethX-<?=$i?>" markdown="1">
 <?if ($i==0):?>
 MAC address:
-: <?if ($down):?><span class="no-int"><?endif;?><?=strtoupper(exec("ip link show ethX|grep -Pom1 'ether \K\S+'"))?><?if ($down):?> - interface is not configured</span><?endif;?>
+: <?if ($more):?><span class="<?=$class?>"><?endif;?><?=strtoupper(exec("ip link show ethX|grep -Pom1 'ether \K\S+'"))?><?if ($more):?> - <?=$reason?></span><?endif;?>
 
 > This is the hardware address of the interface.
 > When tagging is enabled all VLANs on this interface will share the same hardware address.
 
+<?if (!$locked):?>
 Enable bridging:
 : <select name="BRIDGING" size="1">
   <?=mk_option($ethX['BRIDGING'], "no", "No");?>
@@ -84,6 +99,7 @@ Enable bridging:
 
 > Bridging is a feature which creates a virtual bridge and allows VMs to communicate directly with the physical Ethernet port.
 
+<?endif;?>
 Interface description:
 : <input type="text" name="DESCRIPTION:<?=$i?>" maxlength="40" value="<?=$ethX["DESCRIPTION:$i"]?>" onchange="exitCode(this.form,true)">
 
@@ -124,7 +140,7 @@ Network mask:
 > Greyed out when using DHCP server. Otherwise specify here the associated network mask, by default 255.255.255.0 is selected.
 
 Desired MTU:
-: <input type="number" name="MTU" min="68" max="9198" value="<?=$ethX['MTU']?>" class="narrow">
+: <input type="number" name="MTU" min="68" max="9198" value="<?=$locked?$eth0['MTU']:$ethX['MTU']?>" class="narrow">
 
 > This is the MTU size to use on the physical Ethernet interface.
 > If left blank, the MTU will automatically be determined (by default 1500 bytes).
@@ -238,5 +254,5 @@ Network mask:
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><?=$locked?>
+: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><?if ($service) echo "$service must be <b>STOPPED</b> to change"?>
 </form>
