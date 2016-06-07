@@ -151,7 +151,6 @@ Enable VLANs:
   <?=mk_option($ethX['TYPE'], 'trunk', 'Yes');?>
   </select>
   <span class="pin access-ethX" title="Add VLAN" style="display:none" onclick="addVLAN('ethX',<?=$service?'true':'false'?>)"><i class="fa fa-plus-circle green"></i><em>press to add VLAN</em></span>
-
 <?else:?>
 <div class="access-ethX shade-<?=$display['theme']?>" style="display:none" markdown="1">
 VLAN number:
