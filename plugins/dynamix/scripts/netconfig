@@ -19,6 +19,7 @@ $cfg = '/boot/config/network.cfg';
 
 function ifname($name) {
   global $old;
+  if (!$name) return;
   for ($i=0; $i<$old['SYSNICS']; $i++) {
     $nics = $old['BONDNICS'][$i] ?: $old['BRNICS'][$i];
     if (strpos("$nics ","$name ")!==false) return $old['IFNAME'][$i];
