@@ -52,6 +52,7 @@ if (isset($eth0)) foreach ($eth0 as $key => $val) if (substr($key,0,6)=='VLANID'
 span.pin i{font-size:16px;cursor:pointer;}
 span.unset{color:#E68A00;}
 span.member{color:#00529B;}
+span.shut{color:#4F8A10;}
 div.shade-white{background-color:#F8F8F8;}
 div.shade-black{background-color:#0C0C0C;}
 </style>
@@ -220,6 +221,9 @@ function portcheck_eth0() {
     setTimeout(portcheck_eth0,10000);
   });
 }
+function portToggle(port,cmd) {
+  $.post('/webGui/include/PortToggle.php',{port:port,cmd:cmd},function(){refresh();});
+} 
 $(function() {
   var ctrl = "<span id='wait_eth0' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>";
   var form = document.eth0_settings;
