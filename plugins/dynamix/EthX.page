@@ -71,7 +71,7 @@ $(function() {
     if ($(this).text().indexOf('Interface ethX')==0) $(this).append("<span id='wait_ethX' class='status red' style='display:none;font-size:small;font-style:italic'>Please wait... configuring interfaces</span>");
   });
 <?endif;?>
-<?if ($locked):?>
+<?if ($locked || $service):?>
   disableForm(form,true);
 <?endif;?>
 <?if (strlen(exec("ip link show eth0|grep -om1 ',UP[,>]'"))==0):?>
