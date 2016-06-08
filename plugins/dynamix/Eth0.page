@@ -90,6 +90,7 @@ function prepareSettings(form) {
     item.disabled = false;
     if (member.indexOf(',')>0) form.BRSTP.value = 'yes';
   }
+  if (form.DHCP_KEEPRESOLV !== undefined) form.DHCP_KEEPRESOLV.disabled = false;
   if (form.TYPE.value == 'access') {
     $(form).find('input[name^="VLANID:"]').prop('disabled',true);
     $(form).find('input[name^="DESCRIPTION:"]').not('input[name$=":0"]').prop('disabled',true);
