@@ -182,7 +182,7 @@ Split level:
 > **Automatically split any directory as required**
 > When a new file or subdirectory needs to be created in a share, unRAID OS first chooses which disk
 > it should be created on, according to the configured *Allocation method*.  If the parent directory containing
-> the new file or or subdiretory does not exist on this disk, then unRAID OS will first create all necessary
+> the new file or or subdirectory does not exist on this disk, then unRAID OS will first create all necessary
 > parent directories, and then create the new file or subdirectory.
 >
 > **Automatically split only the top level directory as required**
