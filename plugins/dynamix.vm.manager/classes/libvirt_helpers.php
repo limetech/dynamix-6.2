@@ -170,6 +170,11 @@
 
 		' Pre-packaged ' => '', /* Pre-built Header */
 
+		'LibreELEC' => [
+			'form' => 'LibreELEC.form.php',
+			'icon' => 'libreelec.png'
+		],
+
 		'OpenELEC' => [
 			'form' => 'OpenELEC.form.php',
 			'icon' => 'openelec.png'
@@ -294,6 +299,18 @@
 			'url' => 'https://s3.amazonaws.com/dnld.lime-technology.com/images/OpenELEC/OpenELEC-unRAID.x86_64-5.95.2_1.tar.xz',
 			'size' => 156250392,
 			'md5' => 'ac70048eecbda4772e386c6f271cb5e9',
+			'localpath' => '',
+			'valid' => '0'
+		]
+	];
+
+
+	$arrLibreELECVersions = [
+		'7.0.1_1' => [
+			'name' => '7.0.1',
+			'url' => 'https://s3.amazonaws.com/dnld.lime-technology.com/images/LibreELEC/LibreELEC-unRAID.x86_64-7.0.1_1.tar.xz',
+			'size' => 209748564,
+			'md5' => 'c1e8def2ffb26a355e7cc598311697f6',
 			'localpath' => '',
 			'valid' => '0'
 		]
