@@ -62,7 +62,7 @@ function parity_status() {
     if (count($parity_invalid)==0) {
       echo "<tr><td colspan='2'><span class='green p0'><strong>Parity is valid</strong></span></td></tr>";
     } else {
-      echo "<tr><td colspan='2'><span class='orange p0'><strong>Degraded parity: </strong></span><span class='red p0'><strong>".implode(' and ',$parity_invalid)." ".(count($parity_invalid)>1)?'are':'is'." invalid</strong></span></td></tr>";
+      echo "<tr><td colspan='2'><span class='orange p0'><strong>Degraded parity: </strong></span><span class='red p0'><strong>".implode(' and ',$parity_invalid)." ".(count($parity_invalid)>1?'are':'is')." invalid</strong></span></td></tr>";
     }
     if ($var['sbSyncExit']!=0) {
       echo "<tr><td>Last check incomplete on <strong>".my_time($var['sbSynced2']).day_count($var['sbSynced2'])."</strong>, finding <strong>{$var['sbSyncErrs']}</strong> error".($var['sbSyncErrs']==1?'.':'s.');
