@@ -28,7 +28,7 @@ $vlan_ethX = [0];
 if (!$locked && isset($ethX)) foreach ($ethX as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_ethX[] = substr($key,7);
 
 $cmd = 'Down';
-if (strlen(exec("ip link show ethX|grep -om1 ',UP[,>]'"))==0) {
+if (!exec("ip link show ethX|grep -om1 'UP>'")) {
   $more = true;
   $reason = "Interface is shutdown (inactive)";
   $class = 'blue';
@@ -74,8 +74,8 @@ $(function() {
 <?if ($locked || $service):?>
   disableForm(form,true);
 <?endif;?>
-<?if (strlen(exec("ip link show eth0|grep -om1 ',UP[,>]'"))==0):?>
-  $('input[name="#shut"]').prop('disabled',true);
+<?if ($no_eth0):?>
+  $('input[name="#shut_ethX"]').prop('disabled',true);
 <?endif;?>
   setTimeout(portcheck_ethX,Number('ethX'.substr(3))*1000);
 });
@@ -263,5 +263,5 @@ Network mask:
 </script>
 
 &nbsp;
-: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><input type="button" name="#shut" value="Port <?=$cmd?>" onclick="portToggle('ethX','<?=$cmd?>')"><?if ($service) echo "$service must be <b>STOPPED</b> to change"?>
+: <input type="submit" value="Apply" onclick="$(waitid).show()"><input type="button" value="Done" onclick="done()"><input type="button" name="#shut_ethX" value="Port <?=$cmd?>" onclick="portToggle('ethX','<?=$cmd?>')"><?if ($service) echo "$service must be <b>STOPPED</b> to change"?>
 </form>

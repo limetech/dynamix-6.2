@@ -44,6 +44,9 @@ foreach ($ports as $port) {
 $service = exec("pgrep libvirt") ? 'VMs' : '';
 $service .= exec("pgrep docker") ? ($service ? ' and ' : '').'Docker' : '';
 
+// eth0 port status
+$no_eth0 = exec("ip link show eth0|grep -Pom1 '(NO-CARRIER|state DOWN)'");
+
 // get VLAN interfaces
 $vlan_eth0 = [0];
 if (isset($eth0)) foreach ($eth0 as $key => $val) if (substr($key,0,6)=='VLANID') $vlan_eth0[] = substr($key,7);
