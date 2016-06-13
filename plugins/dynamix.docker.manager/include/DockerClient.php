@@ -33,28 +33,8 @@ if (!isset($eth0) && is_file("/usr/local/emhttp/state/network.ini")) {
 	extract(parse_ini_file('/usr/local/emhttp/state/network.ini',true));
 }
 
-$docker_cfg_defaults = [
-	"DOCKER_ENABLED" => "no",
-	"DOCKER_OPTS" => "--storage-driver=btrfs",
-	"DOCKER_IMAGE_SIZE" => "20",
-	"DOCKER_IMAGE_FILE" => "/mnt/user/system/docker/docker.img",
-	"DOCKER_APP_CONFIG_PATH" => "/mnt/user/appdata/",
-	"DOCKER_APP_UNRAID_PATH" => ""
-];
-$dockercfg = $docker_cfg_defaults;
-
-// Docker configuration file - create if needed
-$docker_cfgfile = "/boot/config/docker.cfg";
-if (!file_exists($docker_cfgfile)) {
-	$tmp = '';
-	foreach ($docker_cfg_defaults as $key => $value) $tmp .= "$key=\"$value\"\n";
-	file_put_contents($docker_cfgfile, $tmp);
-} else {
-	$docker_cfg_existing = parse_ini_file($docker_cfgfile);
-	if (!empty($docker_cfg_existing)) {
-		$dockercfg = array_merge($docker_cfg_defaults, $docker_cfg_existing);
-	}
-}
+// Docker configuration file - guaranteed to exist
+$dockercfg = parse_ini_file("/boot/config/docker.cfg");
 
 ######################################
 ##   	DOCKERTEMPLATES CLASS       ##

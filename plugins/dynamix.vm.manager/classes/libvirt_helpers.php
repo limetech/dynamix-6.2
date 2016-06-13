@@ -428,34 +428,11 @@
 		]
 	];
 
-	$domain_cfg_defaults = [
-		"SERVICE" => "disable",
-		"DEBUG" => "no",
-		"DOMAINDIR" => "/mnt/user/domains/",
-		"MEDIADIR" => "/mnt/user/isos/",
-		"VIRTIOISO" => "",
-		"BRNAME" => "",
-		"VMSTORAGEMODE" => "auto",
-		"IMAGE_FILE" => "/mnt/user/system/libvirt/libvirt.img",
-		"IMAGE_SIZE" => "1"
-	];
-	$domain_cfg = $domain_cfg_defaults;
-
-	// Create domain config if needed
+	// Read configuration file (guaranteed to exist)
 	$domain_cfgfile = "/boot/config/domain.cfg";
-	if (!file_exists($domain_cfgfile)) {
-		$tmp = '';
-		foreach ($domain_cfg_defaults as $key => $value) $tmp .= "$key=\"$value\"\n";
-		file_put_contents($domain_cfgfile, $tmp);
-	} else {
-		// This will clean any ^M characters (\r) caused by windows from the config file
-		shell_exec("sed -i 's!\r!!g' '$domain_cfgfile'");
-
-		$domain_cfg_existing = parse_ini_file($domain_cfgfile);
-		if (!empty($domain_cfg_existing)) {
-			$domain_cfg = array_merge($domain_cfg_defaults, $domain_cfg_existing);
-		}
-	}
+        // This will clean any ^M characters (\r) caused by windows from the config file
+        shell_exec("sed -i 's!\r!!g' '$domain_cfgfile'");
+	$domain_cfg = parse_ini_file($domain_cfgfile);
 
 	if ($domain_cfg['DEBUG'] != "yes") {
 		error_reporting(0);
