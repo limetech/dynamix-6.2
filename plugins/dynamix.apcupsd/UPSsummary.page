@@ -3,7 +3,7 @@ Title="UPS Summary"
 Cond="file_exists('/var/run/apcupsd.pid')"
 ---
 <?PHP
-/* Copyright 2015-2016, Lime Technology
+/* Copyright 2005-2016, Lime Technology
  * Copyright 2015, Dan Landon.
  * Copyright 2015, Bergware International.
  *

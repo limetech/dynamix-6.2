@@ -3,7 +3,7 @@ Title="AFP Security Settings"
 Cond="(($var['shareAFPEnabled']!='no') && (isset($name)?array_key_exists($name,$sec_afp):0))"
 ---
 <?PHP
-/* Copyright 2015-2016, Lime Technology
+/* Copyright 2005-2016, Lime Technology
  * Copyright 2015-2016, Bergware International.
  *
  * This program is free software; you can redistribute it and/or
