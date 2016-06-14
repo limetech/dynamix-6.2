@@ -402,8 +402,12 @@ class DockerUpdate{
 	}
 
 
-	public function download_url_and_headers($url, $headers = "", $path = "", $bg = false) {
-		exec("curl --max-time 30 --silent --insecure --location --fail -i ".($headers ? " -H ".escapeshellarg($headers) : "").($path ? " -o ".escapeshellarg($path) : "")." ".escapeshellarg($url)." ".($bg ? ">/dev/null 2>&1 &" : "2>/dev/null"), $out, $exit_code);
+	public function download_url_and_headers($url, $headers = [], $path = "", $bg = false) {
+		$strHeaders = '';
+		foreach ($headers as $header) {
+			$strHeaders .= ' -H '.escapeshellarg($header);
+		}
+		exec("curl --max-time 30 --silent --insecure --location --fail -i ".$strHeaders.($path ? " -o ".escapeshellarg($path) : "")." ".escapeshellarg($url)." ".($bg ? ">/dev/null 2>&1 &" : "2>/dev/null"), $out, $exit_code);
 		return ($exit_code === 0) ? implode("\n", $out) : false;
 	}
 
@@ -436,7 +440,7 @@ class DockerUpdate{
 		//   curl -H "Authorization: Bearer <TOKEN>" https://registry-1.docker.io/v2/needo/nzbget/manifests/latest
 		$strManifestURL = sprintf("https://registry-1.docker.io/v2/%s/manifests/%s", $strRepo, $strTag);
 		$this->debug("Manifest URL: $strManifestURL");
-		$strManifest = $this->download_url_and_headers($strManifestURL, "Authorization: Bearer ".$arrAuth['token']);
+		$strManifest = $this->download_url_and_headers($strManifestURL, ["Accept: application/vnd.docker.distribution.manifest.v2+json", "Authorization: Bearer ".$arrAuth['token']]);
 		if (empty($strManifest)) {
 			$this->debug("Error: Manifest response was empty");
 			return null;
