@@ -3,7 +3,7 @@
 # Markdown Extra  -  A text-to-HTML conversion tool for web writers
 #
 # LimeTech - Give all blockquotes class="inline_help".
-# Copyright 2015-2016, Lime Technology
+# Copyright 2005-2016, Lime Technology
 # <http://lime-technology.com/>
 #
 # PHP Markdown & Extra

@@ -1,5 +1,5 @@
 <?PHP
-/* Copyright 2015-2016, Lime Technology
+/* Copyright 2005-2016, Lime Technology
  * Copyright 2015-2016, Bergware International.
  * Copyright 2012, Andrew Hamer-Adams, http://www.pixeleyes.co.nz.
  *
