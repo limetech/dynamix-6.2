@@ -48,7 +48,7 @@ $(function() {
     resize();
     $(window).bind('resize',function(){resize(true);});
 <?endif;?>
-    $('#plugin_table').tablesorter({headers:{0:{sorter:false},5:{sorter:false}}});
+    $('#plugin_table').tablesorter({sortList:[[1,0]],headers:{0:{sorter:false},5:{sorter:false}}});
     $('.desc_readmore').readmore({maxHeight:58});
   });
   $('#plugin_tree').fileTree({root:'/boot/',filter:'plg'}, function(file) {$('#plugin_file').val(file);});
