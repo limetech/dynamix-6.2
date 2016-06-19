@@ -18,7 +18,7 @@ $cfg_defaults = [
     "DOCKER_IMAGE_FILE" => "/mnt/user/system/docker/docker.img",
     "DOCKER_IMAGE_SIZE" => "20",
     "DOCKER_APP_CONFIG_PATH" => "/mnt/user/appdata/",
-    "DOCKER_APP_UNRAID_PATH" => "/mnt/user/"
+    "DOCKER_APP_UNRAID_PATH" => ""
 ];
 
 $cfg_new = $cfg_defaults;
