@@ -38,4 +38,4 @@ if ($timer=='') {
   $delay = $timer;
 }
 // update spindown time of selected disk
-exec("wget -qO /dev/null 127.0.0.1:$(lsof -lbnPi4 -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K[\d]+')/update.htm?diskSpindownDelay.$idx=$delay&changeDisk=apply");
+exec("wget -qO /dev/null 127.0.0.1:$(lsof -i -P -sTCP:LISTEN|grep -Pom1 '^emhttp.*:\K\d+')/update.htm?diskSpindownDelay.$idx=$delay&changeDisk=apply");
