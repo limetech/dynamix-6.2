@@ -364,7 +364,7 @@ function xmlToCommand($xml, $create_paths=false) {
     $hostConfig      = strlen($config['Value']) ? $config['Value'] : $config['Default'];
     $containerConfig = strval($config['Target']);
     $Mode            = strval($config['Mode']);
-    if (!strlen($containerConfig)) continue;
+    if ($confType != "device" && !strlen($containerConfig)) continue;
     if ($confType == "path") {
       $Volumes[] = sprintf('"%s":"%s":%s', $hostConfig, $containerConfig, $Mode);
       if ( ! file_exists($hostConfig) && $create_paths ) {
@@ -384,7 +384,10 @@ function xmlToCommand($xml, $create_paths=false) {
     } elseif ($confType == "variable") {
       $Variables[] = sprintf('"%s"="%s"', $containerConfig, $hostConfig);
     } elseif ($confType == "device") {
-      $Devices[] = '"'.$containerConfig.'"';
+      if (empty($hostConfig)) continue;
+      if (empty($Mode)) $Mode = 'rwm';
+      if (empty($containerConfig)) $containerConfig = $hostConfig;
+      $Devices[] = sprintf("%s:%s:%s", $hostConfig, $containerConfig, $Mode);
     }
   }
   $cmd = sprintf('/plugins/dynamix.docker.manager/scripts/docker create %s %s %s %s %s %s %s %s %s',
@@ -856,6 +859,9 @@ $showAdditionalInfo = '';
           if ( ! Opts["Name"] ){
             Opts["Name"] = makeName(Opts["Type"]);
           }
+          if (Opts.Type == 'Device') {
+            Opts.Target = Opts.Value;
+          }
           var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
           Opts.Reference = reference.replace('Variable','Key');
           if (Opts.Required == "true") {
@@ -928,6 +934,9 @@ $showAdditionalInfo = '';
           ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
             Opts[e] = getVal(Element, e);
           });
+          if (Opts.Type == 'Device') {
+            Opts.Target = Opts.Value;
+          }
           var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
           Opts.Reference = reference.replace('Variable','Key');
           if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
