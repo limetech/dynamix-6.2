@@ -1049,9 +1049,11 @@
 		</td>
 	</tr>
 </table>
+<? if ($boolNew) { ?>
 <blockquote class="inline_help">
 	<p>Click Create to generate the vDisks and return to the Virtual Machines page where your new VM will be created.</p>
 </blockquote>
+<? } ?>
 
 <script type="text/javascript">
 $(function() {

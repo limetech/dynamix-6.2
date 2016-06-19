@@ -932,9 +932,11 @@
 			</td>
 		</tr>
 	</table>
+	<? if ($boolNew) { ?>
 	<blockquote class="inline_help">
 		<p>Click Create to return to the Virtual Machines page where your new VM will be created.</p>
 	</blockquote>
+	<? } ?>
 </div>
 
 <script type="text/javascript">
