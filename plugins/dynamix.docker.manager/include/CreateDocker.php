@@ -286,12 +286,12 @@ function xmlToVar($xml) {
         if (empty(xml_decode($port->ContainerPort))) continue;
         $portNum += 1;
         $out['Config'][] = [
-          'Name'        => "Port ${portNum}",
+          'Name'        => "Host Port ${portNum}",
           'Target'      => xml_decode($port->ContainerPort),
           'Default'     => xml_decode($port->HostPort),
           'Value'       => xml_decode($port->HostPort),
           'Mode'        => xml_decode($port->Protocol) ? xml_decode($port->Protocol) : "tcp",
-          'Description' => '',
+          'Description' => ($out['Network'] == 'bridge') ? 'Container Port: '.xml_decode($port->ContainerPort) : 'N/A',
           'Type'        => 'Port',
           'Display'     => 'always',
           'Required'    => 'true',
@@ -306,12 +306,12 @@ function xmlToVar($xml) {
         if (empty(xml_decode($vol->ContainerDir))) continue;
         $volNum += 1;
         $out['Config'][] = [
-          'Name'        => "Path ${volNum}",
+          'Name'        => "Host Path ${volNum}",
           'Target'      => xml_decode($vol->ContainerDir),
           'Default'     => xml_decode($vol->HostDir),
           'Value'       => xml_decode($vol->HostDir),
           'Mode'        => xml_decode($vol->Mode) ? xml_decode($vol->Mode) : "rw",
-          'Description' => '',
+          'Description' => 'Container Path: '.xml_decode($vol->ContainerDir),
           'Type'        => 'Path',
           'Display'     => 'always',
           'Required'    => 'true',
@@ -326,7 +326,7 @@ function xmlToVar($xml) {
         if (empty(xml_decode($var->Name))) continue;
         $varNum += 1;
         $out['Config'][] = [
-          'Name'        => "Variable ${varNum}",
+          'Name'        => "Key ${varNum}",
           'Target'      => xml_decode($var->Name),
           'Default'     => xml_decode($var->Value),
           'Value'       => xml_decode($var->Value),
@@ -618,7 +618,7 @@ if ($_GET['xmlTemplate']) {
             if (empty($arrConfig['Display']) || preg_match("/^Path\s\d/", $arrConfig['Name'])) {
               $arrConfig['Display'] = 'advanced-hide';
             }
-            if (empty($arrConfig['Name']) || preg_match("/^Path\s\d/", $arrConfig['Name'])) {
+            if (empty($arrConfig['Name']) || preg_match("/^Host Path\s\d/", $arrConfig['Name'])) {
               $arrConfig['Name'] = 'AppData Config Path';
             }
           }
@@ -775,9 +775,7 @@ $showAdditionalInfo = '';
                                  opts.Mask,
                                  opts.Value,
                                  opts.Buttons,
-                                 (opts.Required == "true") ? "required" : "",
-                                 opts.Reference,
-                                 opts.Label
+                                 (opts.Required == "true") ? "required" : ""
                                 );
     newConfig = "<div id='ConfigNum"+opts.Number+"' class='config_"+opts.Display+"'' >"+newConfig+"</div>";
     newConfig = $($.parseHTML(newConfig));
@@ -853,11 +851,12 @@ $showAdditionalInfo = '';
           ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
             Opts[e] = getVal(Element, e);
           });
-          if ( ! Opts["Name"] ){
-            Opts["Name"] = makeName(Opts["Type"]);
+          if (! Opts.Name ){
+            Opts.Name = makeName(Opts.Type);
           }
-          var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
-          Opts.Reference = reference.replace('Variable','Key');
+          if (! Opts.Description ) {
+            Opts.Description = "Container " + Opts.Type + ": " + Opts.Target;
+          }
           if (Opts.Required == "true") {
             Opts.Buttons  = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",false)'> Edit</button> ";
             Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
@@ -866,7 +865,6 @@ $showAdditionalInfo = '';
             Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
           }
           Opts.Number = confNum;
-          Opts.Label = Opts.Type != 'Variable' ? 'Host '+Opts.Name : Opts.Name;
           newConf = makeConfig(Opts);
           $("#configLocation").append(newConf);
           reloadTriggers();
@@ -928,8 +926,6 @@ $showAdditionalInfo = '';
           ["Name","Target","Default","Mode","Description","Type","Display","Required","Mask","Value"].forEach(function(e){
             Opts[e] = getVal(Element, e);
           });
-          var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
-          Opts.Reference = reference.replace('Variable','Key');
           if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
             Opts.Buttons  = "<span class='advanced'><button type='button' onclick='editConfigPopup("+num+",true)'> Edit</button> ";
             Opts.Buttons += "<button type='button' onclick='removeConfig("+num+");'> Remove</button></span>";
@@ -937,8 +933,13 @@ $showAdditionalInfo = '';
             Opts.Buttons  = "<button type='button' onclick='editConfigPopup("+num+",true)'> Edit</button> ";
             Opts.Buttons += "<button type='button' onclick='removeConfig("+num+");'> Remove</button>";
           }
+          if (! Opts.Name ){
+            Opts.Name = makeName(Opts.Type);
+          }
+          if (! Opts.Description ) {
+            Opts.Description = "Container " + Opts.Type + ": " + Opts.Target;
+          }
           Opts.Number = num;
-          Opts.Label = Opts.Type != 'Variable' ? 'Host '+Opts.Name : Opts.Name;
           newConf = makeConfig(Opts);
           if (config.hasClass("config_"+Opts.Display)) {
             config.html(newConf);
@@ -983,7 +984,7 @@ $showAdditionalInfo = '';
 
   function makeName(type) {
     i = $("#configLocation input[name^='confType'][value='"+type+"']").length + 1;
-    return type + " "+i;
+    return "Host " + type.replace('Variable','Key') + " "+i;
   }
 
   function toggleMode(el,disabled) {
@@ -1483,21 +1484,13 @@ $showAdditionalInfo = '';
   <input type="hidden" name="confRequired[]" value="{7}">
   <input type="hidden" name="confMask[]" value="{8}">
   <table class="settings">
-  <tr>
-    <td class="{11}">{13}:</td>
-    <td><input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11}>&nbsp;{10}<div style='color:#C98C21;line-height:1.4em'>{12}</div></td>
-  </tr>
-<!--     <tr class='advanced'>
-      <td style="padding-top: 0px;">
-        <div style="color: #3B5998;">
-          <b>Type: </b>{5}<span class="spacer"></span>
-          <b>Display: </b>{6}<span class="spacer"></span>
-          <b>Required: </b>{7}<span class="spacer"></span>
-          <b>Password: </b>{8}<span class="spacer"></span>
-          <b>Mode: </b>{3}<span class="spacer"></span>
-        </div>
+    <tr>
+      <td class="{11}">{0}:</td>
+      <td>
+        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" style="margin-top: 12px;" {11}>&nbsp;{10}
+        <div style='color:#C98C21;line-height:1.6em;'>{4}</div>
       </td>
-    </tr> -->
+    </tr>
   </table>
 </div>
 
@@ -1577,8 +1570,6 @@ $showAdditionalInfo = '';
       for (var i = 0; i < Settings.Config.length; i++) {
         confNum += 1;
         Opts = Settings.Config[i];
-        var reference = "Container "+Opts.Type+": "+(Opts.Type != 'Port' || network==0 ? Opts.Target : 'N/A');
-        Opts.Reference = reference.replace('Variable','Key');
         if (Opts.Display == "always-hide" || Opts.Display == "advanced-hide") {
           Opts.Buttons  = "<span class='advanced'><button type='button' onclick='editConfigPopup("+confNum+",true)'> Edit</button> ";
           Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button></span>";
@@ -1587,7 +1578,6 @@ $showAdditionalInfo = '';
           Opts.Buttons += "<button type='button' onclick='removeConfig("+confNum+");'> Remove</button>";
         }
         Opts.Number = confNum;
-        Opts.Label = Opts.Type != 'Variable' ? 'Host '+Opts.Name : Opts.Name;
         newConf = makeConfig(Opts);
         if (Opts.Display == 'advanced' || Opts.Display == 'advanced-hide') {
           $("#configLocationAdvanced").append(newConf);
