@@ -147,7 +147,7 @@ else
 // create SMART reports (suppress errors)
 $disks = file_exists("$get/disks.ini") ? parse_ini_file("$get/disks.ini", true) : [];
 include_once '/usr/local/emhttp/webGui/include/CustomMerge.php';
-exec("ls -l /dev/disk/by-id/[au]* 2>/dev/null|awk '$0!~/-part/{split($11,a,\"/\");print a[3],substr($9,21)}'", $devices);
+exec("ls -l /dev/disk/by-id/[asu]* 2>/dev/null|awk '$0!~/-part/{split($11,a,\"/\");print a[3],substr($9,21)}'", $devices);
 foreach ($devices as $device) {
   $disk = explode(' ',$device);
   $type = '';

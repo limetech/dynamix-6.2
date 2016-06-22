@@ -1483,11 +1483,11 @@ $showAdditionalInfo = '';
   <input type="hidden" name="confDisplay[]" value="{6}">
   <input type="hidden" name="confRequired[]" value="{7}">
   <input type="hidden" name="confMask[]" value="{8}">
-  <table class="settings">
+  <table class="settings" style="padding-top: 18px;">
     <tr>
-      <td class="{11}">{0}:</td>
+      <td class="{11}" style="vertical-align: top;">{0}:</td>
       <td>
-        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" style="margin-top: 12px;" {11}>&nbsp;{10}
+        <input type="text" class="textPath" name="confValue[]" default="{2}" value="{9}" autocomplete="off" {11}>&nbsp;{10}
         <div style='color:#C98C21;line-height:1.6em;'>{4}</div>
       </td>
     </tr>
