@@ -80,7 +80,7 @@ exec("ps -ef 2>/dev/null|todos >/$diag/system/ps.txt");
 exec("lsof -Pni 2>/dev/null|todos >/$diag/system/lsof.txt");
 exec("lsmod 2>/dev/null|todos >/$diag/system/lsmod.txt");
 exec("df -h 2>/dev/null|todos >/$diag/system/df.txt");
-exec("ifconfig -s 2>/dev/null|grep -Po '^(eth|bond)[0-9]+'", $ports);
+exec("ifconfig -a -s 2>/dev/null|grep -Po '^(eth|bond)[0-9]+'", $ports);
 // create ethernet information information (suppress errors)
 foreach ($ports as $port) {
   exec("ethtool $port 2>/dev/null|todos >>/$diag/system/ethtool.txt");
@@ -88,7 +88,7 @@ foreach ($ports as $port) {
   exec("ethtool -i $port 2>/dev/null|todos >>/$diag/system/ethtool.txt");
   file_put_contents("/$diag/system/ethtool.txt", "--------------------------------\r\n", FILE_APPEND);
 }
-exec("ifconfig 2>/dev/null|todos >/$diag/system/ifconfig.txt");
+exec("ifconfig -a 2>/dev/null|todos >/$diag/system/ifconfig.txt");
 // create system information (suppress errors)
 exec("find /sys/kernel/iommu_groups/ -type l 2>/dev/null|todos >/$diag/system/iommu_groups.txt");
 exec("todos </proc/cmdline >/$diag/system/cmdline.txt");
