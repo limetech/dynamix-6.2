@@ -185,8 +185,8 @@ case 'port':
       }
     }
   break;
-  case 'port': exec("ifconfig -s|awk '/^(bond|eth|lo)/{print $3\"#\"$7}'",$ports); break;
-  case 'link': exec("ifconfig -s|awk '/^(bond|eth|lo)/{print \"Errors: \"$4\"<br>Drops: \"$5\"<br>Overruns: \"$6\"#Errors: \"$8\"<br>Drops: \"$9\"<br>Overruns: \"$10}'",$ports); break;
+  case 'port': exec("ifconfig -a -s|awk '/^(bond|eth|lo\s)/{print $3\"#\"$7}'",$ports); break;
+  case 'link': exec("ifconfig -a -s|awk '/^(bond|eth|lo\s)/{print \"Errors: \"$4\"<br>Drops: \"$5\"<br>Overruns: \"$6\"#Errors: \"$8\"<br>Drops: \"$9\"<br>Overruns: \"$10}'",$ports); break;
   default: $ports = [];}
   echo implode('#',$ports);
 break;
