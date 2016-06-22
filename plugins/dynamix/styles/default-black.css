@@ -160,10 +160,15 @@ table.share_status.table tr>td{width:50%;}
 table.share_status.dash{float:left;width:33%;margin-top:36px;margin-right:6px;border:1px solid #202020;}
 table.share_status.dash thead tr:last-child>td{font-weight:bold;border-bottom:1px solid #202020;}
 table.share_status.dash tbody td.blue{color:#3B5998;}
+table.share_status.dash.line {table-layout:fixed;}
 table.share_status.dash.line tbody tr:nth-child(even){background-color:#000000;}
 table.share_status.dash.line tbody tr.wide{height:40px;line-height:40px;}
-table.share_status.dash.line tbody tr>td{width:25%;}
 table.share_status.dash.line tbody td{border:1px solid #202020;padding:3px 4px 3px 10px;}
+table.share_status.dash.line tr>td{width:25%;}
+table.share_status.dash.line tr>td[colspan="2"]{width:50%;}
+table.share_status.dash.line tr>td[colspan="3"]{width:75%;}
+table.share_status.dash.line tr>td[colspan="4"]{width:100%;}
+table.share_status.dash.line tr>td:last-child{white-space:normal;}
 table.share_status.dash tr.h48{height:48px;}
 table.share_status.dash td:first-child{width:25%;}
 table.share_status.m36{width:36%;margin-right:0;}
