@@ -39,6 +39,7 @@ the new configuration.
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
 
+<hr>
 <?$super = file_exists('/boot/config/super.dat')?>
 <form name="newConfig" method="POST" action="/update.htm" target="progressFrame">
 <?if ($var['fsState']=="Started" || !$super):?>
