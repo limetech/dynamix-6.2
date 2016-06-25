@@ -13,16 +13,19 @@ Title="New Config"
  * all copies or substantial portions of the Software.
  */
 ?>
+<style>
+span.indent{display:inline-block;width:170px;}
+</style>
 <?if (file_exists('/var/tmp/disks.ini')):?>
 <script>
-function assign(id,value) {
-  var pairs = {changeDevice:'Apply'};
-  pairs['slotId.'+id] = value;
-  $.post('/update.htm',pairs);
+function assign(id,disk) {
+  var pair = {changeDevice:'Apply'};
+  pair['slotId.'+id] = disk;
+  $.post('/update.htm',pair);
 }
 <?
 $disks = parse_ini_file('/var/tmp/disks.ini',true);
-foreach ($disks as $disk) if ($disk['type']!='Flash') echo "assign('{$disk['idx']}','{$disk['id']}');";
+foreach ($disks as $disk) echo "assign('{$disk['idx']}','{$disk['id']}');";
 unlink('/var/tmp/disks.ini');
 ?>
 </script>
@@ -33,16 +36,33 @@ if it were a fresh new server.
 This is useful when you have added or removed multiple drives and wish to rebuild parity based on
 the new configuration.
 
+Use the *'Preset current configuration'* selection to populate the desired slots **after** the array has been reset. By default all slots are populated.
+
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
-
 <hr>
 <?$super = file_exists('/boot/config/super.dat')?>
 <form name="newConfig" method="POST" action="/update.htm" target="progressFrame">
 <?if ($var['fsState']=="Started" || !$super):?>
 <input type="submit" name="cmdInit" value="Apply" disabled><input type="button" value="Done" onclick="done()"><?if ($super):?>Array must be <strong><big>stopped</big></strong><?else:?>Array has been <strong><big>reset</big></strong> (please configure)<?endif;?>
 <?else:?>
-<span style="display:inline-block;width:160px" class="orange-text">Preset current configuration:</span><input name="preset" type="checkbox" checked><br>
-<span style="display:inline-block;width:160px"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.checked})" disabled><input type="button" value="Done" onclick="done()"></span><input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
+<span class="indent">Preset current configuration:</span>
+<select name="preset" class="narrow">
+<?=mk_option('.','Parity|Data|Cache','All')?>
+<?=mk_option('.','Parity','Parity only')?>
+<?=mk_option('.','Parity|Data','Parity + Data')?>
+<?=mk_option('.','Parity|Cache','Parity + Cache')?>
+<?=mk_option('.','','None')?>
+</select>
+<br>
+<span class="indent"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value="Done" onclick="done()"></span><input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>
 </form>
+
+> *Preset current configuration*
+
+> + **All** - parity, data and cache disks are populated with the current disk assignment **after** an array reset
+> + **Parity only** - only parity disk(s) are populated, data and cache disks will be unassigned
+> + **Parity + Data** - parity and data disks are populated, cache disks will be unassigned
+> + **Parity + Cache** - parity and cache disks are populated, data disks will be unassigned
+> + **None** - parity, data and cache disks will all be unassigned

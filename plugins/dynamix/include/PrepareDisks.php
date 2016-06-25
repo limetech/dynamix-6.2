@@ -11,7 +11,20 @@
  */
 ?>
 <?
+function preset($disk) {
+  return strpos($_POST['preset'],$disk['type'])!==false;
+}
+
 @unlink('/boot/config/smart-one.cfg');
 @unlink('/boot/config/smart-all.cfg');
-if ($_POST['preset']=='true') @copy('/var/local/emhttp/disks.ini', '/var/tmp/disks.ini');
+if ($_POST['preset']) {
+  $disks = parse_ini_file('/var/local/emhttp/disks.ini',true);
+  $disks = array_filter($disks,'preset');
+  $text = '';
+  foreach ($disks as $disk => $block) {
+    $text .= "[$disk]\n";
+    foreach ($block as $key => $value) $text .= "$key=\"$value\"\n";
+  }
+  file_put_contents('/var/tmp/disks.ini',$text);
+}
 ?>
