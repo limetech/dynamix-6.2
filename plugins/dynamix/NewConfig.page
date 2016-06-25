@@ -14,8 +14,20 @@ Title="New Config"
  */
 ?>
 <script>
-function deleteSmartCfg() {
-  $.get('/webGui/include/DeleteSmartCfg.php');
+<?if (file_exists('/var/tmp/disks.ini')):?>
+function assign(id,value) {
+  var pairs = {changeDevice:'Apply'};
+  pairs['slotId.'+id] = value;
+  $.post('/update.htm',pairs);
+}
+<?
+$disks = parse_ini_file('/var/tmp/disks.ini',true);
+foreach ($disks as $disk) if ($disk['type']!='Flash') echo "assign('{$disk['idx']}','{$disk['id']}');";
+unlink('/var/tmp/disks.ini');
+?>
+<?endif;?>
+function prepareDisks(preset) {
+  $.post('/webGui/include/PrepareDisks.php',{preset:preset});
 }
 </script>
 This is a utility to reset the array disk configuration so that all disks appear as "New" disks, as
@@ -27,10 +39,12 @@ the new configuration.
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
 
+<?$super = file_exists('/boot/config/super.dat')?>
 <form name="newConfig" method="POST" action="/update.htm" target="progressFrame">
-<?if ($var['fsState']=="Started"):?>
-<input type="submit" name="cmdInit" value="Apply" disabled><input type="button" value="Done" onclick="done()">Array must be <strong><big>stopped</big></strong>
+<?if ($var['fsState']=="Started" || !$super):?>
+<input type="submit" name="cmdInit" value="Apply" disabled><input type="button" value="Done" onclick="done()"><?if ($super):?>Array must be <strong><big>stopped</big></strong><?else:?>Array has been <strong><big>reset</big></strong> (please configure)<?endif;?>
 <?else:?>
-<input type="submit" name="cmdInit" value="Apply" onclick="deleteSmartCfg()" disabled><input type="button" value="Done" onclick="done()"><input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
+<span style="display:inline-block;width:160px" class="orange-text">Preset current configuration:</span><input name="preset" type="checkbox" checked><br>
+<span style="display:inline-block;width:160px"><input type="submit" name="cmdInit" value="Apply" onclick="prepareDisks(preset.checked)" disabled><input type="button" value="Done" onclick="done()"></span><input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>
 </form>

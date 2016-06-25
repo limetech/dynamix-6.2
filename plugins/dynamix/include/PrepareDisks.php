@@ -13,4 +13,5 @@
 <?
 @unlink('/boot/config/smart-one.cfg');
 @unlink('/boot/config/smart-all.cfg');
+if ($_POST['preset']=='true') @copy('/var/local/emhttp/disks.ini', '/var/tmp/disks.ini');
 ?>
