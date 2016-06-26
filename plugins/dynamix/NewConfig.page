@@ -43,7 +43,7 @@ if it were a fresh new server.
 This is useful when you have added or removed multiple drives and wish to rebuild parity based on
 the new configuration.
 
-Use the *'Preset current configuration'* selection to populate the desired disk slots **after** the array has been reset. By default all disk slots are populated.
+Use the *'Preset current configuration'* selection to populate the desired disk slots ***after*** the array has been reset. By default all disk slots currently present are populated.
 
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
