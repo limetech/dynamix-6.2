@@ -1,5 +1,5 @@
 <?PHP
-/* Copyright 2015-2016, Lime Technology
+/* Copyright 2005-2016, Lime Technology
  * Copyright 2015-2016, Guilherme Jardim, Eric Schultz, Jon Panozzo.
  *
  * Adaptations by Bergware International (May 2016)

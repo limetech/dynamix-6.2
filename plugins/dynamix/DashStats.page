@@ -2,8 +2,8 @@ Menu="Dashboard"
 Title="Statistics"
 ---
 <?PHP
-/* Copyright 2015-2016, Bergware International.
- * Copyright 2005-2016, Lime Technology
+/* Copyright 2005-2016, Lime Technology
+ * Copyright 2012-2016, Bergware International.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -203,7 +203,7 @@ endif;
 $dck = exec("df /var/lib/docker|grep -om1 '^/'");
 ?>
 <tr class='wide'><td>Memory usage</td><td colspan='3'><div class='usage-disk sys'><span id='sys0' style='width:0'></span></div></td></tr>
-<tr class='wide'><td>flash : log : docker</td><td><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td>
+<tr class='wide'><td>flash log docker</td><td><div class='usage-disk sys'><span id='sys1' style='width:0'></span></div></td><td><div class='usage-disk sys'><span id='sys2' style='width:0'></span></div></td>
 <td><?if ($dck):?><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
 <tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total,$unit,3)." $unit"?></td></tr>
 <tr><td>installed</td><td colspan='2' class='blue'><?="$memory_installed GB (max. capacity $memory_maximum GB)"?></td></tr>

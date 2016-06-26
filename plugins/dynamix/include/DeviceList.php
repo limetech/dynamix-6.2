@@ -1,6 +1,6 @@
 <?PHP
 /* Copyright 2005-2016, Lime Technology
- * Copyright 2015-2016, Bergware International.
+ * Copyright 2012-2016, Bergware International.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -108,7 +108,8 @@ function fs_info(&$disk) {
     echo "<td colspan='2'></td><td>{$disk['fsStatus']}</td><td></td>";
   echo "<td>".device_browse($disk)."</td>";
 }
-function array_offline(&$disk) {
+function array_offline(&$disk,$w) {
+  $warning = $w ? '<span class="red-text"><em>ALL DATA ON THIS DISK WILL BE ERASED WHEN ARRAY IS STARTED</em></span>' : '';
   echo "<tr>";
   switch ($disk['status']) {
   case 'DISK_NP':
@@ -119,6 +120,7 @@ function array_offline(&$disk) {
     echo "<td colspan='9'></td>";
     break;
   case 'DISK_OK':
+    $warning = '';
   case 'DISK_INVALID':
   case 'DISK_DSBL':
   case 'DISK_DSBL_NEW':
@@ -126,7 +128,7 @@ function array_offline(&$disk) {
     echo "<td>".device_info($disk)."</td>";
     echo "<td>".assignment($disk)."</td>";
     echo "<td>".my_temp($disk['temp'])."</td>";
-    echo "<td colspan='8'></td>";
+    echo "<td colspan='8'>$warning</td>";
     break;
   case 'DISK_NP_MISSING':
     echo "<td>".device_info($disk)."<span class='diskinfo'><em>Missing</em></span></td>";
@@ -137,7 +139,7 @@ function array_offline(&$disk) {
     echo "<td>".device_info($disk)."<span class='diskinfo'><em>Wrong</em></span></td>";
     echo "<td>".assignment($disk)."<em>{$disk['idSb']} - ".my_scale($disk['sizeSb']*1024,$unit)." $unit</em></td>";
     echo "<td>".my_temp($disk['temp'])."</td>";
-    echo "<td colspan='8'></td>";
+    echo "<td colspan='8'>$warning</td>";
     break;
   }
   echo "</tr>";
@@ -265,8 +267,9 @@ function cache_slots() {
 switch ($_POST['device']) {
 case 'array':
   if ($var['fsState']=='Stopped') {
-    foreach ($disks as $disk) {if ($disk['type']=='Parity') array_offline($disk);}
-    foreach ($disks as $disk) {if ($disk['type']=='Data') array_offline($disk);}
+    foreach ($disks as $disk) {if ($disk['type']=='Parity') array_offline($disk,true);}
+    echo "<tr class='tr_last'><td style='height:12px' colspan='11'></td></tr>";
+    foreach ($disks as $disk) {if ($disk['type']=='Data') array_offline($disk,false);}
     echo "<tr class='tr_last'><td><img src='/webGui/images/sum.png' class='icon'>Slots:</td><td colspan='9'>".array_slots()."</td><td></td></tr>";
   } else {
     foreach ($disks as $disk) {if ($disk['type']=='Parity' && $disk['status']!='DISK_NP_DSBL') array_online($disk);}
@@ -289,7 +292,7 @@ case 'flash':
   break;
 case 'cache':
   if ($var['fsState']=='Stopped') {
-    foreach ($disks as $disk) {if ($disk['type']=='Cache') array_offline($disk);}
+    foreach ($disks as $disk) {if ($disk['type']=='Cache') array_offline($disk,false);}
     echo "<tr class='tr_last'><td><img src='/webGui/images/sum.png' class='icon'>Slots:</td><td colspan='9'>".cache_slots()."</td><td></td></tr>";
   } else {
     foreach ($disks as $disk) {if ($disk['type']=='Cache') array_online($disk);}

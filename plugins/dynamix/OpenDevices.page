@@ -3,7 +3,7 @@ Title="Unassigned Devices"
 Cond="((count($devs)>0)&&($var['fsState']=='Started'))"
 ---
 <?PHP
-/* Copyright 2015-2016, Bergware International.
+/* Copyright 2012-2016, Bergware International.
  * Copyright 2005-2016, Lime Technology
  *
  * This program is free software; you can redistribute it and/or
