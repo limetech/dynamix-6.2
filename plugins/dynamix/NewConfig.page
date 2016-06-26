@@ -13,9 +13,14 @@ Title="New Config"
  * all copies or substantial portions of the Software.
  */
 ?>
+<?
+$super = file_exists('/boot/config/super.dat');
+$disabled = $var['fsState']=="Started" || !$super ? 'disabled' : '';
+?>
 <style>
-span.indent{display:inline-block;width:170px;}
+span.indent{display:inline-block;width:200px;}
 </style>
+
 <?if (file_exists('/var/tmp/disks.ini')):?>
 <script>
 function assign(id,disk) {
@@ -41,13 +46,9 @@ Use the *'Preset current configuration'* selection to populate the desired slots
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
 <hr>
-<?$super = file_exists('/boot/config/super.dat')?>
 <form name="newConfig" method="POST" action="/update.htm" target="progressFrame">
-<?if ($var['fsState']=="Started" || !$super):?>
-<input type="submit" name="cmdInit" value="Apply" disabled><input type="button" value="Done" onclick="done()"><?if ($super):?>Array must be <strong><big>stopped</big></strong><?else:?>Array has been <strong><big>reset</big></strong> (please configure)<?endif;?>
-<?else:?>
 <span class="indent">Preset current configuration:</span>
-<select name="preset" class="narrow">
+<select name="preset" class="narrow" <?=$disabled?>>
 <?=mk_option('.','Parity|Data|Cache','All')?>
 <?=mk_option('.','Parity','Parity only')?>
 <?=mk_option('.','Parity|Data','Parity + Data')?>
@@ -55,7 +56,11 @@ effect of making it ***impossible*** to rebuild an existing failed drive - you h
 <?=mk_option('.','','None')?>
 </select>
 <br>
-<span class="indent"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value="Done" onclick="done()"></span><input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
+<span class="indent"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value="Done" onclick="done()"></span>
+<?if ($disabled):?>
+<?if ($super):?>Array must be <strong><big>stopped</big></strong><?else:?>Array has been <strong><big>reset</big></strong> (please configure)<?endif;?>
+<?else:?>
+<input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>
 </form>
 
