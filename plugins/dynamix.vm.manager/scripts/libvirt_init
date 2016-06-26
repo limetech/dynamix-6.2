@@ -1,19 +1,28 @@
 #!/bin/sh
+# Intialize libvirt config storage
+# Invoked by emhttp after mounting libvirt loopback but before starting libvirt.
 
-OLD_IMAGE=/boot/config/plugins/dynamix.kvm.manager/domain.img
-if [ ! -f $OLD_IMAGE ]; then
-  OLD_IMAGE=/boot/config/plugins/virtMan/virtMan.img
+# missing qemu directory would indicate new libvirt image file created
+if [ ! -d /etc/libvirt/qemu ]; then
+  logger "initializing /etc/libvirt"
+  # initialize with default settings
+  cp -rp /etc/libvirt-/* /etc/libvirt
+  # check if libvirt image file exists on USB flash
+  OLD_IMAGE=/boot/config/plugins/dynamix.kvm.manager/domain.img
   if [ ! -f $OLD_IMAGE ]; then
-    OLD_IMAGE=
+    OLD_IMAGE=/boot/config/plugins/virtMan/virtMan.img
+    if [ ! -f $OLD_IMAGE ]; then
+      OLD_IMAGE=
+    fi
   fi
-fi
-cp -rp /etc/libvirt-/* /etc/libvirt
-if [ "$OLD_IMAGE" != "" ]; then
-  rm -r /etc/libvirt/qemu/*
-  mount $OLD_IMAGE /etc/libvirt-
-  cp -rp /etc/libvirt-/qemu/* /etc/libvirt/qemu
-  if [ -f /etc/libvirt-/hooks/qemu ]; then
-    cp -p /etc/libvirt-/hooks/qemu /etc/libvirt/hooks/qemu
+  if [ "$OLD_IMAGE" != "" ]; then
+    # found existing image, use qemu config from there
+    rm -rf /etc/libvirt/qemu/*
+    mount $OLD_IMAGE /etc/libvirt-
+    cp -rp /etc/libvirt-/qemu/* /etc/libvirt/qemu
+    if [ -f /etc/libvirt-/hooks/qemu ]; then
+      cp -p /etc/libvirt-/hooks/qemu /etc/libvirt/hooks/qemu
+    fi
+    umount /etc/libvirt-
   fi
-  umount /etc/libvirt-
 fi
