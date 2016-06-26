@@ -50,4 +50,4 @@ $(function() {
 
 > + SMB security mode displayed in *italics* indicates exported hidden disk shares.
 > + AFP security mode displayed in *italics* indicates exported time-machine disk shares.
-> + NFS does not have hidden disk shares.
+> + NFS does not have special modes for disk shares.
