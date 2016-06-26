@@ -34,7 +34,8 @@ if (!isset($eth0) && is_file("/usr/local/emhttp/state/network.ini")) {
 }
 
 // Docker configuration file - guaranteed to exist
-$dockercfg = parse_ini_file("/boot/config/docker.cfg");
+$docker_cfgfile = "/boot/config/docker.cfg";
+$dockercfg = parse_ini_file($docker_cfgfile);
 
 ######################################
 ##   	DOCKERTEMPLATES CLASS       ##
