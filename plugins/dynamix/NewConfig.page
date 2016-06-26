@@ -14,11 +14,12 @@ Title="New Config"
  */
 ?>
 <?
-$super = file_exists('/boot/config/super.dat');
-$disabled = $var['fsState']=="Started" || !$super ? 'disabled' : '';
+$superdat = file_exists('/boot/config/super.dat');
+$disabled = $var['fsState']=="Started" || !$superdat ? 'disabled' : '';
 ?>
 <style>
-span.indent{display:inline-block;width:200px;}
+span.indent{display:inline-block;width:200px;margin-top:11px;}
+select.preset{min-width:auto;padding:0 6px;}
 </style>
 
 <?if (file_exists('/var/tmp/disks.ini')):?>
@@ -35,30 +36,31 @@ unlink('/var/tmp/disks.ini');
 ?>
 </script>
 <?endif;?>
+
 This is a utility to reset the array disk configuration so that all disks appear as "New" disks, as
 if it were a fresh new server.
 
 This is useful when you have added or removed multiple drives and wish to rebuild parity based on
 the new configuration.
 
-Use the *'Preset current configuration'* selection to populate the desired slots **after** the array has been reset. By default all slots are populated.
+Use the *'Preset current configuration'* selection to populate the desired disk slots **after** the array has been reset. By default all disk slots are populated.
 
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
 <hr>
 <form name="newConfig" method="POST" action="/update.htm" target="progressFrame">
 <span class="indent">Preset current configuration:</span>
-<select name="preset" class="narrow" <?=$disabled?>>
-<?=mk_option('.','Parity|Data|Cache','All')?>
-<?=mk_option('.','Parity','Parity only')?>
-<?=mk_option('.','Parity|Data','Parity + Data')?>
-<?=mk_option('.','Parity|Cache','Parity + Cache')?>
-<?=mk_option('.','','None')?>
+<select name="preset" class="preset" <?=$disabled?>>
+<?=mk_option(1,'Parity|Data|Cache','All')?>
+<?=mk_option(1,'Parity','Parity only')?>
+<?=mk_option(1,'Parity|Data','Parity + Data')?>
+<?=mk_option(1,'Parity|Cache','Parity + Cache')?>
+<?=mk_option(1,'','None')?>
 </select>
 <br>
 <span class="indent"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value="Done" onclick="done()"></span>
 <?if ($disabled):?>
-<?if ($super):?>Array must be <strong><big>stopped</big></strong><?else:?>Array has been <strong><big>reset</big></strong> (please configure)<?endif;?>
+<?=$superdat ? 'Array must be <b>STOPPED</b>' : 'Array has been <b>RESET</b> (please configure)'?>
 <?else:?>
 <input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>
