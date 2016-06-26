@@ -3,7 +3,7 @@ Title="Parity Check"
 Cond="($disks['parity']['status']!='DISK_NP_DSBL')"
 ---
 <?PHP
-/* Copyright 2015-2016, Bergware International.
+/* Copyright 2012-2016, Bergware International.
  * Copyright 2005-2016, Lime Technology
  *
  * This program is free software; you can redistribute it and/or

@@ -4,7 +4,7 @@ Cond="$var['fsState']=="Started" && $var['shareUser']=='e'"
 ---
 <?PHP
 /* Copyright 2005-2016, Lime Technology
- * Copyright 2015-2016, Bergware International.
+ * Copyright 2012-2016, Bergware International.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License version 2,
@@ -41,12 +41,21 @@ $(function() {
 <?endif;?>
 </form></p>
 
-> **Colored Status Indicator** the significance of the color indicator at the beginning of each line in *User Shares* is as follows:
+> **Colored Status Indicator** -- the significance of the color indicator at the beginning of each line in *User Shares* is as follows:
 >
 > <img src="/webGui/images/green-on.png" class="icon">All files are on protected storage.
 >
 > <img src="/webGui/images/yellow-on.png" class="icon">Some or all files are on unprotected storage.
 >
-> SMB security mode displayed in *italics* indicates exported hidden shares.
+> **Security modes:**
+
+> + '-' -- user share is not exported and unavailable on the network
+> + *Public* -- all users including guests have full read/write access (open access)
+> + *Secure* -- all users including guests have read access, write access is set per user (limited access)
+> + *Private* -- no guest access at all, read/write or read-only access is set per user (closed access)
 >
-> AFP security mode displayed in *italics* indicates exported time-machine shares.
+> **Special modes:**
+
+> + SMB security mode displayed in *italics* indicates exported hidden user shares.
+> + AFP security mode displayed in *italics* indicates exported time-machine user shares.
+> + NFS does not have special modes for user shares.

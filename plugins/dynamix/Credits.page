@@ -1,25 +1,25 @@
 Menu="About"
 Title="Credits"
 ---
-**unRAID webGUI** Copyright 2005-2016 [Lime Technology, Inc.](http://lime-technology.com).
+**unRAID webGUI** Copyright &copy; 2005-2016, [Lime Technology, Inc.](http://lime-technology.com).
 
-**Simple Features** Copyright 2012, Andrew Hamer-Adams. 
+**Simple Features** Copyright &copy; 2012, Andrew Hamer-Adams. 
 
-**Dynamix** Copyright 2012-2016, Bergware International.
+**Dynamix** Copyright &copy; 2012-2016, Bergware International.
 
-**Extended Docker Configuration Page** Copyright (C) 2014 Guilherme Jardim.
+**Extended Docker Configuration Page** Copyright &copy; 2014-2016, Guilherme Jardim.
 
-**APC UPS Configuration Page** Copyright 2015, by Dan Landon
+**APC UPS Configuration Page** Copyright &copy; 2015, Dan Landon.
 
-**VM Manager** Copyright 2015-2016, Eric Schultz, Derek Macias
+**VM Manager** Copyright &copy; 2015-2016, Eric Schultz, Derek Macias.
 
 The Software comprising the unRAID webGui, which is all files within this repository except for
 files listed below, is licensed under GPL version 2.
 
-* The Lime Technology logo file(s) `webGui/images/limtech-*.*` are property of Lime Technology, Inc.
+* The Lime Technology logo file(s) `webGui/images/limetech-*.*` are property of Lime Technology, Inc.
 and may not be used in any other project without written permission from Lime Technology, Inc.
 
-***unRAID*** is a registered trademark of [Lime Technology, Inc.](http://lime-technology.com).
+***unRAID***&trade; is a registered trademark of [Lime Technology, Inc.](http://lime-technology.com).
 
 This file shall be included in all copies or substantial portions of the Software.
 
