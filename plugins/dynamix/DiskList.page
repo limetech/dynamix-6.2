@@ -33,12 +33,21 @@ $(function() {
 </table>
 <p><input id="compute-disks" type="button" value="Compute All" onclick="$(this).prop('disabled',true);displayDisks('yes')"></p>
 
-> **Colored Status Indicator** the significance of the color indicator at the beginning of each line in *Disk Shares* is as follows:
+> **Colored Status Indicator** -- the significance of the color indicator at the beginning of each line in *Disk Shares* is as follows:
 >
 > <img src='/webGui/images/green-on.png' class='icon'>Mounted, underlying device has redundancy/protection.
 >
 > <img src='/webGui/images/yellow-on.png' class='icon'>Mounted, underlying device does not have redundancy/protection.
 >
-> SMB security mode displayed in *italics* indicates exported hidden shares.
+> **Security modes:**
+
+> + '-' -- disk share is not exported and unavailable on the network
+> + *Public* -- all users including guests have full read/write access (open access)
+> + *Secure* -- all users including guests have read access, write access is set per user (limited access)
+> + *Private* -- no guest access at all, read/write or read-only access is set per user (closed access)
 >
-> AFP security mode displayed in *italics* indicates exported time-machine shares.
+> **Special modes:**
+
+> + SMB security mode displayed in *italics* indicates exported hidden disk shares.
+> + AFP security mode displayed in *italics* indicates exported time-machine disk shares.
+> + NFS does not have hidden disk shares.
