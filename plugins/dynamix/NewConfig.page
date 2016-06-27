@@ -53,8 +53,11 @@ effect of making it ***impossible*** to rebuild an existing failed drive - you h
 <select name="preset" class="preset" <?=$disabled?>>
 <?=mk_option(1,'Parity|Data|Cache','All')?>
 <?=mk_option(1,'Parity','Parity only')?>
+<?=mk_option(1,'Data','Data only')?>
+<?=mk_option(1,'Cache','Cache only')?>
 <?=mk_option(1,'Parity|Data','Parity + Data')?>
 <?=mk_option(1,'Parity|Cache','Parity + Cache')?>
+<?=mk_option(1,'Data|Cache','Data + Cache')?>
 <?=mk_option(1,'','None')?>
 </select>
 <br>
@@ -70,6 +73,9 @@ effect of making it ***impossible*** to rebuild an existing failed drive - you h
 
 > + **All** - parity, data and cache disks are populated with the current disk assignment **after** an array reset
 > + **Parity only** - only parity disk(s) are populated, data and cache disks will be unassigned
+> + **Data only** - only data disk(s) are populated, parity and cache disks will be unassigned
+> + **Cache only** - only cache disk(s) are populated, parity and data disks will be unassigned
 > + **Parity + Data** - parity and data disks are populated, cache disks will be unassigned
 > + **Parity + Cache** - parity and cache disks are populated, data disks will be unassigned
+> + **Data + Cache** - data and cache disks are populated, parity disks will be unassigned
 > + **None** - parity, data and cache disks will all be unassigned
