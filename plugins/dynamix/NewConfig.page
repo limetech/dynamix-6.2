@@ -19,11 +19,24 @@ $disabled = $var['fsState']=="Started" || !$superdat ? 'disabled' : '';
 ?>
 <style>
 span.indent{display:inline-block;width:200px;margin-top:11px;}
-select.preset{min-width:auto;padding:0 6px;}
 </style>
 
-<?if (file_exists('/var/tmp/disks.ini')):?>
 <script>
+function prepareNewConfig(form) {
+  // Return preset as single line input
+  var preset = '';
+  for (var i=1,item; item=form.preset.options[i]; i++) {
+    if (item.selected) {
+      if (preset.length) preset += ',';
+      preset += item.value;
+      item.selected = false;
+    }
+  }
+  item = form.preset.options[0];
+  item.value = preset;
+  item.selected = true;
+}
+<?if (file_exists('/var/tmp/disks.ini')):?>
 function assign(id,disk) {
   var pair = {changeDevice:'Apply'};
   pair['slotId.'+id] = disk;
@@ -34,8 +47,14 @@ $disks = parse_ini_file('/var/tmp/disks.ini',true);
 foreach ($disks as $disk) echo "assign('{$disk['idx']}','{$disk['id']}');";
 unlink('/var/tmp/disks.ini');
 ?>
-</script>
 <?endif;?>
+$(function() {
+  $('#s1').dropdownchecklist({emptyText:'None', width:131, firstItemChecksAll: true, explicitClose:'...close'});
+<?if ($disabled):?>
+  $('#s1').dropdownchecklist('disable');
+<?endif;?>
+});
+</script>
 
 This is a utility to reset the array disk configuration so that all disks appear as "New" disks, as
 if it were a fresh new server.
@@ -47,18 +66,15 @@ Use the *'Preset current configuration'* selection to populate the desired disk 
 
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
+
 <hr>
-<form name="newConfig" method="POST" action="/update.htm" target="progressFrame">
+<form name="newConfig" method="POST" action="/update.htm" target="progressFrame" onsubmit="prepareNewConfig(this)">
 <span class="indent">Preset current configuration:</span>
-<select name="preset" class="preset" <?=$disabled?>>
-<?=mk_option(1,'Parity|Data|Cache','All')?>
-<?=mk_option(1,'Parity','Parity only')?>
-<?=mk_option(1,'Data','Data only')?>
-<?=mk_option(1,'Cache','Cache only')?>
-<?=mk_option(1,'Parity|Data','Parity + Data')?>
-<?=mk_option(1,'Parity|Cache','Parity + Cache')?>
-<?=mk_option(1,'Data|Cache','Data + Cache')?>
-<?=mk_option(1,'','None')?>
+<select id="s1" name="preset" size="1" multiple="multiple" style="display:none">
+<option value=''>All</option>
+<?=mk_option_check('Parity','Parity','Parity slots')?>
+<?=mk_option_check('Data','Data','Data slots')?>
+<?=mk_option_check('Cache','Cache','Cache slots')?>
 </select>
 <br>
 <span class="indent"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value="Done" onclick="done()"></span>
@@ -68,14 +84,3 @@ effect of making it ***impossible*** to rebuild an existing failed drive - you h
 <input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>
 </form>
-
-> *Preset current configuration*
-
-> + **All** - parity, data and cache disks are populated with the current disk assignment **after** an array reset
-> + **Parity only** - only parity disk(s) are populated, data and cache disks will be unassigned
-> + **Data only** - only data disk(s) are populated, parity and cache disks will be unassigned
-> + **Cache only** - only cache disk(s) are populated, parity and data disks will be unassigned
-> + **Parity + Data** - parity and data disks are populated, cache disks will be unassigned
-> + **Parity + Cache** - parity and cache disks are populated, data disks will be unassigned
-> + **Data + Cache** - data and cache disks are populated, parity disks will be unassigned
-> + **None** - parity, data and cache disks will all be unassigned
