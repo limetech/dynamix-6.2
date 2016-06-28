@@ -220,8 +220,6 @@ Excluded disk(s):
 
 > Specify the disks which can *not* be used by the share. By default no disks are excluded.
 
-<?if (isset($disks['cache'])&&($disks['cache']['status']!='DISK_NP')&&($var['shareCacheEnabled']=='yes')):?>
-
 Use cache disk:
 : <select name="shareUseCache" size="1" onchange="setDiskList(this.value)">
   <?=mk_option($share['useCache'], "no", "No")?>
@@ -230,7 +228,8 @@ Use cache disk:
   <?=mk_option($share['useCache'], "prefer", "Prefer")?>
   </select>
 
-> Specify whether new files and subdirectories written on the share can be written onto the Cache disk/pool.
+> Specify whether new files and directories written on the share can be written onto the Cache disk/pool
+> if present.
 >
 > **No** prohibits new files and subdirectories from being written onto the Cache disk/pool.
 >
@@ -247,8 +246,6 @@ Use cache disk:
 > new files and directories are created on the array.  When the *mover* is invoked, files and subdirectories are
 > transfered off the array and onto Cache disk/pool.
 
-<?endif;?>
-
 Enable Copy-on-write:
 : <select name="shareCOW" size="1"<?if ($name):?> disabled<?endif;?>>
   <?=mk_option($share['cow'], "no", "No")?>
@@ -261,7 +258,7 @@ Enable Copy-on-write:
 > used to store vdisk images, including the Docker loopback image file.  This setting has no effect
 > on non-btrfs file systems.
 >
-> Set to **Auto** for normal operation, meaning COW will be in effect on devices formatted with *btrfs*.
+> Set to **Auto** for normal operation, meaning COW **will** be in effect on devices formatted with *btrfs*.
 
 <?if ($share['name'] == ""):?>
 &nbsp;
