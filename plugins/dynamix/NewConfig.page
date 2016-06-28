@@ -77,7 +77,7 @@ effect of making it ***impossible*** to rebuild an existing failed drive - you h
 <?=mk_option_check('Cache','Cache','Cache slots')?>
 </select>
 <br>
-<span class="indent"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value="Done" onclick="done()"></span>
+<span class="indent"><input type="submit" name="cmdInit" value=" Apply " onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value=" Done " onclick="done()"></span>
 <?if ($disabled):?>
 <?=$superdat ? 'Array must be <b>STOPPED</b>' : 'Array has been <b>RESET</b> (please configure)'?>
 <?else:?>
