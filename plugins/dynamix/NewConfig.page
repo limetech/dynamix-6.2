@@ -61,14 +61,14 @@ if it were a fresh new server.
 This is useful when you have added or removed multiple drives and wish to rebuild parity based on
 the new configuration.
 
-Use the *'Preset current configuration'* selection to populate the desired disk slots ***after*** the array has been reset. By default **no** disk slots are populated.
+Use the *'Retain current configuration'* selection to populate the desired disk slots ***after*** the array has been reset. By default **no** disk slots are populated.
 
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
 
 <hr>
 <form name="newConfig" method="POST" action="/update.htm" target="progressFrame" onsubmit="prepareNewConfig(this)">
-<span class="indent">Preset current configuration:</span>
+<span class="indent">Retain current configuration:</span>
 <select id="s1" name="preset" size="1" multiple="multiple" style="display:none">
 <option value=''>All</option>
 <?=mk_option_check(0,'Parity','Parity slots')?>
