@@ -49,7 +49,7 @@ unlink('/var/tmp/disks.ini');
 ?>
 <?endif;?>
 $(function() {
-  $('#s1').dropdownchecklist({emptyText:'None', width:131, firstItemChecksAll: true, explicitClose:'...close'});
+  $('#s1').dropdownchecklist({emptyText:'None', width:131, firstItemChecksAll:true, explicitClose:'...close'});
 <?if ($disabled):?>
   $('#s1').dropdownchecklist('disable');
 <?endif;?>
@@ -62,7 +62,7 @@ if it were a fresh new server.
 This is useful when you have added or removed multiple drives and wish to rebuild parity based on
 the new configuration.
 
-Use the *'Preset current configuration'* selection to populate the desired disk slots ***after*** the array has been reset. By default all disk slots currently present are populated.
+Use the *'Preset current configuration'* selection to populate the desired disk slots ***after*** the array has been reset. By default **no** disk slots are populated.
 
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
@@ -72,9 +72,9 @@ effect of making it ***impossible*** to rebuild an existing failed drive - you h
 <span class="indent">Preset current configuration:</span>
 <select id="s1" name="preset" size="1" multiple="multiple" style="display:none">
 <option value=''>All</option>
-<?=mk_option_check('Parity','Parity','Parity slots')?>
-<?=mk_option_check('Data','Data','Data slots')?>
-<?=mk_option_check('Cache','Cache','Cache slots')?>
+<?=mk_option_check(0,'Parity','Parity slots')?>
+<?=mk_option_check(0,'Data','Data slots')?>
+<?=mk_option_check(0,'Cache','Cache slots')?>
 </select>
 <br>
 <span class="indent"><input type="submit" name="cmdInit" value=" Apply " onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value=" Done " onclick="done()"></span>
