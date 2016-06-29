@@ -19,11 +19,23 @@ $disabled = $var['fsState']=="Started" || !$superdat ? 'disabled' : '';
 ?>
 <style>
 span.indent{display:inline-block;width:200px;margin-top:11px;}
-select.preset{min-width:auto;padding:0 6px;}
 </style>
 
-<?if (file_exists('/var/tmp/disks.ini')):?>
 <script>
+function prepareNewConfig(form) {
+  // assemble preset value
+  var preset = '';
+  for (var i=1,item; item=form.preset.options[i]; i++) {
+    if (item.selected) {
+      if (preset.length) preset += ',';
+      preset += item.value;
+      item.selected = false;
+    }
+  }
+  // set preset filter to populate slots
+  $.post('/webGui/include/PrepareDisks.php',{preset:preset});
+}
+<?if (file_exists('/var/tmp/disks.ini')):?>
 function assign(id,disk) {
   var pair = {changeDevice:'Apply'};
   pair['slotId.'+id] = disk;
@@ -34,8 +46,14 @@ $disks = parse_ini_file('/var/tmp/disks.ini',true);
 foreach ($disks as $disk) echo "assign('{$disk['idx']}','{$disk['id']}');";
 unlink('/var/tmp/disks.ini');
 ?>
-</script>
 <?endif;?>
+$(function() {
+  $('#s1').dropdownchecklist({emptyText:'None', width:131, firstItemChecksAll:true, explicitClose:'...close'});
+<?if ($disabled):?>
+  $('#s1').dropdownchecklist('disable');
+<?endif;?>
+});
+</script>
 
 This is a utility to reset the array disk configuration so that all disks appear as "New" disks, as
 if it were a fresh new server.
@@ -43,33 +61,25 @@ if it were a fresh new server.
 This is useful when you have added or removed multiple drives and wish to rebuild parity based on
 the new configuration.
 
-Use the *'Preset current configuration'* selection to populate the desired disk slots ***after*** the array has been reset. By default all disk slots currently present are populated.
+Use the *'Preset current configuration'* selection to populate the desired disk slots ***after*** the array has been reset. By default **no** disk slots are populated.
 
 **DO NOT USE THIS UTILITY THINKING IT WILL REBUILD A FAILED DRIVE** - it will have the opposite
 effect of making it ***impossible*** to rebuild an existing failed drive - you have been warned!
+
 <hr>
-<form name="newConfig" method="POST" action="/update.htm" target="progressFrame">
+<form name="newConfig" method="POST" action="/update.htm" target="progressFrame" onsubmit="prepareNewConfig(this)">
 <span class="indent">Preset current configuration:</span>
-<select name="preset" class="preset" <?=$disabled?>>
-<?=mk_option(1,'Parity|Data|Cache','All')?>
-<?=mk_option(1,'Parity','Parity only')?>
-<?=mk_option(1,'Parity|Data','Parity + Data')?>
-<?=mk_option(1,'Parity|Cache','Parity + Cache')?>
-<?=mk_option(1,'','None')?>
+<select id="s1" name="preset" size="1" multiple="multiple" style="display:none">
+<option value=''>All</option>
+<?=mk_option_check(0,'Parity','Parity slots')?>
+<?=mk_option_check(0,'Data','Data slots')?>
+<?=mk_option_check(0,'Cache','Cache slots')?>
 </select>
 <br>
-<span class="indent"><input type="submit" name="cmdInit" value="Apply" onclick="$.post('/webGui/include/PrepareDisks.php',{preset:preset.value})" disabled><input type="button" value="Done" onclick="done()"></span>
+<span class="indent"><input type="submit" name="cmdInit" value=" Apply " disabled><input type="button" value=" Done " onclick="done()"></span>
 <?if ($disabled):?>
 <?=$superdat ? 'Array must be <b>STOPPED</b>' : 'Array has been <b>RESET</b> (please configure)'?>
 <?else:?>
 <input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>
 </form>
-
-> *Preset current configuration*
-
-> + **All** - parity, data and cache disks are populated with the current disk assignment **after** an array reset
-> + **Parity only** - only parity disk(s) are populated, data and cache disks will be unassigned
-> + **Parity + Data** - parity and data disks are populated, cache disks will be unassigned
-> + **Parity + Cache** - parity and cache disks are populated, data disks will be unassigned
-> + **None** - parity, data and cache disks will all be unassigned
