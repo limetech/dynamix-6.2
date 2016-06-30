@@ -277,21 +277,22 @@ class DockerTemplates {
 	}
 
 
-	public function removeInfo($container, $image) {
+	public function removeContainerInfo($container) {
+		global $dockerManPaths;
+
+		$info = DockerUtil::loadJSON($dockerManPaths['webui-info']);
+		if (isset($info[$container])) unset($info[$container]);
+		DockerUtil::saveJSON($dockerManPaths['webui-info'], $info);
+	}
+
+
+	public function removeImageInfo($image) {
 		global $dockerManPaths;
 		$image = DockerUtil::ensureImageTag($image);
-		$dockerIni = $dockerManPaths['webui-info'];
-		if (!is_dir(dirname($dockerIni))) @mkdir(dirname($dockerIni), 0770, true);
-		$info = (is_file($dockerIni)) ? json_decode(file_get_contents($dockerIni), true) : [];
-		if (!count($info)) $info = [];
 
-		if (isset($info[$container])) unset($info[$container]);
-		file_put_contents($dockerIni, json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-		$update_file = $dockerManPaths['update-status'];
-		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), true) : [];
+		$updateStatus = DockerUtil::loadJSON($dockerManPaths['update-status']);
 		if (isset($updateStatus[$image])) unset($updateStatus[$image]);
-		file_put_contents($update_file, json_encode($updateStatus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+		DockerUtil::saveJSON($dockerManPaths['update-status'], $updateStatus);
 	}
 
 
@@ -302,10 +303,7 @@ class DockerTemplates {
 		$DockerUpdate->verbose = $this->verbose;
 		$new_info = [];
 
-		$dockerIni = $dockerManPaths['webui-info'];
-		if (!is_dir(dirname($dockerIni))) @mkdir(dirname($dockerIni), 0770, true);
-		$info = (is_file($dockerIni)) ? json_decode(file_get_contents($dockerIni), true) : [];
-		if (!count($info)) $info = [];
+		$info = DockerUtil::loadJSON($dockerManPaths['webui-info']);
 
 		$autostart_file = $dockerManPaths['autostart-file'];
 		$allAutoStart = @file($autostart_file, FILE_IGNORE_NEW_LINES);
@@ -349,7 +347,7 @@ class DockerTemplates {
 			foreach ($tmp as $c => $d) $this->debug(sprintf("   %-10s: %s", $c, $d));
 			$new_info[$name] = $tmp;
 		}
-		file_put_contents($dockerIni, json_encode($new_info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+		DockerUtil::saveJSON($dockerManPaths['webui-info'], $new_info);
 		return $new_info;
 	}
 
@@ -475,13 +473,11 @@ class DockerUpdate{
 
 	public function getUpdateStatus($image) {
 		global $dockerManPaths;
-		if (is_file($dockerManPaths['update-status'])) {
-			$updateStatus = json_decode(file_get_contents($dockerManPaths['update-status']), true);
-			$image = DockerUtil::ensureImageTag($image);
-			if (isset($updateStatus[$image])) {
-				if ($updateStatus[$image]['local'] || $updateStatus[$image]['remote']) {
-					return ($updateStatus[$image]['local'] == $updateStatus[$image]['remote']);
-				}
+		$image = DockerUtil::ensureImageTag($image);
+		$updateStatus = DockerUtil::loadJSON($dockerManPaths['update-status']);
+		if (isset($updateStatus[$image])) {
+			if ($updateStatus[$image]['local'] || $updateStatus[$image]['remote']) {
+				return ($updateStatus[$image]['local'] == $updateStatus[$image]['remote']);
 			}
 		}
 		return null;
@@ -491,8 +487,7 @@ class DockerUpdate{
 	public function reloadUpdateStatus($image = null) {
 		global $dockerManPaths;
 		$DockerClient = new DockerClient();
-		$update_file  = $dockerManPaths['update-status'];
-		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), true) : [];
+		$updateStatus = DockerUtil::loadJSON($dockerManPaths['update-status']);
 		$images = ($image) ? [DockerUtil::ensureImageTag($image)] : array_map(function($ar){return $ar['Tags'][0];}, $DockerClient->getDockerImages());
 		foreach ($images as $img) {
 			$localVersion = null;
@@ -506,24 +501,23 @@ class DockerUpdate{
 				'remote' => $remoteVersion,
 				'status' => $status
 			];
-			$this->debug("Update status: Image='${img}', Local='${localVersion}', Remote='${remoteVersion}'");
+			$this->debug("Update status: Image='${img}', Local='${localVersion}', Remote='${remoteVersion}', Status='${status}'");
 		}
-		file_put_contents($update_file, json_encode($updateStatus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+		DockerUtil::saveJSON($dockerManPaths['update-status'], $updateStatus);
 	}
 
 
 	public function setUpdateStatus($image, $version) {
 		global $dockerManPaths;
 		$image = DockerUtil::ensureImageTag($image);
-		$update_file  = $dockerManPaths['update-status'];
-		$updateStatus = (is_file($update_file)) ? json_decode(file_get_contents($update_file), true) : [];
+		$updateStatus = DockerUtil::loadJSON($dockerManPaths['update-status']);
 		$updateStatus[$image] = [
 			'local'  => $version,
 			'remote' => $version,
 			'status' => 'true'
 		];
-		$this->debug("Update status: Image='${image}', Local='${version}', Remote='${version}'");
-		file_put_contents($update_file, json_encode($updateStatus, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+		$this->debug("Update status: Image='${image}', Local='${version}', Remote='${version}', Status='true'");
+		DockerUtil::saveJSON($dockerManPaths['update-status'], $updateStatus);
 	}
 
 
@@ -781,6 +775,12 @@ class DockerClient {
 
 
 	public function removeContainer($id) {
+		global $dockerManPaths;
+		// Purge cached container information
+		$info = DockerUtil::loadJSON($dockerManPaths['webui-info']);
+		if (isset($info[$container])) unset($info[$container]);
+		DockerUtil::saveJSON($dockerManPaths['webui-info'], $info);
+		// Attempt to remove container
 		$this->getDockerJSON("/containers/${id}?force=1", "DELETE", $code);
 		$this->allContainersCache = null; // flush cache
 		$codes = [
@@ -801,8 +801,18 @@ class DockerClient {
 
 
 	public function removeImage($id) {
+		global $dockerManPaths;
+		$image = $this->getImageName($id);
+		// Attempt to remove image
 		$this->getDockerJSON("/images/${id}?force=1", "DELETE", $code);
 		$this->allImagesCache = null; // flush cache
+		if (in_array($code, ["200", "404"])) {
+			// Purge cached image information (only if delete was successful)
+			$image = DockerUtil::ensureImageTag($image);
+			$updateStatus = DockerUtil::loadJSON($dockerManPaths['update-status']);
+			if (isset($updateStatus[$image])) unset($updateStatus[$image]);
+			DockerUtil::saveJSON($dockerManPaths['update-status'], $updateStatus);
+		}
 		$codes = [
 			"200" => true, // No error
 			"404" => "No such image",
@@ -863,8 +873,7 @@ class DockerClient {
 
 	public function getContainerID($Container) {
 		foreach ($this->getDockerContainers() as $ct) {
-			preg_match("%" . preg_quote($Container, "%") ."%", $ct["Name"], $matches);
-			if ($matches) {
+			if (preg_match("%" . preg_quote($Container, "%") . "%", $ct["Name"])) {
 				return $ct["Id"];
 			}
 		}
@@ -874,9 +883,18 @@ class DockerClient {
 
 	public function getImageID($Image) {
 		foreach ($this->getDockerImages() as $img) {
-			preg_match("%" . preg_quote($Image, "%") ."%", $img["Tags"][0], $matches);
-			if ($matches) {
+			if (preg_match("%" . preg_quote($Image, "%") . "%", $img["Tags"][0])) {
 				return $img["Id"];
+			}
+		}
+		return null;
+	}
+
+
+	public function getImageName($id) {
+		foreach ($this->getDockerImages() as $img) {
+			if ($img['Id'] == $id) {
+				return $img['Tags'][0];
 			}
 		}
 		return null;
@@ -947,6 +965,21 @@ class DockerUtil {
 		}
 
 		return $strRepo.':'.$strTag;
+	}
+
+
+	public static function loadJSON($path) {
+		$objContent = (is_file($path)) ? json_decode(file_get_contents($path), true) : [];
+		if (empty($objContent)) $objContent = [];
+
+		return $objContent;
+	}
+
+
+	public static function saveJSON($path, $content) {
+		if (!is_dir(dirname($path))) @mkdir(dirname($path), 0770, true);
+
+		return file_put_contents($path, json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 	}
 
 }
