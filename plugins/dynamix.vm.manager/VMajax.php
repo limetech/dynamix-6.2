@@ -461,8 +461,8 @@ switch ($action) {
 			$arrResponse = ['error' => 'Unknown version: ' . $_POST['download_version']];
 		} else if (empty($_POST['download_path'])) {
 			$arrResponse = ['error' => 'Specify a ISO storage path first'];
-		//} else if (!is_dir($_POST['download_path'])) {
-		//	$arrResponse = ['error' => 'ISO storage path doesn\'t exist, please create the user share (or empty folder) first'];
+		} else if (!is_dir($_POST['download_path'])) {
+			$arrResponse = ['error' => 'ISO storage path doesn\'t exist, please create the user share (or empty folder) first'];
 		} else {
 			@mkdir($_POST['download_path'], 0777, true);
 			$_POST['download_path'] = realpath($_POST['download_path']) . '/';
