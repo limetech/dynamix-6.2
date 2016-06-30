@@ -21,7 +21,8 @@
 	$arrValidOtherDevices = getValidOtherDevices();
 	$arrValidUSBDevices = getValidUSBDevices();
 	$arrValidDiskDrivers = getValidDiskDrivers();
-	$arrValidBusTypes = getValidBusTypes();
+	$arrValidDiskBuses = getValidDiskBuses();
+	$arrValidCdromBuses = getValidCdromBuses();
 	$arrValidVNCModels = getValidVNCModels();
 	$arrValidKeyMaps = getValidKeyMaps();
 	$arrValidBridges = getNetworkBridges();
@@ -413,7 +414,7 @@
 		<td>OS Install CDRom Bus:</td>
 		<td>
 			<select name="media[cdrombus]" class="cdrom_bus narrow">
-			<?php mk_dropdown_options($arrValidBusTypes, $arrConfig['media']['cdrombus']); ?>
+			<?php mk_dropdown_options($arrValidCdromBuses, $arrConfig['media']['cdrombus']); ?>
 			</select>
 		</td>
 	</tr>
@@ -437,7 +438,7 @@
 		<td>VirtIO Drivers CDRom Bus:</td>
 		<td>
 			<select name="media[driversbus]" class="cdrom_bus narrow">
-			<?php mk_dropdown_options($arrValidBusTypes, $arrConfig['media']['driversbus']); ?>
+			<?php mk_dropdown_options($arrValidCdromBuses, $arrConfig['media']['driversbus']); ?>
 			</select>
 		</td>
 	</tr>
@@ -560,7 +561,7 @@
 			<td>vDisk Bus:</td>
 			<td>
 				<select name="disk[<?=$i?>][bus]" class="disk_bus narrow">
-				<?php mk_dropdown_options($arrValidBusTypes, $arrDisk['bus']); ?>
+				<?php mk_dropdown_options($arrValidDiskBuses, $arrDisk['bus']); ?>
 				</select>
 			</td>
 		</tr>
@@ -677,7 +678,7 @@
 			<td>vDisk Bus:</td>
 			<td>
 				<select name="disk[{{INDEX}}][bus]" class="disk_bus narrow">
-				<?php mk_dropdown_options($arrValidBusTypes, ''); ?>
+				<?php mk_dropdown_options($arrValidDiskBuses, ''); ?>
 				</select>
 			</td>
 		</tr>

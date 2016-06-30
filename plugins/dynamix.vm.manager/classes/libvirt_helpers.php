@@ -786,15 +786,26 @@
 	}
 
 
-	function getValidBusTypes() {
-		$arrValidBusTypes = [
+	function getValidDiskBuses() {
+		$arrValidDiskBuses = [
 			'virtio' => 'VirtIO',
 			'sata' => 'SATA',
 			'ide' => 'IDE',
 			'usb' => 'USB'
 		];
 
-		return $arrValidBusTypes;
+		return $arrValidDiskBuses;
+	}
+
+
+	function getValidCdromBuses() {
+		$arrValidCdromBuses = [
+			'sata' => 'SATA',
+			'ide' => 'IDE',
+			'usb' => 'USB'
+		];
+
+		return $arrValidCdromBuses;
 	}
 
 
