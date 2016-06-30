@@ -221,12 +221,9 @@ function autov($file) {
 }
 function transpose_user_path($path) {
   if (strpos($path, '/mnt/user/') === 0 && file_exists($path)) {
-    $realdisk = trim(shell_exec("getfattr --absolute-names -n user.LOCATIONS ".escapeshellarg($path)." 2>/dev/null|grep -Po '^user.LOCATIONS=\"\K[^\\\"]+'"));
-    if (!empty($realdisk)) {
-      // there may be several disks participating in this path (e.g. disk1,2,3) so
-      // only return the first disk and replace 'user' with say 'cache' or 'disk1'
-      $path = str_replace('/mnt/user/', '/mnt/'.strtok($realdisk.',', ',').'/', $path);
-    }
+    $realdisk = trim(shell_exec("getfattr --absolute-names --only-values -n user.LOCATION ".escapeshellarg($path)." 2>/dev/null"));
+    if (!empty($realdisk))
+      $path = str_replace('/mnt/user/', "/mnt/$realdisk/", $path);
   }
   return $path;
 }

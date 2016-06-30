@@ -23,13 +23,9 @@ function sort_by($field, $opt, $show_disk) {
 // read directory contents into 'list' array
   global $docroot,$dir;
   $path = $docroot.preg_replace('/([\'" &()[\]\\\\])/','\\\\$1',$dir).'/*';
-  $file = array(); $disk = array(); $list = array();
+  $file = array(); $list = array();
   $i = 0;
   exec("shopt -s dotglob ; stat -L -c'%F|%n|%s|%Y' $path 2>/dev/null", $file);
-  if ($show_disk)
-    exec("shopt -s dotglob ; getfattr --absolute-names -n user.LOCATIONS $path 2>/dev/null|grep -Po '^user.LOCATIONS=\"\K[^\\\"]+'", $disk);
-  else
-    $disk = array_fill(0, max(count($file),1), '');
   foreach ($file as $entry) {
     $attr = explode('|', $entry);
     $info = pathinfo($attr[1]);
@@ -39,7 +35,7 @@ function sort_by($field, $opt, $show_disk) {
     'fext' => strtolower($info['extension']),
     'size' => $attr[2],
     'time' => $attr[3],
-    'disk' => my_disk($disk[$i++]));
+    'disk' => $show_disk?my_disk(exec("shopt -s dotglob ; getfattr --absolute-names --only-values -n user.LOCATIONS '$attr[1]'")):'');
   }
 // sort by input 'field'
   if ($field=='name') {
@@ -125,7 +121,7 @@ $disk_order=($column=='disk'?$order:'A');
 <?  else:
       $files++;
       $total+=$entry['size'];
-      $warn = substr($entry['disk'],-1)=="*" ? ' class="warning"' : '';
+      $warn = strstr($entry['disk'],",") ? ' class="warning"' : '';
 ?>    <td><div class="icon-file icon-<?=strtolower($entry['fext'])?>"></div></td>
       <td><a href="<?=urlencode_path(autov($dir.'/'.$entry['name']));?>" <?=$warn?$warn:'class="none"'?>><?=$entry['name']?></a></td>
       <td<?=$warn?>><?=my_scale($entry['size'],$unit).' '.$unit?></td>
