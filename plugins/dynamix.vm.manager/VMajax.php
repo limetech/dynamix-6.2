@@ -467,6 +467,12 @@ switch ($action) {
 			@mkdir($_POST['download_path'], 0777, true);
 			$_POST['download_path'] = realpath($_POST['download_path']) . '/';
 
+			// Check free space
+			if (disk_free_space($_POST['download_path']) < $arrDownloadVirtIO['size']+10000) {
+				$arrResponse['error'] = 'Not enough free space, need at least ' . ceil($arrDownloadVirtIO['size']/1000000).'MB';
+				break;
+			}
+
 			$boolCheckOnly = !empty($_POST['checkonly']);
 
 			$strInstallScript = '/tmp/VirtIOWin_' . $strKeyName . '_install.sh';
