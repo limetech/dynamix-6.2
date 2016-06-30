@@ -52,7 +52,7 @@ if (file_exists($realfile)) {
     <select id="DOCKER_ENABLED" name="DOCKER_ENABLED" class="narrow">
     <?= mk_option($dockercfg['DOCKER_ENABLED'], 'no', 'No'); ?>
     <?= mk_option($dockercfg['DOCKER_ENABLED'], 'yes', 'Yes'); ?>
-    </select> <?if ($var['fsState'] != "Started"):?><span id="arraystopped"><i class="fa fa-warning icon warning"></i> <?=($dockercfg['DOCKER_ENABLED']=='yes')?'Docker will be available after Array is Started':'Apply to activate Docker after Array is Started'?></span><?endif;?>
+    </select> <?if ($var['fsState'] != "Started"):?><span id="arraystopped"><i class="fa fa-warning icon warning"></i> <?=($dockercfg['DOCKER_ENABLED']=='yes')?'Docker will be available after Array is Started':'Apply to activate Docker after Array is Started'?></span><?elseif (!is_dir(dirname($dockercfg['DOCKER_IMAGE_FILE'])) || !is_dir($dockercfg['DOCKER_APP_CONFIG_PATH'])):?><span class="basic" style="display:inline"><i class="fa fa-warning icon warning"></i> One or more paths do not exist (<a href="#" onclick="$('.advancedview').switchButton('option','checked',true); return false">view</a>)</span><?endif;?>
   </dd>
 </dl>
 <blockquote class="inline_help">
@@ -63,19 +63,19 @@ if (file_exists($realfile)) {
 
 <?if (pgrep('docker') === false):?>
 
-<dl>
-  <dt>Docker vdisk size:</dt>
-  <dd><input id="DOCKER_IMAGE_SIZE" type="number" name="DOCKER_IMAGE_SIZE" value="<?=$dockercfg['DOCKER_IMAGE_SIZE'];?>" style="width:50px;" required="required" />GB <span id="SIZE_ERROR" class="errortext"></span></dd>
-</dl>
-<blockquote class="inline_help">
-  <p>If the system needs to create a new docker image file, this is the default size to use specified in GB.</p>
-  <p>To resize an existing image file, specify the new size here.  Next time the Docker service is started the file (and file system) will increased to the new size (but never decreased).</p>
-</blockquote>
-
 <div class="advanced">
   <dl>
+    <dt>Docker vdisk size:</dt>
+    <dd><input id="DOCKER_IMAGE_SIZE" type="number" name="DOCKER_IMAGE_SIZE" value="<?=$dockercfg['DOCKER_IMAGE_SIZE'];?>" style="width:50px;" required="required" />GB <span id="SIZE_ERROR" class="errortext"></span></dd>
+  </dl>
+  <blockquote class="inline_help">
+    <p>If the system needs to create a new docker image file, this is the default size to use specified in GB.</p>
+    <p>To resize an existing image file, specify the new size here.  Next time the Docker service is started the file (and file system) will increased to the new size (but never decreased).</p>
+  </blockquote>
+
+  <dl>
     <dt>Docker storage location:</dt>
-    <dd><input id="DOCKER_IMAGE_FILE" type="text" name="DOCKER_IMAGE_FILE" value="<?=$dockercfg['DOCKER_IMAGE_FILE'];?>" placeholder="e.g. /mnt/disk1/docker.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <?php if (file_exists($dockercfg['DOCKER_IMAGE_FILE'])) { ?><span id="deletePanel"><label><input type="checkbox" id="deleteCheckbox" /> Delete Image File</label></span><?php } ?> <span id="IMAGE_ERROR" class="errortext"></span></dd>
+    <dd><input id="DOCKER_IMAGE_FILE" type="text" name="DOCKER_IMAGE_FILE" value="<?=$dockercfg['DOCKER_IMAGE_FILE'];?>" placeholder="e.g. /mnt/disk1/docker.img" data-pickcloseonfile="true" data-pickfilter="img" data-pickroot="/mnt/" data-pickfolders="true" required="required" /> <?php if (file_exists($dockercfg['DOCKER_IMAGE_FILE'])) { ?><span id="deletePanel"><label><input type="checkbox" id="deleteCheckbox" /> Delete Image File</label></span><?php } ?> <?if ($var['fsState'] != "Started"):?><span><i class="fa fa-warning icon warning"></i> Modify with caution: unable to validate path until Array is Started</span><?elseif (!is_dir(dirname($dockercfg['DOCKER_IMAGE_FILE']))):?><span><i class="fa fa-warning icon warning"></i> Path does not exist</span><?endif;?> <span id="IMAGE_ERROR" class="errortext"></span></dd>
   </dl>
   <blockquote class="inline_help">
     <p>You must specify an image file for Docker.  The system will automatically create this file when the Docker service is first started.</p>
@@ -107,7 +107,7 @@ if (file_exists($realfile)) {
 <div class="advanced">
   <dl>
     <dt>Default appdata storage location:</dt>
-    <dd><input id="DOCKER_APP_CONFIG_PATH" type="text" name="DOCKER_APP_CONFIG_PATH" value="<?=$dockercfg['DOCKER_APP_CONFIG_PATH'];?>" placeholder="e.g. /mnt/user/appdata" data-pickfilter="HIDE_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" data-pickfolders="true" /></dd>
+    <dd><input id="DOCKER_APP_CONFIG_PATH" type="text" name="DOCKER_APP_CONFIG_PATH" value="<?=$dockercfg['DOCKER_APP_CONFIG_PATH'];?>" placeholder="e.g. /mnt/user/appdata" data-pickfilter="HIDE_FILES_FILTER" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" data-pickfolders="true" /> <?if ($var['fsState'] != "Started"):?><span><i class="fa fa-warning icon warning"></i> Modify with caution: unable to validate path until Array is Started</span><?elseif (!is_dir($dockercfg['DOCKER_APP_CONFIG_PATH'])):?><span><i class="fa fa-warning icon warning"></i> Path does not exist</span><?endif;?></dd>
   </dl>
   <blockquote class="inline_help">
     <p>You can specify a folder to automatically generate and store subfolders containing configuration files for each Docker app (via the /config mapped volume).</p>
