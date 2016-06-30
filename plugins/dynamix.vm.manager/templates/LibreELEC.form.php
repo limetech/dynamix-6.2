@@ -88,6 +88,15 @@
 			@mkdir($_POST['download_path'], 0777, true);
 			$_POST['download_path'] = realpath($_POST['download_path']) . '/';
 
+			// Check free space
+			if (disk_free_space($_POST['download_path']) < $arrDownloadLibreELEC['size']+10000) {
+				$arrResponse = [
+					'error' => 'Not enough free space, need at least ' . ceil($arrDownloadLibreELEC['size']/1000000).'MB'
+				];
+				echo json_encode($arrResponse);
+				exit;
+			}
+
 			$boolCheckOnly = !empty($_POST['checkonly']);
 
 			$strInstallScript = '/tmp/LibreELEC_' . $_POST['download_version'] . '_install.sh';
