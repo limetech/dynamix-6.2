@@ -88,6 +88,15 @@
 			@mkdir($_POST['download_path'], 0777, true);
 			$_POST['download_path'] = realpath($_POST['download_path']) . '/';
 
+			// Check free space
+			if (disk_free_space($_POST['download_path']) < $arrDownloadOpenELEC['size']+10000) {
+				$arrResponse = [
+					'error' => 'Not enough free space, need at least ' . ceil($arrDownloadOpenELEC['size']/1000000).'MB'
+				];
+				echo json_encode($arrResponse);
+				exit;
+			}
+
 			$boolCheckOnly = !empty($_POST['checkonly']);
 
 			$strInstallScript = '/tmp/OpenELEC_' . $_POST['download_version'] . '_install.sh';
