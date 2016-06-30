@@ -768,7 +768,7 @@
 		</tr>
 
 		<? if ($i == 0) { ?>
-		<tr class="advanced vncmodel">
+		<tr class="<? if ($arrGPU['id'] != 'vnc') echo 'was'; ?>advanced vncmodel">
 			<td>VNC Video Driver:</td>
 			<td>
 				<select id="vncmodel" name="gpu[<?=$i?>][model]" class="narrow" title="video for VNC">
@@ -780,7 +780,7 @@
 			<td>VNC Password:</td>
 			<td><input type="password" name="domain[password]" title="password for VNC" class="narrow" placeholder="Password for VNC (optional)" /></td>
 		</tr>
-		<tr class="advanced vnckeymap">
+		<tr class="<? if ($arrGPU['id'] != 'vnc') echo 'was'; ?>advanced vnckeymap">
 			<td>VNC Keyboard:</td>
 			<td>
 				<select name="gpu[<?=$i?>][keymap]" title="keyboard for VNC">
@@ -797,7 +797,7 @@
 			If you wish to assign a graphics card to the VM, select it from this list, otherwise leave it set to VNC.
 		</p>
 
-		<p class="advanced vncmodel">
+		<p class="<? if ($arrGPU['id'] != 'vnc') echo 'was'; ?>advanced vncmodel">
 			<b>VNC Video Driver</b><br>
 			If you wish to assign a different video driver to use for a VNC connection, specify one here.
 		</p>
@@ -807,7 +807,7 @@
 			If you wish to require a password to connect to the VM over a VNC connection, specify one here.
 		</p>
 
-		<p class="advanced vnckeymap">
+		<p class="<? if ($arrGPU['id'] != 'vnc') echo 'was'; ?>advanced vnckeymap">
 			<b>VNC Keyboard</b><br>
 			If you wish to assign a different keyboard layout to use for a VNC connection, specify one here.
 		</p>
