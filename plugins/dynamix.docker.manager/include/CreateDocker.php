@@ -84,14 +84,16 @@ function pullImage($name, $image) {
 
   $alltotals = [];
   $laststatus = [];
+  $strError = '';
 
-  // Force information reload
-  $DockerTemplates->removeInfo($name, $image);
-
-  $DockerClient->pullImage($image, function ($line) use (&$alltotals, &$laststatus, &$waitID, $image, $DockerClient, $DockerUpdate) {
+  $DockerClient->pullImage($image, function ($line) use (&$alltotals, &$laststatus, &$waitID, &$strError, $image, $DockerClient, $DockerUpdate) {
     $cnt = json_decode($line, true);
     $id = (isset($cnt['id'])) ? trim($cnt['id']) : '';
     $status = (isset($cnt['status'])) ? trim($cnt['status']) : '';
+
+    if (isset($cnt['error'])) {
+      $strError = $cnt['error'];
+    }
 
     if ($waitID !== false) {
       echo "<script>stop_Wait($waitID);</script>\n";
@@ -157,6 +159,14 @@ function pullImage($name, $image) {
 
   echo "<script>addLog('<br><b>TOTAL DATA PULLED:</b> " . $DockerClient->formatBytes(array_sum($alltotals)) . "');</script>\n";
   @flush();
+
+  if (!empty($strError)) {
+    echo "<script>addLog('<br><span class=\"error\"><b>Error:</b> ".addslashes($strError)."</span>');</script>\n";
+    @flush();
+    return false;
+  }
+
+  return true;
 }
 
 function xml_encode($string) {
@@ -491,7 +501,10 @@ if (isset($_POST['contName'])) {
   // Will only pull image if it's absent
   if (!$DockerClient->doesImageExist($Repository)) {
     // Pull image
-    pullImage($Name, $Repository);
+    if (!pullImage($Name, $Repository)) {
+      echo '<center><input type="button" value="Done" onclick="done()"></center><br>';
+      goto END;
+    }
   }
 
   $startContainer = true;
@@ -560,7 +573,9 @@ if ($_GET['updateContainer']){
     $oldImageID = $DockerClient->getImageID($Repository);
 
     // Pull image
-    pullImage($Name, $Repository);
+    if (!pullImage($Name, $Repository)) {
+      continue;
+    }
 
     $oldContainerDetails = $DockerClient->getContainerDetails($Name);
 
