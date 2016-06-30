@@ -9,6 +9,7 @@
  *
  * Options:  root           - root folder to display; default = /
  *           filter         - filter on file extension; default = none
+ *           match          - regex filter on file name for inclusion; default = .* (match all)
  *           script         - location of the serverside AJAX file to use; default = FileTree.php
  *           folderEvent    - event to trigger expand/collapse; default = click
  *           expandSpeed    - default = 500 (ms); use -1 for no animation
@@ -33,6 +34,7 @@ if(jQuery) (function($){
 			// Default options
 			if( options.root			=== undefined ) options.root			= '/mnt/';
 			if( options.filter			=== undefined ) options.filter			= '';
+			if( options.match			=== undefined ) options.match			= '.*';
 			if( options.script			=== undefined ) options.script			= '/webGui/include/FileTree.php';
 			if( options.folderEvent		=== undefined ) options.folderEvent		= 'click';
 			if( options.expandSpeed		=== undefined ) options.expandSpeed		= 300;
@@ -54,6 +56,7 @@ if(jQuery) (function($){
 						dir: dir,
 						multiSelect: options.multiSelect,
 						filter: options.filter,
+						match: options.match,
 						show_parent : show_parent
 					})
 					.done(function(data){
@@ -165,6 +168,7 @@ if(jQuery) (function($){
 		// Valid options:
 		//   pickfolders (true/false)  -- if true, the input value is populated when clicking folders within the tree picker
 		//   pickfilter (string)  -- File extension to filter on, comma-seperated for multiple
+		//   pickmatch (string)  -- File name to filter on by regex
 		//   pickroot (string)  -- The initial path to "start in" and list folders from
 		//   pickcloseonfile (true/false)  -- if true, hides the tree picker after selecting a file
 		//
@@ -208,7 +212,8 @@ if(jQuery) (function($){
 
 							picker.fileTree({
 									root: config.pickroot,
-									filter: (config.pickfilter || '').split(",")
+									filter: (config.pickfilter || '').split(","),
+									match: config.pickmatch || '.*'
 								},
 								($.isFunction(file_event) ? file_event : function(file) {
 									input.val(file).change();

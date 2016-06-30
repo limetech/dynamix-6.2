@@ -34,6 +34,7 @@ if (substr($postDir, -1) != '/') {
 $postDir = preg_replace("#[\/]+#", "/", $postDir);
 
 $filters = (array)(isset($_POST['filter']) ? $_POST['filter'] : '');
+$match = (isset($_POST['match']) ? $_POST['match'] : '.*');
 
 // set checkbox if multiSelect set to true
 $checkbox = ( isset($_POST['multiSelect']) && $_POST['multiSelect'] == 'true' ) ? "<input type='checkbox' />" : null;
@@ -76,7 +77,9 @@ if( file_exists($postDir) ) {
 
     				foreach ($filters as $filter) {
 						if (empty($filter) | $ext==$filter) {
-							echo "<li class='file ext_{$ext}'>{$checkbox}<a href='#' rel='" . $htmlRel . "'>" . $htmlName . "</a></li>";
+							if (empty($match) || preg_match('/'.$match.'/', $file)) {
+								echo "<li class='file ext_{$ext}'>{$checkbox}<a href='#' rel='" . $htmlRel . "'>" . $htmlName . "</a></li>";
+							}
 						}
 					}
 				}
