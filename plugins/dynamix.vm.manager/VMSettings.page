@@ -22,17 +22,10 @@ require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt_helpe
 
 // Check for Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support
 // If either kvm_intel or kvm_amd are loaded then Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support was found
-$strLoadedModules = shell_exec("lsmod | grep '^kvm_\(amd\|intel\)'");
+$strLoadedModules = shell_exec("/etc/rc.d/rc.libvirt test");
 if (empty($strLoadedModules)) {
-	// Attempt to load either of the kvm modules to see if virtualzation hw is supported
-	exec('modprobe -a kvm_intel kvm_amd 2>/dev/null');
-	$strLoadedModules = shell_exec("lsmod | grep '^kvm_\(amd\|intel\)'");
-	if (!empty($strLoadedModules)) {
-		exec('modprobe -r kvm_intel kvm_amd 2>/dev/null');
-	} else {
-		?><p class="notice">Your hardware does not have Intel VT-x or AMD-V capability.  This is required to create VMs in KVM. <a href="http://lime-technology.com/wiki/index.php/UnRAID_Manual_6#Hardware-Assisted_Virtualization_.28HVM.29" target="_blank">Click here to see the unRAID Wiki for more information</a></p><?php
-		exit;
-	}
+	?><p class="notice">Your hardware does not have Intel VT-x or AMD-V capability.  This is required to $
+	exit;
 }
 
 
@@ -123,7 +116,7 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 	</dd>
 </dl>
 <blockquote class="inline_help">
-	<p>Stopping the VM Manager will first attempt to shutdown all running VMs.  After 40 seconds, any remaining VM instances will be terminated.</p>
+	<p>Stopping the VM Manager will first attempt to shutdown all running VMs.  After 60 seconds, any remaining VM instances will be terminated.</p>
 </blockquote>
 
 <div class="advanced">
