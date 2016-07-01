@@ -47,12 +47,12 @@ Flash GUID:
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
 
-<span class='thanks red'>The registration key GUID does not match the USB Flash boot device GUID</span>
+<span class='thanks red'>The registered GUID does not match the USB Flash boot device GUID</span>
 
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
-<?=basename($var['regFILE']);?> GUID:
+Registered GUID:
 : <?=$var['regGUID'];?>
 
 Registered to:
@@ -90,8 +90,7 @@ Replaceable:
 <div markdown="1" class="remark">
 Your server will not be usable until you download a *registration key*.
 Registration keys are bound to your USB Flash boot device GUID (serial number).
-Here you may obtain a **free** *Trial* registration key, which is valid for 30 days and supports up to 6 storage devices.
-To support more storage devices, you may purchase a *Basic*, *Plus*, or *Pro* registration key.
+<br>Here you may obtain a **free** *Trial* registration key which is valid for 30 days.
 
 <span class="red-text">Important:</span>
 
@@ -137,11 +136,6 @@ Flash GUID:
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
 
 <span class="thanks">Thank you for trying unRAID Server OS!</span>
-
-<div markdown="1" class="remark">
-Your *Trial* key allows you to attach up to 3 storage devices. One device *must* be assigned to a *Data* disk slot, whereas
-the remaining two devices may be assigned any way you choose.
-</div>
 
 ***Trial*** key expires on:
 : <?=my_time($var['regTm2']);?>&nbsp;
