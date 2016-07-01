@@ -179,48 +179,50 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 	<blockquote class="inline_help">
 		<p>Specify a user share that contains all your installation media for operating systems</p>
 	</blockquote>
+</div>
 
-	<dl>
-		<dt>Default Windows VirtIO driver ISO <span style="font-weight: normal">(optional)</span>:</dt>
-		<dd>
-			<select id="winvirtio_select" class="narrow">
-			<?
-				$iso_dir = $domain_cfg['MEDIADIR'];
-				if (empty($iso_dir) || !is_dir($iso_dir)) {
-					$iso_dir = '/mnt/user/isos/';
-				} else {
-					$iso_dir = str_replace('//', '/', $iso_dir.'/');
+<dl>
+	<dt>Default Windows VirtIO driver ISO <span style="font-weight: normal">(optional)</span>:</dt>
+	<dd>
+		<select id="winvirtio_select" class="narrow">
+		<?
+			$iso_dir = $domain_cfg['MEDIADIR'];
+			if (empty($iso_dir) || !is_dir($iso_dir)) {
+				$iso_dir = '/mnt/user/isos/';
+			} else {
+				$iso_dir = str_replace('//', '/', $iso_dir.'/');
+			}
+
+			$strManual = '';
+			if (!empty($domain_cfg['MEDIADIR']) &&
+				!empty($domain_cfg['VIRTIOISO']) &&
+				dirname($domain_cfg['VIRTIOISO']) != '.' &&
+				strpos($iso_dir, dirname($domain_cfg['VIRTIOISO'])) !== 0) {
+				$strManual = 'manual';
+			}
+
+			$strMatch = $strManual;
+			foreach ($virtio_isos as $key => $value) {
+				if (empty($strMatch) &&
+					(basename($domain_cfg['VIRTIOISO']) == $value['name']) &&
+					is_file($iso_dir.$value['name'])
+					) {
+					$strMatch = $value['name'];
 				}
+				echo mk_option($strMatch, $value['name'], $value['name']);
+			}
 
-				$strManual = '';
-				if (!empty($domain_cfg['MEDIADIR']) &&
-					!empty($domain_cfg['VIRTIOISO']) &&
-					dirname($domain_cfg['VIRTIOISO']) != '.' &&
-					strpos($iso_dir, dirname($domain_cfg['VIRTIOISO'])) !== 0) {
-					$strManual = 'manual';
-				}
+			echo mk_option($strManual, 'manual', 'Manual');
+		?>
+		</select><input type="text" id="winvirtio" name="VIRTIOISO" data-pickfilter="iso" data-pickcloseonfile="true" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" value="<?=$domain_cfg['VIRTIOISO']?>"<?if ($var['fsState'] == "Started"):?> placeholder="Click to Select"><i class="fa fa-download" id="download_button" title="Download Windows VirtIO driver ISO"> <span>Download</span></i><span id="download_status"></span<?endif;?>>
+	</dd>
+</dl>
+<blockquote class="inline_help">
+	<p>Specify the virtual CD-ROM (ISO) that contains the VirtIO Windows drivers as provided by the Fedora Project. Download the latest ISO from here: <a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download</a></p>
+	<p>When installing Windows, you will reach a step where no disk devices will be found. There is an option to browse for drivers on that screen.  Click browse and locate the additional CD-ROM in the menu. Inside there will be various folders for the different versions of Windows.  Open the folder for the version of Windows you are installing and then select the AMD64 subfolder inside (even if you are on an Intel system, select AMD64). Three drivers will be found.  Select them all, click next, and the vDisks you have assigned will appear.</p>
+</blockquote>
 
-				$strMatch = $strManual;
-				foreach ($virtio_isos as $key => $value) {
-					if (empty($strMatch) &&
-						(basename($domain_cfg['VIRTIOISO']) == $value['name']) &&
-						is_file($iso_dir.$value['name'])
-						) {
-						$strMatch = $value['name'];
-					}
-					echo mk_option($strMatch, $value['name'], $value['name']);
-				}
-
-				echo mk_option($strManual, 'manual', 'Manual');
-			?>
-			</select><input type="text" id="winvirtio" name="VIRTIOISO" data-pickfilter="iso" data-pickcloseonfile="true" data-pickroot="<?= (is_dir('/mnt/user/') ? '/mnt/user/' : '/mnt/') ?>" value="<?=$domain_cfg['VIRTIOISO']?>"<?if ($var['fsState'] == "Started"):?> placeholder="Click to Select"><i class="fa fa-download" id="download_button" title="Download Windows VirtIO driver ISO"> <span>Download</span></i><span id="download_status"></span<?endif;?>>
-		</dd>
-	</dl>
-	<blockquote class="inline_help">
-		<p>Specify the virtual CD-ROM (ISO) that contains the VirtIO Windows drivers as provided by the Fedora Project. Download the latest ISO from here: <a href="https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download" target="_blank">https://fedoraproject.org/wiki/Windows_Virtio_Drivers#Direct_download</a></p>
-		<p>When installing Windows, you will reach a step where no disk devices will be found. There is an option to browse for drivers on that screen.  Click browse and locate the additional CD-ROM in the menu. Inside there will be various folders for the different versions of Windows.  Open the folder for the version of Windows you are installing and then select the AMD64 subfolder inside (even if you are on an Intel system, select AMD64). Three drivers will be found.  Select them all, click next, and the vDisks you have assigned will appear.</p>
-	</blockquote>
-
+<div class="advanced">
 	<dl>
 		<dt>Default network bridge:</dt>
 		<dd>
