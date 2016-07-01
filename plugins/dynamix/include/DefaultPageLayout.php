@@ -316,7 +316,7 @@ default:
 }
 echo "</span>&bullet;&nbsp;<span class='bitstream'>Dynamix webGui v";
 echo exec("/usr/local/emhttp/plugins/dynamix.plugin.manager/scripts/plugin version /var/log/plugins/dynamix.plg");
-echo "</span></span><span id='countdown'></span><span id='user-notice' class='red-text'></span><span id='copyright'>unRAID&reg; webGui &copy; 2016, Lime Technology, Inc.";
+echo "</span></span><span id='countdown'></span><span id='user-notice' class='red-text'></span><span id='copyright'>unRAID&reg; webGui &copy; 2016, Lime Technology, Inc. <a href='http://lime-technology.com/wiki/index.php/Official_Documentation' target='_blank'> Online Manual</a>";
 if (isset($myPage['Author'])) {
   echo "&nbsp;|&nbsp;Page author: {$myPage['Author']}";
   if (isset($myPage['Version'])) echo ", version: {$myPage['Version']}";
