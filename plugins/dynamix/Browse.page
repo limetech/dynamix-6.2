@@ -35,7 +35,7 @@ function sort_by($field, $opt, $show_disk) {
     'fext' => strtolower($info['extension']),
     'size' => $attr[2],
     'time' => $attr[3],
-    'disk' => $show_disk?my_disk(exec("shopt -s dotglob ; getfattr --absolute-names --only-values -n user.LOCATIONS '$attr[1]'")):'');
+    'disk' => $show_disk?my_disk(exec("shopt -s dotglob ; getfattr --absolute-names --only-values -n user.LOCATIONS ".escapeshellarg($attr[1]))):'');
   }
 // sort by input 'field'
   if ($field=='name') {
