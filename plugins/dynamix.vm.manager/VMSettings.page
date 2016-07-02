@@ -24,7 +24,7 @@ require_once('/usr/local/emhttp/plugins/dynamix.vm.manager/classes/libvirt_helpe
 // If either kvm_intel or kvm_amd are loaded then Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support was found
 $strLoadedModules = shell_exec("/etc/rc.d/rc.libvirt test");
 if (empty($strLoadedModules)) {
-	?><p class="notice">Your hardware does not have Intel VT-x or AMD-V capability.  This is required to $
+	?><p class="notice">Your hardware does not have Intel VT-x or AMD-V capability.  This is required to create VMs in KVM. <a href="http://lime-technology.com/wiki/index.php/UnRAID_Manual_6#Hardware-Assisted_Virtualization_.28HVM.29" target="_blank">Click here to see the unRAID Wiki for more information</a></p><?php
 	exit;
 }
 
