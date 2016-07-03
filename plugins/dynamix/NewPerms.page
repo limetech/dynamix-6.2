@@ -13,9 +13,26 @@ Title="New Permissions"
  * all copies or substantial portions of the Software.
  */
 ?>
-<style>
-select.list{min-width:auto;padding:2px 6px;}
-</style>
+<script>
+function setNewPerms(form) {
+  var disks = '';
+  var all = form.includeDisk.options[0].selected;
+  for (var i=1,item; item=form.includeDisk.options[i]; i++) {
+    if (item.selected) {
+      if (disks.length) disks += '|';
+      if (!all) disks += item.value;
+      item.selected = false;
+    }
+  }
+  if (all||disks) openBox('/webGui/scripts/newperms&arg1='+disks,'New Permissions',490,430);
+}
+$(function() {
+  $('#s1').dropdownchecklist({emptyText:'None', width:131, firstItemChecksAll:true, explicitClose:'...close'});
+<?if ($var['fsState']!="Started"):?>
+  $('#s1').dropdownchecklist('disable');
+<?endif;?>
+});
+</script>
 This is a one-time action to be taken after upgrading from a pre-5.0 unRAID server
 release to version 5.0.  It is also useful for restoring default ownership/permissions on files and
 directories when transitioning back from Active Directory to non-Active Directory integration.
@@ -33,26 +50,27 @@ For read/write files:
 For readonly files:
   -r--r--r--
 ~~~
-Clicking Start will open another window and start the background process. Closing the window before
-completion will terminate the background process - so don't do that. This process can take a long time if you have many files.
+Clicking **Start** will open another window and start the background process.
 
-<form method="POST" action="/update.htm" target="progressFrame">
-<select id="includeDisk" size="1" class="list">
-<option value=''>(All)</option>
+Closing the window before completion will terminate the background process - so don't do that. This process can take a long time if you have many files.
+
+<form method="POST" action="/update.htm" target="progressFrame" onsubmit="setNewPerms(this);return false">
+<select id="s1" name="includeDisk" size="1" multiple="multiple" style="display:none">
+<option value=''>All</option>
 <?if (isset($disks['cache'])):?>
-<option value='/mnt/cache'>Cache</option>
+<option value='/mnt/cache' selected>Cache</option>
 <?endif;?>
 <?foreach ($disks as $disk):?>
 <?if ($disk['type']=='Data'):?>
-<?=mk_option("","/mnt/{$disk['name']}",my_disk($disk['name']))?>
+<?=mk_option(0,"/mnt/{$disk['name']}",my_disk($disk['name']))?>
 <?endif;?>
 <?endforeach;?>
-</select>
+</select>&nbsp;&nbsp;
 
+<input type="submit" name="start" value="Start" disabled><input type="button" value=" Done " onclick="done()">
 <?if ($var['fsState']!="Started"):?>
-<input type="button" value="Start" disabled><input type="button" value="Done" onclick="done()"> Array must be <strong>STARTED</strong> to change permissions.
+Array must be <strong>STARTED</strong> to change permissions.
 <?else:?>
-<input type="button" name="submit_button" value="Start" onclick="openBox('/webGui/scripts/newperms&arg1='+document.getElementById('includeDisk').value,'New Permissions',490,430)" disabled><input type="button" value="Done" onclick="done()">
-<input type="checkbox" onClick="submit_button.disabled=!this.checked"><small>Yes I want to do this</small>
+<input type="checkbox" onClick="start.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>
 </form>

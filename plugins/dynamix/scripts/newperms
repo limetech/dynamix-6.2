@@ -17,34 +17,34 @@
 #  ugo+X   Set the 'x' bit for directories in user, group, and other
 
 function process {
-  echo "$1"
-  if [ -d "$1" ] ; then
-    owner=nobody
-    group=users
-    if [ $# -ge 2 ]; then
-      owner=$2
+  list="$1"
+  [[ $# -ge 2 ]] && owner=$2 || owner=nobody
+  [[ $# -ge 3 ]] && group=$3 || group=users
+  ifs=$IFS; IFS='|'
+  for dir in $list; do
+    echo "$dir"
+    if [[ -d $dir ]]; then
+      echo processing "$dir"
+      echo ... chmod -R u-x,go-rwx,go+u,ugo+X "$dir"
+      chmod -R u-x,go-rwx,go+u,ugo+X "$dir"
+      echo ... chown -R $owner:$group "$dir"
+      chown -R $owner:$group "$dir"
+      echo ... sync
+      sync
     fi
-    if [ $# -ge 3 ]; then
-      group=$3
-    fi
-    echo processing "$1"
-    echo ... chmod -R u-x,go-rwx,go+u,ugo+X "$1"
-    chmod -R u-x,go-rwx,go+u,ugo+X "$1"
-    echo ... chown -R $owner:$group "$1"
-    chown -R $owner:$group "$1"
-    echo ... sync
-    sync
-  fi
+  done
+  IFS=$ifs
 }
 
-if [ -n "$1" ] ; then
+if [[ -n $1 ]]; then
   process "$@"
 else
   process /mnt/cache
-  for disk in /mnt/disk* ; do
+  for disk in /mnt/disk[0-9]*; do
     process $disk
   done
 fi
 
+echo
 secs=$SECONDS
 printf "completed, elapsed time: %.2d:%.2d:%.2d\n" $(($secs/3600)) $(($secs%3600/60)) $(($secs%60))
