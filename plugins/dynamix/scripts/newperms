@@ -36,7 +36,7 @@ function process {
   IFS=$ifs
 }
 
-if [[ $# -ge 1 ]]; then
+if [[ -n $1 ]]; then
   process "$@"
 else
   process /mnt/cache
