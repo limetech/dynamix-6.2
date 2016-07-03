@@ -53,7 +53,7 @@ function write($number) {
   return $number<=count($words) ? $words[$number] : $number;
 }
 $cpu = explode('#',exec("dmidecode -q -t 4|awk -F: '/^\tVersion:/{v=$2;}; /^\tCurrent Speed:/{s=$2;} END{print v\"#\"s}'"));
-$cpumodel = str_replace(array("Processor","(C)","(R)","(TM)"),array("","&#169;","&#174;","&#8482;"),$cpu[0]);
+$cpumodel = str_ireplace(array("Processor","(C)","(R)","(TM)"),array("","&#169;","&#174;","&#8482;"),$cpu[0]);
 if (strpos($cpumodel,'@')===false) {
   $cpuspeed = explode(' ',$cpu[1]);
   if ($cpuspeed[0]>=1000 && $cpuspeed[1]=='MHz') {
