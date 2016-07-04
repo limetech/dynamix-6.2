@@ -13,7 +13,11 @@ Type="xmenu"
  * all copies or substantial portions of the Software.
  */
 ?>
-
+<?
+function my_time2($time) {
+  return $time ? my_time($time) : "Anytime";
+}
+?>
 <style>
 .thanks{padding-left:10px;color:#6FA239;font-weight:bold;}
 .thanks.red{color:#CC0000;}
@@ -24,6 +28,8 @@ Type="xmenu"
 
 Flash GUID:
 : **Error** - <a href="https://lime-technology.com/contact" target="_blank">Contact Support</a>
+
+> There is some kind of error accessing your physical USB Flash boot device.
 
 <?endif;?>
 
@@ -41,13 +47,24 @@ Flash GUID:
 &nbsp;
 : **Blacklisted** - <a href="https://lime-technology.com/contact" target="_blank">Contact Support</a>
 
+> Your USB Flash boot device has been *blacklisted*. This can occur as a result of transfering your key to
+> a replacement USB Flash device.  USB Flash devices may also be *blacklisted* when it is discovered that the
+> GUID is not uninque (this is common with USB card readers).
+
 <?endif;?>
 
 <?if (strstr($var['regTy'], "invalid")):?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 <span class='thanks red'>The registered GUID does not match the USB Flash boot device GUID</span>
+
+Flash Vendor:
+: <?=$var['flashVendor'];?>
+
+Flash Product:
+: <?=$var['flashProduct'];?>
 
 Flash GUID:
 : <?=$var['flashGUID'];?>
@@ -58,39 +75,73 @@ Registered GUID:
 Registered to:
 : <big><?=$var['regTo'];?></big>
 
-Date Registered:
+Registered on:
 : <?=my_time($var['regTm']);?>
 
-<?if ($var['regTm2']==0):?>
+<?if (strstr($var['regTy'], "Trial")):?>
 
-Replaceable:
-: *Anytime*
+Expiration:
+: <?=my_time($var['regTm2']);?>
 
-&nbsp;
-: <input type="submit" value="Purchase Key"> <input type="button" value="Get Trial Key" onclick="openBox('/webGui/include/TrialRequest.php','Get Trial Key',600,900);"> <input type="button" value="Replace Key" onclick="openBox('/webGui/include/ReplaceKey.php','Replace Key',600,900);">
+<?=$var['deviceCount'];?> Attached storage device(s)
+: <input type="submit" value="Purchase Key">
 
 <?else:?>
 
 Replaceable:
-: <?=my_time($var['regTm2']);?>&nbsp;
+: <?=my_time2($var['regTm2']);?>
 
-&nbsp;
-: <input type="submit" value="Purchase Key"> <input type="button" value="Get Trial Key" onclick="openBox('/webGui/include/TrialRequest.php','Get Trial Key',600,900);"> <input type="button" value="Replace Key" disabled>
+<?if ($var['regTm2']==0 || $var['regTm2']<time()):?>
+
+<?=$var['deviceCount'];?> Attached storage device(s)
+: <input type="submit" value="Purchase Key"> <input type="button" value="Replace Key" onclick="openBox('/webGui/include/ReplaceKey.php','Replace Key',600,900);">
+
+<?else:?>
+
+<?=$var['deviceCount'];?> Attached storage device(s)
+: <input type="submit" value="Purchase Key"> <input type="button" value="Replace Key" disabled>
 
 <?endif;?>
+<?endif;?>
+</form>
+<?endif;?>
+
+<?if (strstr($var['regTy'], "missing")):?>
+<form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
+<input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
+
+<span class='thanks red'>Key file is missing.</span>
+
+Flash Vendor:
+: <?=$var['flashVendor'];?>
+
+Flash Product:
+: <?=$var['flashProduct'];?>
+
+Flash GUID:
+: <?=$var['flashGUID'];?>
+
+Registered GUID:
+: <?=$var['regGUID'];?>
+
+<?=$var['deviceCount'];?> Attached storage device(s)
+: <input type="submit" value="Purchase Key">
+
 </form>
 <?endif;?>
 
 <?if (strstr($var['regTy'], "unregistered")):?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 <span class="thanks">Thank you for trying unRAID Server OS!</span>
 
 <div markdown="1" class="remark">
-Your server will not be usable until you download a *registration key*.
-Registration keys are bound to your USB Flash boot device GUID (serial number).
-<br>Here you may obtain a **free** *Trial* registration key which is valid for 30 days.
+Your server will not be usable until you purchase a registration key or download a **free** 30-day *Trial* key.
+<br>Registration keys are bound to your USB Flash boot device GUID (serial number).  Please use a high-quality device
+between 512MB and 32GB in size.
 
 <span class="red-text">Important:</span>
 
@@ -101,7 +152,7 @@ Registration keys are bound to your USB Flash boot device GUID (serial number).
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
-&nbsp;
+<?=$var['deviceCount'];?> Attached storage device(s)
 : <input type="submit" value="Purchase Key"> <input type="button" value="Get Trial Key" onclick="openBox('/webGui/include/TrialRequest.php','Get Trial Key',600,900);">
 
 </form>
@@ -110,14 +161,14 @@ Flash GUID:
 <?if (strstr($var['regTy'], "expired")):?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 <span class="thanks">Thank you for trying unRAID Server OS!</span>
 
 <div markdown="1" class="remark">
 <span class='red-text'>Your *Trial* key has expired.</span>
 
-To continue using unRAID Server OS and expand your server to support more devices, you may purchase a *Basic*, *Plus*, or *Pro* registration key.
-Alternately, you may request a *Trial* extension key.
+To continue using unRAID Server OS you may purchase a registration key. Alternately, you may request a *Trial* extension key.
 
 **Note:** most *Trial* extension requests are processed immediately but please allow up to one business day to receive your *Trial* extension key.
 </div>
@@ -125,7 +176,7 @@ Alternately, you may request a *Trial* extension key.
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
-&nbsp;
+<?=$var['deviceCount'];?> Attached storage device(s)
 : <input type="submit" value="Purchase Key"> <input type="button" value="Request Extension" onclick="openBox('/webGui/include/TrialRequest.php','Request Trial Extension Key',600,900);">
 
 </form>
@@ -134,6 +185,7 @@ Flash GUID:
 <?if ($var['regTy']=="Trial"):?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 <span class="thanks">Thank you for trying unRAID Server OS!</span>
 
@@ -143,7 +195,7 @@ Flash GUID:
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
-&nbsp;
+<?=$var['deviceCount'];?> Attached storage device(s)
 : <input type="submit" value="Purchase Key">
 
 </form>
@@ -153,30 +205,23 @@ Flash GUID:
 
 <span class="thanks">Thank you for choosing unRAID Server OS!</span>
 
-<?=basename($var['regFILE']);?> registered to:
+Registered to:
 : <big><?=$var['regTo'];?></big>
 
-Date Registered:
+Registered on:
 : <?=my_time($var['regTm']);?>
 
-<?if ($var['regTm2']==0):?>
-
 Replaceable:
-: *Anytime*
+: <?=my_time2($var['regTm2']);?>
 
-<?else:?>
-
-Replaceable:
-: <?=my_time($var['regTm2']);?>&nbsp;
-
-<?endif;?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="BasicGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
-&nbsp;
+<?=$var['deviceCount'];?> Attached storage device(s)
 : <input type="submit" value="Upgrade">
 
 </form>
@@ -186,30 +231,23 @@ Flash GUID:
 
 <span class="thanks">Thank you for choosing unRAID Server OS!</span>
 
-<?=basename($var['regFILE']);?> registered to:
+Registered to:
 : <big><?=$var['regTo'];?></big>
 
-Date Registered:
+Registered on:
 : <?=my_time($var['regTm']);?>&nbsp;
 
-<?if ($var['regTm2']==0):?>
-
 Replaceable:
-: *Anytime*
+: <?=my_time2($var['regTm2']);?>
 
-<?else:?>
-
-Replaceable:
-: <?=my_time($var['regTm2']);?>&nbsp;
-
-<?endif;?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="PlusGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
-&nbsp;
+<?=$var['deviceCount'];?> Attached storage device(s)
 : <input type="submit" value="Upgrade">
 
 </form>
@@ -219,23 +257,14 @@ Flash GUID:
 
 <span class="thanks">Thank you for choosing unRAID Server OS!</span>
 
-<?=basename($var['regFILE']);?> registered to:
+Registered to:
 : <big><?=$var['regTo'];?></big>
 
-Date Registered:
+Registered on:
 : <?=my_time($var['regTm']);?>&nbsp;
 
-<?if ($var['regTm2']==0):?>
-
 Replaceable:
-: *Anytime*
-
-<?else:?>
-
-Replaceable:
-: <?=my_time($var['regTm2']);?>&nbsp;
-
-<?endif;?>
+: <?=my_time2($var['regTm2']);?>
 
 Flash GUID:
 : <?=$var['flashGUID'];?>

@@ -273,21 +273,31 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
     </tr>
 <?  break;
   case "Stopped":
-    if ($var['configValid']==0):
-      if (strstr($var['regTy'], "- ")):?>
-        <tr>
-        <td><?=status_indicator()?><strong>Stopped.</strong></td>
-        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
-        <td>Invalid or missing <a href="/Tools/Registration">registration key</a>.</td>
-        </tr>
-<?    else:?>
-        <tr>
-        <td><?=status_indicator()?><strong>Stopped.</strong></td>
-        <td><input type="submit" name="cmdStart" value="Start" disabled></td>
-        <td>Too many attached devices. Please consider upgrading your <a href="/Tools/Registration">registration key</a>.</td>
-        </tr>
-<?    endif;
-    else:
+    if ($var['configValid']=="error"):?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped.</strong></td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>Invalid, missing or expired <a href="/Tools/Registration">registration key</a>.</td>
+      </tr>
+<?  elseif ($var['configValid']=="invalid"):?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped.</strong></td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>Too many attached devices. Please consider upgrading your <a href="/Tools/Registration">registration key</a>.</td>
+      </tr>
+<?  elseif ($var['configValid']=="nokeyserver"):?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped.</strong></td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>Cannot contact key-server.  Please check your <a href="/Settings/NetworkSettings">network settings</a>.</td>
+      </tr>
+<?  elseif ($var['configValid']=="withdrawn"):?>
+      <tr>
+      <td><?=status_indicator()?><strong>Stopped.</strong></td>
+      <td><input type="submit" name="cmdStart" value="Start" disabled></td>
+      <td>Release has been withdrawn and may no longer be used. Please <a href="/Plugins">update</a> your server.</td>
+      </tr>
+<?  else:
     switch ($var['mdState']):
     case "STOPPED":
       if (strstr($var['mdResyncAction'],"recon")):?>
