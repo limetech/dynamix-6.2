@@ -13,6 +13,11 @@ Title="New Permissions"
  * all copies or substantial portions of the Software.
  */
 ?>
+<?
+function data_disks($disk) {
+  return ($disk['type']=='Data' && $disk['status']=='DISK_OK');
+}
+?>
 <script>
 function setNewPerms(form) {
   var disks = '';
@@ -60,10 +65,8 @@ Closing the window before completion will terminate the background process - so 
 <?if (isset($disks['cache'])):?>
 <option value='/mnt/cache' selected>Cache</option>
 <?endif;?>
-<?foreach ($disks as $disk):?>
-<?if ($disk['type']=='Data'):?>
+<?foreach (array_filter($disks,'data_disks') as $disk):?>
 <?=mk_option(0,"/mnt/{$disk['name']}",my_disk($disk['name']))?>
-<?endif;?>
 <?endforeach;?>
 </select>&nbsp;&nbsp;
 
