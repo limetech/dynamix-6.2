@@ -295,7 +295,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
       <tr>
       <td><?=status_indicator()?><strong>Stopped.</strong></td>
       <td><input type="submit" name="cmdStart" value="Start" disabled></td>
-      <td>Release has been withdrawn and may no longer be used. Please <a href="/Plugins">update</a> your server.</td>
+      <td>This unRAID Server OS release has been withdrawn and may no longer be used. Please <a href="/Plugins">update</a> your server.</td>
       </tr>
 <?  else:
     switch ($var['mdState']):
