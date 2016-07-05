@@ -35,12 +35,6 @@ Flash GUID:
 
 <?if (strstr($var['regTy'], "blacklisted")):?>
 
-Flash Vendor:
-: <?=$var['flashVendor'];?>
-
-Flash Product:
-: <?=$var['flashProduct'];?>
-
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
@@ -59,12 +53,6 @@ Flash GUID:
 <input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 <span class='thanks red'>The registered GUID does not match the USB Flash boot device GUID</span>
-
-Flash Vendor:
-: <?=$var['flashVendor'];?>
-
-Flash Product:
-: <?=$var['flashProduct'];?>
 
 Flash GUID:
 : <?=$var['flashGUID'];?>
@@ -112,12 +100,6 @@ Replaceable:
 <input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
 <span class='thanks red'>Key file is missing.</span>
-
-Flash Vendor:
-: <?=$var['flashVendor'];?>
-
-Flash Product:
-: <?=$var['flashProduct'];?>
 
 Flash GUID:
 : <?=$var['flashGUID'];?>
