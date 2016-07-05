@@ -57,6 +57,10 @@ Email address: <input type="text" name="email" maxlength="1024" value="" style="
 
 <input type="button" value="Replace Key" onclick="replaceKey(this.form.email.value.trim(), '<?=$var['flashGUID']?>', '<?=$keyfile?>')">
 
+<p>A link to your replacement key will be delivered to this email address.
+
+<p><strong>Note:</strong>
+Once a replacement key is generated, your old USB Flash device will be <b>blacklisted</b>.
 </form>
 </div>
 </body>
