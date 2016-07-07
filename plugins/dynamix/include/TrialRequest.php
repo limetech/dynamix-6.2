@@ -59,9 +59,10 @@ Email address: <input type="text" name="email" maxlength="1024" value="" style="
 <p>A link to your <i>Trial</i> key will be delivered to this email address.
 
 <p><strong>Note:</strong>
-We never send unsolicited email to anyone, nor do we authorize anyone else to do so on our behalf.
+Per our <a target="_blank" href="https://lime-technology.com/policies/">Policy Statement</a>, we never send
+unsolicited email to anyone, nor do we authorize anyone else to do so on our behalf.
 
-<p>Refer to our <a target="_blank" href="https://lime-technology.com/policies/">Policy Statement</a> for more information.
+<p><a target="_blank" href="/Tools/EULA">End-User License Agreement</a>.
 
 </form>
 </div>

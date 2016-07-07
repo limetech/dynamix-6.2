@@ -251,7 +251,12 @@ Replaceable:
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
-<?endif;?>
+<?=$var['deviceCount'];?> Attached storage device(s)
+: <input type="button" value="Done" onclick="done()">
+
+<?else:?>
 
 &nbsp;
 : <input type="button" value="Done" onclick="done()">
+
+<?endif;?>
