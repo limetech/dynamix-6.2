@@ -122,8 +122,12 @@ function mk_option_check($name, $value, $text = "") {
   }
 }
 function day_count($time) {
-  $now  = new DateTime("@".intval(time()/86400)*86400);
-  $last = new DateTime("@".intval($time/86400)*86400);
+  global $var;
+  $datetz = new DateTimeZone($var['timeZone']);
+  $date = new DateTime("now", $datetz);
+  $offset = $datetz->getOffset($date);
+  $now  = new DateTime("@".intval((time()+$offset)/86400)*86400);
+  $last = new DateTime("@".intval(($time+$offset)/86400)*86400);
   $days = date_diff($last,$now)->format('%a');
   switch (true) {
   case ($days<0):
