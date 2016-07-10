@@ -722,6 +722,7 @@ $showAdditionalInfo = '';
   .label-success{background-color:#468847;}
   .label-important{background-color:#b94a48;}
   .selectVariable{width:320px;}
+  .switch-button-label.off{color:inherit;}
 </style>
 <script src="/webGui/javascript/jquery.switchbutton.js"></script>
 <script src="/webGui/javascript/jquery.filetree.js"></script>
