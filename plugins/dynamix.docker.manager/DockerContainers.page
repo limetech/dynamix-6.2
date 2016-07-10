@@ -39,6 +39,7 @@ img.stopped{opacity:0.3;}
 .iconstatus.stopped{font-size:1.2em;}
 .started{color:#009900;}
 .stopped{color:#EF3D47;}
+.switch-button-label.off{color:inherit;}
 </style>
 <form id="formAutostart" method="POST" action="/plugins/dynamix.docker.manager/include/UpdateConfig.php" target="progressFrame">
   <input type="hidden" name="action" value="autostart" />
@@ -51,7 +52,7 @@ img.stopped{opacity:0.3;}
 </form>
 <div id="dialog-confirm" style="display:none;" title="Dialog Title"></div>
 <div id="iframe-popup" style="display:none;-webkit-overflow-scrolling:touch;"></div>
-<span class="status" style="margin-top: -42px;"><input type="checkbox" class="advancedview"></span>
+<span class="status" style="margin-top: -44px;"><input type="checkbox" class="advancedview"></span>
 <table class="tablesorter shift" id="docker_containers">
 	<thead>
 		<tr>
