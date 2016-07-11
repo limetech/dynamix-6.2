@@ -182,18 +182,18 @@ function postToXML($post, $setOwnership = false) {
   $xml = simplexml_import_dom($dom);
   $xml["version"]          = 2;
   $xml->Name               = xml_encode(preg_replace('/\s+/', '', $post['contName']));
-  $xml->Repository         = xml_encode($post['contRepository']);
-  $xml->Registry           = xml_encode($post['contRegistry']);
+  $xml->Repository         = xml_encode(trim($post['contRepository']));
+  $xml->Registry           = xml_encode(trim($post['contRegistry']));
   $xml->Network            = xml_encode($post['contNetwork']);
   $xml->Privileged         = (strtolower($post["contPrivileged"]) == 'on') ? 'true' : 'false';
   $xml->Support            = xml_encode($post['contSupport']);
   $xml->Overview           = xml_encode($post['contOverview']);
   $xml->Category           = xml_encode($post['contCategory']);
-  $xml->WebUI              = xml_encode($post['contWebUI']);
+  $xml->WebUI              = xml_encode(trim($post['contWebUI']));
   $xml->TemplateURL        = xml_encode($post['contTemplateURL']);
-  $xml->Icon               = xml_encode($post['contIcon']);
+  $xml->Icon               = xml_encode(trim($post['contIcon']));
   $xml->ExtraParams        = xml_encode($post['contExtraParams']);
-  $xml->DateInstalled      = xml_encode(strtotime("now"));
+  $xml->DateInstalled      = xml_encode(time());
 
   # V1 compatibility
   $xml->Description      = xml_encode($post['contOverview']);

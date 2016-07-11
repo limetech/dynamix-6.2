@@ -964,7 +964,7 @@ class DockerUtil {
 			$strTag = 'latest';
 		}
 
-		return $strRepo.':'.$strTag;
+		return trim($strRepo).':'.trim($strTag);
 	}
 
 
