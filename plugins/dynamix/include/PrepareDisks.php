@@ -17,6 +17,7 @@ function preset($disk) {
 
 @unlink('/boot/config/smart-one.cfg');
 @unlink('/boot/config/smart-all.cfg');
+@unlink('/boot/config/plugins/dynamix/monitor.ini');
 if ($_POST['preset']) {
   $disks = parse_ini_file('/var/local/emhttp/disks.ini',true);
   $disks = array_filter($disks,'preset');
