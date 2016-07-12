@@ -337,7 +337,7 @@ case 'parity':
     $status = $var['sbSyncExit'];
     $speed = ($status==0) ? my_scale($var['mdResyncSize']*1024/$duration,$unit,1)." $unit/s" : "Unavailable";
     $year = date('Y',$var['sbSynced2']);
-    file_put_contents($log,"$year $timestamp|$duration|$speed|$status\n",FILE_APPEND);
+    if ($status==0||file_exists($log)) file_put_contents($log,"$year $timestamp|$duration|$speed|$status\n",FILE_APPEND);
   }
   break;
 }

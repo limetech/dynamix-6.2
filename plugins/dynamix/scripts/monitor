@@ -82,7 +82,7 @@ function read_write_parity_log($epoch,$duration,$speed,$status) {
   if (empty($line)) {
     $year = date('Y',$epoch);
     $line = "$year $timestamp|$duration|$speed|$status";
-    file_put_contents($log,"$line\n",FILE_APPEND);
+    if ($status==0||file_exists($log)) file_put_contents($log,"$line\n",FILE_APPEND);
   }
   return $line;
 }
