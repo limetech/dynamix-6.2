@@ -55,6 +55,9 @@ function my_temp($value) {
 function my_disk($name) {
   return ucfirst(preg_replace(array('/^(parity|disk|cache)([0-9]+)/','/^parity,cache,disk/'),array('$1 $2','Parity, Cache, Disk '),$name));
 }
+function my_disks($disk) {
+  return strpos($disk['status'],'_NP')===false;
+}
 function my_word($num) {
   $words = array('zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty');
   return $num<count($words) ? $words[$num] : $num;
