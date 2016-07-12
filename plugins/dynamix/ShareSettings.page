@@ -16,7 +16,10 @@ Icon="share-settings.png"
  */
 ?>
 
-<? $disabled = $var['fsState']!='Stopped' ? 'disabled' : ''; ?>
+<?
+$disabled = $var['fsState']!='Stopped' ? 'disabled' : '';
+$disks = array_filter($disks,'my_disks');
+?>
 
 <script>
 $(function() {
