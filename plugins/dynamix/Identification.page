@@ -16,12 +16,13 @@ Icon="ident.png"
 ?>
 <?
 $disabled = $var['fsState']!='Stopped' ? 'disabled' : '';
-$name_warning = preg_match('/^[a-z0-9]([a-z0-9\-\.]{0,13}[a-z0-9])?$/i', $var['NAME']) ? '' : '<i class="fa fa-warning icon warning"></i> Not compatible with NetBIOS';
+$name_regex = '^[A-Za-z0-9]([A-Za-z0-9\-\.]{0,13}[A-Za-z0-9])?$';
+$name_warn = preg_match('/'.$name_regex.'/', $var['NAME']) ? 'none' : 'block';
 ?>
 <form markdown="1" name="NameSettings" method="POST" action="/update.htm" target="progressFrame">
 
 Server name:
-: <input type="text" name="NAME" maxlength="15" value="<?=$var['NAME'];?>" <?=$disabled?>> <?=$name_warning?>
+: <input type="text" name="NAME" id="NAME" maxlength="15" pattern="<?=$name_regex;?>" value="<?=$var['NAME'];?>" title="Only alphanumeric characters (&quot;A-Z&quot;, &quot;a-z&quot;, and &quot;0-9&quot;), dashes (&quot;-&quot;), and dots (&quot;.&quot;); and, the first and last characters must be alphanumeric" <?=$disabled?> required> <span id="name_warning" style="display:<?=$name_warn?>"><i class="fa fa-warning icon warning"></i> Not compatible with NetBIOS</span>
 
 > The network identity of your server.  Also known as *hostname* or *short hostname*. Windows networking
 > refers to this as the *NetBIOS name* and must be 15 characters or less in length.
@@ -42,3 +43,12 @@ Model:
 &nbsp;
 : <input type="submit" name="changeNames" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?if ($disabled):?>Array must be **Stopped** to change<?endif;?>
 </form>
+<script>
+$("#NAME").on("input change", function() {
+	if ($("#NAME").val().match(/<?=$name_regex;?>/) === null) {
+		$('#name_warning').fadeIn('fast');
+	} else {
+		$('#name_warning').fadeOut('fast');
+	}
+});
+</script>
