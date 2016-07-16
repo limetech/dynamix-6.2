@@ -228,7 +228,7 @@ function autov($file) {
 }
 function transpose_user_path($path) {
   if (strpos($path, '/mnt/user/') === 0 && file_exists($path)) {
-    $realdisk = trim(shell_exec("getfattr --absolute-names --only-values -n user.LOCATION ".escapeshellarg($path)." 2>/dev/null"));
+    $realdisk = trim(shell_exec("getfattr --absolute-names --only-values -n system.LOCATION ".escapeshellarg($path)." 2>/dev/null"));
     if (!empty($realdisk))
       $path = str_replace('/mnt/user/', "/mnt/$realdisk/", $path);
   }
