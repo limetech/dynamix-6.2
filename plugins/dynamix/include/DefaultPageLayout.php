@@ -343,6 +343,8 @@ $(function() {
 <?else:?>
 <?if ($version = plugin_update_available('unRAIDServer')):?>
   showNotice('unRAID OS v<?=$version?> is available. <a>Download Now</a>','unRAIDServer');
+<?elseif (preg_match("/^\*\*REBOOT REQUIRED\!\*\*/", @file_get_contents('/usr/local/emhttp/plugins/unRAIDServer/README.md'))):?>
+  showNotice('Reboot required to apply unRAID OS update');
 <?elseif ($version = plugin_update_available('dynamix')):?>
   showNotice('Dynamix webGUI v<?=$version?> is available. <a>Download Now</a>','dynamix');
 <?endif;?>
