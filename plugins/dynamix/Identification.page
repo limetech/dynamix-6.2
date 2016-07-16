@@ -20,7 +20,7 @@ Icon="ident.png"
 Server name:
 : <input type="text" name="NAME" maxlength="15" value="<?=$var['NAME'];?>" <?=$disabled?>>
 
-> The network identy of your server.  Also known as *hostname* or *short hostname*. Windows networking
+> The network identity of your server.  Also known as *hostname* or *short hostname*. Windows networking
 > refers to this as the *netBIOS name* and must be 15 characters or less in length.
 > Use only alphanumeric characters (that is, "A-Z", "a-z", and "0-9"), dashes ("-"), and dots (".");
 > and, the first character must be alphanumeric.
@@ -28,7 +28,7 @@ Server name:
 Description:
 : <input type="text" name="COMMENT" value="<?=$var['COMMENT'];?>" <?=$disabled?>>
 
-> This is a text field that is seen next to a server when listed within Network or Network Neighborhood 
+> This is a text field that is seen next to a server when listed within Network or Network Neighborhood
 > (Windows), or Finder (Mac OS X).
 
 Model:
