@@ -44,8 +44,11 @@ Model:
 : <input type="submit" name="changeNames" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?if ($disabled):?>Array must be **Stopped** to change<?endif;?>
 </form>
 <script>
+$("#NAME").keypress(function(event) {
+	return event.key.match(/[A-Za-z0-9\-\.]/)!==null;
+});
 $("#NAME").on("input change", function() {
-	if ($("#NAME").val().match(/<?=$name_regex;?>/) === null) {
+	if ($(this).val().match(/<?=$name_regex;?>/) === null) {
 		$('#name_warning').fadeIn('fast');
 	} else {
 		$('#name_warning').fadeOut('fast');
