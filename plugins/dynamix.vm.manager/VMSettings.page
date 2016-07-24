@@ -54,10 +54,6 @@ foreach ($arrSyslinuxCfg as &$strSyslinuxCfg) {
 		break;
 	}
 }
-
-if ($boolACSEnabled != $boolACSInSyslinux) {
-	?><p class="notice">You must reboot for changes to take effect</p><?php
-}
 ?>
 <link type="text/css" rel="stylesheet" href="/plugins/dynamix.vm.manager/styles/dynamix.vm.manager.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/jquery.filetree.css">
@@ -103,6 +99,9 @@ if ($boolACSEnabled != $boolACSInSyslinux) {
 	}
 </style>
 <span class="status" style="margin-top: -10px;"><input type="checkbox" class="advancedview"></span>
+<?if ($boolACSEnabled != $boolACSInSyslinux):?>
+	<br><p class="notice">You must reboot for changes to take effect</p>
+<?endif;?>
 <form id="settingsForm" method="POST" action="/update.php" target="progressFrame">
 <input type="hidden" name="#file" value="<?=$domain_cfgfile;?>" />
 
