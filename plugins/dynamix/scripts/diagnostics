@@ -147,12 +147,12 @@ else
 // create SMART reports (suppress errors)
 $disks = file_exists("$get/disks.ini") ? parse_ini_file("$get/disks.ini", true) : [];
 include_once '/usr/local/emhttp/webGui/include/CustomMerge.php';
-exec("ls -l /dev/disk/by-id/[asu]* 2>/dev/null|awk '$0!~/-part/{split($11,a,\"/\");print a[3],substr($9,21)}'", $devices);
+exec("ls -l /dev/disk/by-id/[asu]* 2>/dev/null|grep -v -- -part|sed 's:^.*/by-id/[^-]*-::;s:-> ../../::'", $devices);
 foreach ($devices as $device) {
-  $disk = explode(' ',$device);
+  list($name,$dev) = explode(' ',$device);
   $type = '';
   foreach ($disks as $find) {
-    if ($find['device']==$disk[0]) {
+    if ($find['device']==$dev) {
       $type = isset($find['smType']) ? $find['smType'] : -1;
       if ($type==-1) $type = isset($var['smType']) ? $var['smType'] : '';
       if ($type) {
@@ -169,7 +169,7 @@ foreach ($devices as $device) {
       break;
     }
   }
-  exec("smartctl -a $type /dev/${disk[0]} 2>/dev/null|todos >/$diag/smart/${disk[1]}-$date.txt");
+  exec("smartctl -a $type /dev/$dev 2>/dev/null|todos >/$diag/smart/$name-$date.txt");
 }
 // create resulting zip file and remove temp folder
 exec("zip -qmr $zip /$diag");
