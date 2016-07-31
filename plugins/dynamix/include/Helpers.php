@@ -18,8 +18,6 @@ function my_scale($value, &$unit, $decimals = NULL) {
   global $display;
   $scale = $display['scale'];
   $number = $display['number'];
-  $dot = substr($number,0,1);
-  $comma = substr($number,1,1);
   $units = array('B','KB','MB','GB','TB','PB');
   if ($scale==0 && $decimals===NULL) {
     $decimals = 0;
@@ -37,9 +35,7 @@ function my_scale($value, &$unit, $decimals = NULL) {
 function my_number($value) {
   global $display;
   $number = $display['number'];
-  $dot = substr($number,0,1);
-  $comma = substr($number,1,1);
-  return number_format($value, 0, $dot, ($value>=10000 ? $comma : ''));
+  return number_format($value, 0, $number[0], ($value>=10000 ? $number[1] : ''));
 }
 function my_time($time, $fmt = NULL) {
   global $display;
@@ -49,8 +45,8 @@ function my_time($time, $fmt = NULL) {
 function my_temp($value) {
   global $display;
   $unit = $display['unit'];
-  $dot = substr($display['number'],0,1);
-  return is_numeric($value) ? (($unit=='C' ? str_replace('.', $dot, $value) : round(9/5*$value+32))." $unit") : $value;
+  $number = $display['number'];
+  return is_numeric($value) ? (($unit=='C' ? str_replace('.', $number[0], $value) : round(9/5*$value+32))." $unit") : $value;
 }
 function my_disk($name) {
   return ucfirst(preg_replace(array('/^(parity|disk|cache)([0-9]+)/','/^parity,cache,disk/'),array('$1 $2','Parity, Cache, Disk '),$name));
@@ -116,11 +112,11 @@ function mk_option($select, $value, $text, $extra = "") {
 }
 function mk_option_check($name, $value, $text = "") {
   if ($text) {
-    $checked = strpos("$name,", "$value,")===false ? "" : " selected";
+    $checked = in_array($value,explode(',',$name)) ? " selected" : "";
     return "<option value='$value'$checked>$text</option>";
   }
   if (strpos($name, 'disk')!==false) {
-    $checked = strpos("$value,", "$name,")===false ? "" : " selected";
+    $checked = in_array($name,explode(',',$value)) ? " selected" : "";
     return "<option value='$name'$checked>".my_disk($name)."</option>";
   }
 }
@@ -161,7 +157,7 @@ function read_parity_log($epoch,$busy=false) {
     }
     fclose($handle);
   }
-  return $line ? $line : ($last ? $last : '0|0|0|0');
+  return $line ?: ($last ?: '0|0|0|0');
 }
 function urlencode_path($path) {
   return str_replace("%2F", "/", urlencode($path));

@@ -11,6 +11,8 @@
  */
 ?>
 <?
+$month = [' Jan '=>'-01-',' Feb '=>'-02-',' Mar '=>'-03-',' Apr '=>'-04-',' May '=>'-05-',' Jun '=>'-06-',' Jul '=>'-07-',' Aug '=>'-08-',' Sep '=>'-09-',' Oct '=>'-10-',' Nov '=>'-11-',' Dec '=>'-12-'];
+
 function plus($val, $word, $last) {
   return $val>0 ? (($val||$last)?($val.' '.$word.($last?'':', ')):'') : '';
 }
@@ -39,6 +41,7 @@ if (file_exists($log)) {
   while (($line = fgets($handle)) !== false) {
     list($date,$duration,$speed,$status) = explode('|',$line);
     if ($speed==0) $speed = 'Unavailable';
+    $date = str_replace(' ',', ',strtr(str_replace('  ',' 0',$date),$month));
     if ($duration>0||$status<>0) $list[] = "<tr><td>$date</td><td>".my_duration($duration)."</td><td>$speed</td><td>".($status==0?'OK':($status==-4?'Canceled':$status))."</td></tr>";
   }
   fclose($handle);

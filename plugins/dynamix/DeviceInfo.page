@@ -183,7 +183,7 @@ Critical disk temperature threshold (&deg;<?=$display['unit']?>):
 >
 > A value of zero will disable the critical threshold (including notifications).
 
-<?if (($var['spinupGroups']=="yes")&&($disk['name']!="cache")):?>
+<?if (($var['spinupGroups']=="yes")&&($disk['type']!="Cache")):?>
 
 Spinup group(s):
 : <input type="text" name="diskSpinupGroup.<?=$disk['idx'];?>" maxlength="256" value="<?=$disk['spinupGroup']?>">

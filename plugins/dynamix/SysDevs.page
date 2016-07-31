@@ -23,9 +23,9 @@ Title="System Devices"
 
 > This displays a list of IOMMU groups available on your system.
 
-<? if (strpos(file_get_contents('/proc/cmdline'), 'pcie_acs_override=') !== false) { ?>
+<?if (strpos(file_get_contents('/proc/cmdline'), 'pcie_acs_override=') !== false):?>
 <p class="notice">Warning: Your system has booted with the PCIe ACS Override setting enabled. The below list doesn't not reflect the way IOMMU would naturally group devices. To see natural IOMMU groups for your hardware, go to the <b><a href="/Settings/VMSettings">VM Settings</a></b> page and set the <b>PCIe ACS Override</b> setting to <b>No</b>.</p>
-<? } ?>
+<?endif;?>
 <pre><?
 	$iommu_groups = shell_exec("find /sys/kernel/iommu_groups/ -type l");
 	if (empty($iommu_groups)) {
@@ -39,7 +39,7 @@ Title="System Devices"
 
 > This displays a list of CPU thread pairings.
 
-<pre><?=str_replace(['-', ','], ' <===> ', shell_exec("cat /sys/devices/system/cpu/*/topology/thread_siblings_list | sort -nu"))?></pre>
+<pre><?=preg_replace('/(\d+)[-,](\d+)/','cpu: $1 <===> $2', shell_exec("cat /sys/devices/system/cpu/*/topology/thread_siblings_list | sort -nu"))?></pre>
 
 **USB Devices**
 
@@ -53,5 +53,5 @@ Title="System Devices"
 >
 > Note that linux groups ATA, SATA and SAS devices with true SCSI devices.
 
-<pre><?=shell_exec("lsscsi")?></pre>
+<pre><?=shell_exec("lsscsi -s")?></pre>
 <input type="button" value="Done" onclick="done()">
