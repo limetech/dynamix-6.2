@@ -116,11 +116,11 @@ function mk_option($select, $value, $text, $extra = "") {
 }
 function mk_option_check($name, $value, $text = "") {
   if ($text) {
-    $checked = strpos("$name,", "$value,")===false ? "" : " selected";
+    $checked = in_array($value,explode(',',$name)) ? " selected" : "";
     return "<option value='$value'$checked>$text</option>";
   }
   if (strpos($name, 'disk')!==false) {
-    $checked = strpos("$value,", "$name,")===false ? "" : " selected";
+    $checked = in_array($name,explode(',',$value)) ? " selected" : "";
     return "<option value='$name'$checked>".my_disk($name)."</option>";
   }
 }
