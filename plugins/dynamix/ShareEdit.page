@@ -265,14 +265,18 @@ Enable Copy-on-write:
 &nbsp;
 : <input type="submit" name="cmdEditShare" value="Add Share"><input type="button" value="Done" onclick="done()">
 <?elseif (shareEmpty($share['name'])):?>
-Share empty?
-: Yes
+Share status:
+: <big>Share is empty</big>
+
+> Share does *not* contain any data and may be deleted if not needed any longer.
 
 Delete<input type="checkbox" name="confirmDelete" onchange="chkDelete(this.form, this.form.cmdEditShare);">
 : <input type="submit" name="cmdEditShare" value="Apply"><input type="button" value="Done" onclick="done()">
 <?else:?>
-Share empty?
-: No
+Share status:
+: <big>Share contains data</big>
+
+> Share can *not* be deleted as long as it contains data. Be aware that some data can be hidden. See also [SMB Settings](/Settings/SMB) -> Hide "dot" files.
 
 &nbsp;
 : <input type="submit" name="cmdEditShare" value="Apply"><input type="button" value="Done" onclick="done()">
