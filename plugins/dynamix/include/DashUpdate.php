@@ -174,8 +174,8 @@ case 'port':
     $ports = explode(',',$_POST['ports']); $i = 0;
     foreach ($ports as $port) {
       $mtu = file_get_contents("/sys/class/net/$port/mtu");
-      if ($port=='bond0') {
-        $ports[$i++] = exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/bond0").", mtu $mtu";
+      if (substr($port,0,4)=='bond') {
+        $ports[$i++] = exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/$port").", mtu $mtu";
       } else if ($port=='lo') {
         $ports[$i++] = str_replace('yes','loopback',exec("ethtool lo|grep -Pom1 '^\s+Link detected: \K.+'"));
       } else {
@@ -185,8 +185,8 @@ case 'port':
       }
     }
   break;
-  case 'port': exec("ifconfig -a -s|awk '/^(bond|eth|lo\s)/{print $3\"#\"$7}'",$ports); break;
-  case 'link': exec("ifconfig -a -s|awk '/^(bond|eth|lo\s)/{print \"Errors: \"$4\"<br>Drops: \"$5\"<br>Overruns: \"$6\"#Errors: \"$8\"<br>Drops: \"$9\"<br>Overruns: \"$10}'",$ports); break;
+  case 'port': exec("ifconfig -a -s|awk '/^(bond|eth|lo)[0-9]*\s/{print $3\"#\"$7}'",$ports); break;
+  case 'link': exec("ifconfig -a -s|awk '/^(bond|eth|lo)[0-9]*\s/{print \"Errors: \"$4\"<br>Drops: \"$5\"<br>Overruns: \"$6\"#Errors: \"$8\"<br>Drops: \"$9\"<br>Overruns: \"$10}'",$ports); break;
   default: $ports = [];}
   echo implode('#',$ports);
 break;
