@@ -201,7 +201,7 @@ function read_disk(&$device, $item) {
     return exec("hdparm -C /dev/$device|grep -Po active") ? 'blue-on' : 'blue-blink';
   case 'temp':
     $smart = "/var/local/emhttp/smart/$device";
-    if (!file_exists($smart) || (time()-filemtime($smart)>=$var['poll_attributes'])) exec("smartctl -n standby -A /dev/$device > $smart");
+    if (!file_exists($smart) || (time()-filemtime($smart)>=$var['poll_attributes'])) exec("smartctl -n standby -A /dev/$device >$smart &");
     $temp = exec("awk '\$1==190||\$1==194{print \$10;exit}' $smart");
     return $temp ? $temp : '*';
   }
