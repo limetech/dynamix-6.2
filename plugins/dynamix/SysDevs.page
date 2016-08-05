@@ -39,7 +39,7 @@ Title="System Devices"
 
 > This displays a list of CPU thread pairings.
 
-<pre><?=preg_replace('/(\d+)[-,](\d+)/','cpu: $1 <===> $2', shell_exec("cat /sys/devices/system/cpu/*/topology/thread_siblings_list | sort -nu"))?></pre>
+<pre><?=preg_replace('/(\d+)[-,](\d+)/','cpu $1 <===> cpu $2', shell_exec("cat /sys/devices/system/cpu/*/topology/thread_siblings_list | sort -nu"))?></pre>
 
 **USB Devices**
 
