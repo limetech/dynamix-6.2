@@ -25,11 +25,12 @@ Icon="date-time.png"
 Current date and time:
 : <?=my_time($var['currTime'])?>
 
-Time zone & country:
+Time zone and country:
 : <select id="edit-timezone" name="timeZone" class="map"><?require_once 'webGui/include/timezone.map'?></select>
   <select id="edit-country" class="map"><?require_once 'webGui/include/country.map'?></select>
+  <input type="button" value="Show map" onclick="$('#picker').toggle('slow'); $(this).toggleClass('hide'); $(this).val($(this).hasClass('hide') ? 'Hide map' : 'Show map')">
 
-<div id="picker" style="margin-left:124px;margin-bottom:24px">
+<div id="picker" style="display:none;margin-left:124px;margin-bottom:24px">
 <img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
 <img class="pin" src="/webGui/images/pin.png" style="padding-top:4px">
 <?require_once 'webGui/include/timezones.map'?>
