@@ -14,6 +14,64 @@ Icon="date-time.png"
  * all copies or substantial portions of the Software.
  */
 ?>
+<style>
+.map{width:200px;min-width:auto;max-width:auto;}
+</style>
+
+<script src="/webGui/javascript/jquery.maphilight.js"></script>
+<script src="/webGui/javascript/jquery.timezone-picker.js"></script>
+
+<form markdown="1" name="datetime_settings" method="POST" action="/update.htm" target="progressFrame">
+Current date and time:
+: <?=my_time($var['currTime'])?>
+
+Time zone & country:
+: <select id="edit-timezone" name="timeZone" class="map"><?require_once 'webGui/include/timezone.map'?></select>
+  <select id="edit-country" class="map"><?require_once 'webGui/include/country.map'?></select>
+
+<div id="picker" style="margin-left:124px;margin-bottom:24px">
+<img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
+<img class="pin" src="/webGui/images/pin.png" style="padding-top:4px">
+<?require_once 'webGui/include/timezones.map'?>
+</div>
+
+Use NTP:
+: <select name="USE_NTP" size="1" class="auto" onchange="checkDateTimeSettings(this.form)">
+  <?=mk_option($var['USE_NTP'], "yes", "Yes")?>
+  <?=mk_option($var['USE_NTP'], "no", "No")?>
+  </select>
+
+> Select 'Yes' to use Network Time Protocol to keep your server time accurate.
+> We **highly** recommend the use of a network time server, especially if you plan on using Active Directory.
+
+NTP server 1:
+: <input type="text" name="NTP_SERVER1" maxlength="80" value="<?=$var['NTP_SERVER1']?>" class="narrow">
+
+> This is the primary NTP server to use.  Enter a FQDN or an IP address.
+
+NTP server 2:
+: <input type="text" name="NTP_SERVER2" maxlength="80" value="<?=$var['NTP_SERVER2']?>" class="narrow">
+
+> This is the alternate NTP server to use if NTP Server 1 is down.
+
+NTP server 3:
+: <input type="text" name="NTP_SERVER3" maxlength="80" value="<?=$var['NTP_SERVER3']?>" class="narrow">
+
+> This is the alternate NTP Server to use if NTP Servers 1 and 2 are both down.
+
+New date and time:
+: <input type="text" name="newDateTime" maxlength="40" value="<?=my_time($var['currTime'], "%F %T")?>" class="narrow">
+
+> Enter the current time-of-day.  Use format YYYY-MM-DD HH:MM:SS. Greyed out when using NTP.
+>
+> Select your time zone.  You may also define a custom time zone file and have it appear as a selection
+>
+> in the drop-down list. To do this, copy your time zone file to your flash device, with name `config/timezone`.
+
+&nbsp;
+: <input type="submit" name="setDateTime" value=" Apply "><input type="button" value=" Done " onclick="done()">
+</form>
+
 <script>
 function checkDateTimeSettings() {
   form = document.datetime_settings;
@@ -29,144 +87,21 @@ function checkDateTimeSettings() {
     form.NTP_SERVER3.disabled=true;
   }
 }
+function setbuttons(timezone) {
+  if (timezone != '<?=$var['timeZone']?>' && $('input[value=" Done "]').val() !== undefined) {
+    $('input[value=" Apply "]').removeAttr('disabled');
+    $('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){refresh();});
+  }
+}
+$('#globe').timezonePicker({target:'#edit-timezone', countryTarget:'#edit-country', pin:'.pin', changeHandler:setbuttons});
+$('#globe').timezonePicker('updateTimezone', '<?=$var['timeZone']?>');
 $(checkDateTimeSettings);
+$(function() {
+  $('input[value=" Apply "]').prop('disabled',true);
+  $('form[name="datetime_settings"]').find('select,input').not('.map').each(function(){$(this).on('input change',function() {
+    var form = $(this).parentsUntil('form').parent();
+    form.find('input[value=" Apply "]').removeAttr('disabled');
+    form.find('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){refresh();});
+  });});
+});
 </script>
-
-<form markdown="1" name="datetime_settings" method="POST" action="/update.htm" target="progressFrame">
-Current date and time:
-: <?=my_time($var['currTime'])?>
-
-Time zone:
-: <select name="timeZone" size="1">
-  <?if (file_exists("/boot/config/timezone")):?>
-  <?=mk_option($var['timeZone'], "custom", "(custom)")?>
-  <?endif; ?>
-  <?=mk_option($var['timeZone'], "Pacific/Apia", "(UTC-11:00) Midway Island, Samoa")?>
-  <?=mk_option($var['timeZone'], "Pacific/Honolulu", "(UTC-10:00) Hawaii")?>
-  <?=mk_option($var['timeZone'], "America/Anchorage", "(UTC-09:00) Alaska")?>
-  <?=mk_option($var['timeZone'], "America/Los_Angeles", "(UTC-08:00) Pacific Time (US & Canada)")?>
-  <?=mk_option($var['timeZone'], "America/Tijuana", "(UTC-08:00) Tijuana, Baja California")?>
-  <?=mk_option($var['timeZone'], "America/Phoenix", "(UTC-07:00) Arizona")?>
-  <?=mk_option($var['timeZone'], "America/Chihuahua", "(UTC-07:00) Chihuahua, La Paz, Mazatlan")?>
-  <?=mk_option($var['timeZone'], "America/Denver", "(UTC-07:00) Mountain Time (US & Canada)")?>
-  <?=mk_option($var['timeZone'], "America/Guatemala", "(UTC-06:00) Central America")?>
-  <?=mk_option($var['timeZone'], "America/Chicago", "(UTC-06:00) Central Time (US & Canada)")?>
-  <?=mk_option($var['timeZone'], "America/Mexico_City", "(UTC-06:00) Guadalajara, Mexico City, Monterrey")?>
-  <?=mk_option($var['timeZone'], "America/Regina", "(UTC-06:00) Saskatchewan")?>
-  <?=mk_option($var['timeZone'], "America/Bogota", "(UTC-05:00) Bogota, Lima, Quito")?>
-  <?=mk_option($var['timeZone'], "America/New_York", "(UTC-05:00) Eastern Time (US & Canada)")?>
-  <?=mk_option($var['timeZone'], "America/Indiana/Indianapolis", "(UTC-05:00) Indiana (East)")?>
-  <?=mk_option($var['timeZone'], "America/Caracas", "(UTC-04:30) Caracas")?>
-  <?=mk_option($var['timeZone'], "America/Asuncion", "(UTC-04:00) Asuncion")?>
-  <?=mk_option($var['timeZone'], "America/Halifax", "(UTC-04:00) Atlantic Time (Canada)")?>
-  <?=mk_option($var['timeZone'], "America/La_Paz", "(UTC-04:00) Georgetown, La Paz, San Juan")?>
-  <?=mk_option($var['timeZone'], "America/Campo_Grande", "(UTC-04:00) Manaus")?>
-  <?=mk_option($var['timeZone'], "America/Santiago", "(UTC-04:00) Santiago")?>
-  <?=mk_option($var['timeZone'], "America/Buenos_Aires", "(UTC-03:00) Buenos Aires")?>
-  <?=mk_option($var['timeZone'], "America/Sao_Paulo", "(UTC-03:00) Brasilia")?>
-  <?=mk_option($var['timeZone'], "America/Noronha", "(UTC-02:00) Mid-Atlantic")?>
-  <?=mk_option($var['timeZone'], "Atlantic/Azores", "(UTC-01:00) Azores")?>
-  <?=mk_option($var['timeZone'], "Atlantic/Cape_Verde", "(UTC-01:00) Cape Verde Is.")?>
-  <?=mk_option($var['timeZone'], "America/Cayenne", "(UTC-03:00) Cayenne")?>
-  <?=mk_option($var['timeZone'], "America/Godthab", "(UTC-03:00) Greenland")?>
-  <?=mk_option($var['timeZone'], "America/Montevideo", "(UTC-03:00) Montevideo")?>
-  <?=mk_option($var['timeZone'], "America/St_Johns", "(UTC-03:30) Newfoundland")?>
-  <?=mk_option($var['timeZone'], "UTC", "(UTC) Coordinated Universal Time")?>
-  <?=mk_option($var['timeZone'], "Africa/Casablanca", "(UTC+00:00) Casablanca")?>
-  <?=mk_option($var['timeZone'], "Europe/London", "(UTC+00:00) Dublin, Edinburgh, Lisbon, London")?>
-  <?=mk_option($var['timeZone'], "Atlantic/Reykjavik", "(UTC+00:00) Monrovia, Reykjavik")?>
-  <?=mk_option($var['timeZone'], "Europe/Berlin", "(UTC+01:00) Amsterdam, Berlin, Bern, Rome, Stockholm, Vienna")?>
-  <?=mk_option($var['timeZone'], "Europe/Budapest", "(UTC+01:00) Belgrade, Bratislava, Budapest, Ljubljana, Prague")?>
-  <?=mk_option($var['timeZone'], "Europe/Paris", "(UTC+01:00) Brussels, Copenhagen, Madrid, Paris")?>
-  <?=mk_option($var['timeZone'], "Europe/Warsaw", "(UTC+01:00) Sarajevo, Skopje, Warsaw, Zagreb")?>
-  <?=mk_option($var['timeZone'], "Africa/Lagos", "(UTC+01:00) West Central Africa")?>
-  <?=mk_option($var['timeZone'], "Asia/Amman", "(UTC+02:00) Amman")?>
-  <?=mk_option($var['timeZone'], "Europe/Istanbul", "(UTC+02:00) Athens, Bucharest, Istanbul")?>
-  <?=mk_option($var['timeZone'], "Asia/Beirut", "(UTC+02:00) Beirut")?>
-  <?=mk_option($var['timeZone'], "Africa/Cairo", "(UTC+02:00) Cairo")?>
-  <?=mk_option($var['timeZone'], "Africa/Johannesburg", "(UTC+02:00) Harare, Pretoria")?>
-  <?=mk_option($var['timeZone'], "Europe/Kiev", "(UTC+02:00) Helsinki, Kyiv, Riga, Sofia, Tallinn, Vilnius")?>
-  <?=mk_option($var['timeZone'], "Asia/Jerusalem", "(UTC+02:00) Jerusalem")?>
-  <?=mk_option($var['timeZone'], "Europe/Minsk", "(UTC+02:00) Minsk")?>
-  <?=mk_option($var['timeZone'], "Africa/Windhoek", "(UTC+02:00) Windhoek")?>
-  <?=mk_option($var['timeZone'], "Asia/Baghdad", "(UTC+03:00) Baghdad")?>
-  <?=mk_option($var['timeZone'], "Asia/Riyadh", "(UTC+03:00) Kuwait, Riyadh")?>
-  <?=mk_option($var['timeZone'], "Europe/Moscow", "(UTC+03:00) Moscow, St. Petersburg, Volgograd")?>
-  <?=mk_option($var['timeZone'], "Africa/Nairobi", "(UTC+03:00) Nairobi")?>
-  <?=mk_option($var['timeZone'], "Asia/Tehran", "(UTC+03:30) Tehran")?>
-  <?=mk_option($var['timeZone'], "Asia/Dubai", "(UTC+04:00) Abu Dhabi, Muscat")?>
-  <?=mk_option($var['timeZone'], "Asia/Baku", "(UTC+04:00) Baku")?>
-  <?=mk_option($var['timeZone'], "Indian/Mauritius", "(UTC+04:00) Port Louis")?>
-  <?=mk_option($var['timeZone'], "Asia/Yerevan", "(UTC+04:00) Yerevan")?>
-  <?=mk_option($var['timeZone'], "Asia/Kabul", "(UTC+04:30) Kabul")?>
-  <?=mk_option($var['timeZone'], "Asia/Yekaterinburg", "(UTC+05:00) Ekaterinburg")?>
-  <?=mk_option($var['timeZone'], "Asia/Karachi", "(UTC+05:00) Islamabad, Karachi")?>
-  <?=mk_option($var['timeZone'], "Asia/Tashkent", "(UTC+05:00) Tashkent")?>
-  <?=mk_option($var['timeZone'], "Asia/Calcutta", "(UTC+05:30) Chennai, Kolkata, Mumbai, New Delhi")?>
-  <?=mk_option($var['timeZone'], "Asia/Colombo", "(UTC+05:30) Sri Jayawardenepura")?>
-  <?=mk_option($var['timeZone'], "Asia/Katmandu", "(UTC+05:45) Kathmandu")?>
-  <?=mk_option($var['timeZone'], "Asia/Almaty", "(UTC+06:00) Astana")?>
-  <?=mk_option($var['timeZone'], "Asia/Dhaka", "(UTC+06:00) Dhaka")?>
-  <?=mk_option($var['timeZone'], "Asia/Novosibirsk", "(UTC+06:00) Novosibirsk")?>
-  <?=mk_option($var['timeZone'], "Asia/Rangoon", "(UTC+06:30) Yangon (Rangoon)")?>
-  <?=mk_option($var['timeZone'], "Asia/Bangkok", "(UTC+07:00) Bangkok, Hanoi, Jakarta")?>
-  <?=mk_option($var['timeZone'], "Asia/Krasnoyarsk", "(UTC+07:00) Krasnoyarsk")?>
-  <?=mk_option($var['timeZone'], "Asia/Shanghai", "(UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi")?>
-  <?=mk_option($var['timeZone'], "Asia/Irkutsk", "(UTC+08:00) Irkutsk")?>
-  <?=mk_option($var['timeZone'], "Asia/Singapore", "(UTC+08:00) Kuala Lumpur, Singapore")?>
-  <?=mk_option($var['timeZone'], "Australia/Perth", "(UTC+08:00) Perth")?>
-  <?=mk_option($var['timeZone'], "Asia/Taipei", "(UTC+08:00) Taipei")?>
-  <?=mk_option($var['timeZone'], "Asia/Ulaanbaatar", "(UTC+08:00) Ulaanbaatar")?>
-  <?=mk_option($var['timeZone'], "Asia/Tokyo", "(UTC+09:00) Osaka, Sapporo, Tokyo")?>
-  <?=mk_option($var['timeZone'], "Asia/Seoul", "(UTC+09:00) Seoul")?>
-  <?=mk_option($var['timeZone'], "Asia/Yakutsk", "(UTC+09:00) Yakutsk")?>
-  <?=mk_option($var['timeZone'], "Australia/Adelaide", "(UTC+09:30) Adelaide")?>
-  <?=mk_option($var['timeZone'], "Australia/Darwin", "(UTC+09:30) Darwin")?>
-  <?=mk_option($var['timeZone'], "Australia/Brisbane", "(UTC+10:00) Brisbane")?>
-  <?=mk_option($var['timeZone'], "Australia/Sydney", "(UTC+10:00) Canberra, Melbourne, Sydney")?>
-  <?=mk_option($var['timeZone'], "Pacific/Port_Moresby", "(UTC+10:00) Guam, Port Moresby")?>
-  <?=mk_option($var['timeZone'], "Australia/Hobart", "(UTC+10:00) Hobart")?>
-  <?=mk_option($var['timeZone'], "Asia/Vladivostok", "(UTC+10:00) Vladivostok")?>
-  <?=mk_option($var['timeZone'], "Pacific/Guadalcanal", "(UTC+11:00) Magadan, Solomon Is., New Caledonia")?>
-  <?=mk_option($var['timeZone'], "Pacific/Auckland", "(UTC+12:00) Auckland, Wellington")?>
-  <?=mk_option($var['timeZone'], "Pacific/Fiji", "(UTC+12:00) Fiji, Marshall Is.")?>
-  <?=mk_option($var['timeZone'], "Asia/Kamchatka", "(UTC+12:00) Petropavlovsk-Kamchatsky")?>
-  <?=mk_option($var['timeZone'], "Pacific/Tongatapu", "(UTC+13:00) Nuku'alofa")?>
-  </select>
-
-> Select your time zone.  You may also define a custom time zone file and have it appear as a selection
->
-> in the drop-down list. To do this, copy your time zone file to your flash device, with name `config/timezone`.
-
-Use NTP:
-: <select name="USE_NTP" size="1" class="narrow" onchange="checkDateTimeSettings(this.form)">
-  <?=mk_option($var['USE_NTP'], "yes", "Yes")?>
-  <?=mk_option($var['USE_NTP'], "no", "No")?>
-  </select>
-
-> Select 'Yes' to use Network Time Protocol to keep your server time accurate.
-> We **highly** recommend the use of a network time server, especially if you plan on using Active Directory.
-
-NTP server 1:
-: <input type="text" name="NTP_SERVER1" maxlength="80" value="<?=$var['NTP_SERVER1']?>">
-
-> This is the primary NTP server to use.  Enter a FQDN or an IP address.
-
-NTP server 2:
-: <input type="text" name="NTP_SERVER2" maxlength="80" value="<?=$var['NTP_SERVER2']?>">
-
-> This is the alternate NTP server to use if NTP Server 1 is down.
-
-NTP server 3:
-: <input type="text" name="NTP_SERVER3" maxlength="80" value="<?=$var['NTP_SERVER3']?>">
-
-> This is the alternate NTP Server to use if NTP Servers 1 and 2 are both down.
-
-New date and time:
-: <input type="text" name="newDateTime" maxlength="40" value="<?=my_time($var['currTime'], "%F %T")?>">
-
-> Enter the current time-of-day.  Use format YYYY-MM-DD HH:MM:SS. Greyed out when using NTP.
-
-&nbsp;
-: <input type="submit" name="setDateTime" value="Apply"><input type="button" value="Done" onclick="done()">
-</form>
