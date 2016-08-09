@@ -30,7 +30,7 @@ Time zone:
   <?=mk_option($var['timeZone'], $timezone, $info)?>
   <?endforeach;?>
   </select>
-  <input type="button" value="Show map" onclick="$('#picker').toggle('slow'); $(this).toggleClass('hide'); $(this).val($(this).hasClass('hide') ? 'Hide map' : 'Show map')">
+  <input type="button" value="Show map" onclick="$('#picker').toggle('slow'); $(this).toggleClass('hide'); $(this).val($(this).hasClass('hide') ? 'Hide map' : 'Show map')" style="margin-top:0">
 
 <div id="picker" style="display:none;margin-left:124px;margin-bottom:24px">
 <img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
