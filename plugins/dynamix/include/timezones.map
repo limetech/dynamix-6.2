@@ -69,7 +69,6 @@
 <area data-timezone="America/Regina" data-country="CA" data-pin="0,0" data-offset="-6" shape="poly" coords="205,113,205,113,205,113"/>
 <area data-timezone="America/Guatemala" data-country="HN" data-pin="0,0" data-offset="-6" shape="poly" coords="265,217,264,219,262,217,258,215,258,213,262,211,267,210,272,211,275,213,270,214,268,217,265,217"/>
 <area data-timezone="America/Regina" data-country="CA" data-pin="0,0" data-offset="-6" shape="poly" coords="250,118,243,117,241,116,241,117,224,117,223,102,220,101,222,99,222,85,242,85,242,88,247,89,249,93,248,94,253,93,259,94,256,96,256,102,259,102,260,104,259,106,256,106,256,108,254,110,256,112,256,115,251,117,250,118"/>
-<area data-timezone="Pacific/Galapagos" data-country="EC" data-pin="0,0" data-offset="-6" shape="rect" coords="245,265,263,246"/>
 <area data-timezone="America/New_York" data-country="CA" data-pin="0,0" data-offset="-5" shape="poly" coords="256,119,250,118,251,117,253,117,253,118,256,119"/>
 <area data-timezone="America/Bogota" data-country="CO" data-pin="0,0" data-offset="-5" shape="poly" coords="314,259,313,268,311,267,313,264,312,263,308,262,305,263,299,256,292,255,287,251,293,245,292,244,292,240,290,235,292,233,292,231,294,234,293,232,297,229,298,225,304,224,308,221,310,222,306,224,303,230,306,232,306,235,307,236,313,236,314,239,320,239,319,243,321,246,319,248,321,249,322,253,320,250,313,251,313,253,315,254,313,254,314,259"/>
 <area data-timezone="America/Bogota" data-country="KY" data-pin="0,0" data-offset="-5" shape="poly" coords="285,200,285,200,285,200"/>
@@ -194,9 +193,9 @@
 <area data-timezone="Africa/Casablanca" data-country="BF" data-pin="0,0" data-offset="0" shape="poly" coords="510,225,504,225,504,229,503,228,499,228,496,226,497,222,499,221,501,218,502,219,505,215,511,213,513,213,513,216,516,218,515,219,518,220,519,222,515,225,510,225"/>
 <area data-timezone="Africa/Casablanca" data-country="ST" data-pin="0,0" data-offset="0" shape="poly" coords="533,251,533,252,533,251"/>
 <area data-timezone="Atlantic/Reykjavik" data-country="GL" data-pin="0,0" data-offset="0" shape="poly" coords="457,30,456,31,459,31,452,32,453,32,450,35,453,34,457,35,458,35,452,36,459,36,460,37,447,38,456,40,450,40,457,41,447,40,448,29,457,30"/>
-<area data-timezone="Africa/Casablanca" data-country="ES" data-pin="0,0" data-offset="0" shape="rect" coords="460,182,474,167"/>
+<area data-timezone="Europe/London" data-country="ES" data-pin="0,0" data-offset="0" shape="rect" coords="460,182,474,167"/>
 <area data-timezone="Atlantic/Reykjavik" data-country="FO" data-pin="0,0" data-offset="0" shape="rect" coords="485,86,499,74"/>
-<area data-timezone="Africa/Casablanca" data-country="PT" data-pin="0,0" data-offset="0" shape="rect" coords="458,175,472,157"/>
+<area data-timezone="Europe/London" data-country="PT" data-pin="0,0" data-offset="0" shape="rect" coords="458,175,472,157"/>
 <area data-timezone="Atlantic/Reykjavik" data-country="IS" data-pin="0,0" data-offset="0" shape="rect" coords="446,81,474,62"/>
 <area data-timezone="Europe/London" data-country="IE" data-pin="0,0" data-offset="0" shape="poly" coords="493,102,495,102,494,108,485,110,483,109,485,108,482,109,485,106,487,106,484,106,487,105,483,104,485,103,483,102,488,102,489,101,487,100,491,98,492,99,489,101,493,102"/>
 <area data-timezone="Europe/London" data-country="GG" data-pin="0,0" data-offset="0" shape="poly" coords="505,115,505,115,505,115"/>
