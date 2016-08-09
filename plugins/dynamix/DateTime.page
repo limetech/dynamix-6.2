@@ -14,9 +14,7 @@ Icon="date-time.png"
  * all copies or substantial portions of the Software.
  */
 ?>
-<style>
-.map{width:200px;min-width:auto;max-width:auto;}
-</style>
+<?$keys = explode("\n", file_get_contents('webGui/include/timezones.key'));?>
 
 <script src="/webGui/javascript/jquery.maphilight.js"></script>
 <script src="/webGui/javascript/jquery.timezone-picker.js"></script>
@@ -25,15 +23,18 @@ Icon="date-time.png"
 Current date and time:
 : <?=my_time($var['currTime'])?>
 
-Time zone and country:
-: <select id="edit-timezone" name="timeZone" class="map"><?require_once 'webGui/include/timezone.map'?></select>
-  <select id="edit-country" class="map"><?require_once 'webGui/include/country.map'?></select>
+Time zone:
+: <select id="edit-timezone" name="timeZone" class="map">
+  <?foreach ($keys as $key):?>
+  <?list($timezone, $info) = explode('|', $key);?>
+  <?=mk_option($var['timeZone'], $timezone, $info)?>
+  <?endforeach;?>
+  </select>
   <input type="button" value="Show map" onclick="$('#picker').toggle('slow'); $(this).toggleClass('hide'); $(this).val($(this).hasClass('hide') ? 'Hide map' : 'Show map')">
 
 <div id="picker" style="display:none;margin-left:124px;margin-bottom:24px">
 <img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
-<img class="pin" src="/webGui/images/pin.png" style="padding-top:4px">
-<?require_once 'webGui/include/timezones.map'?>
+<map name="map" id="map"><?require_once 'webGui/include/timezones.map'?></map>
 </div>
 
 Use NTP:
@@ -74,6 +75,8 @@ New date and time:
 </form>
 
 <script>
+var previous = null;
+
 function checkDateTimeSettings() {
   form = document.datetime_settings;
   if (form.USE_NTP.value=="yes") {
@@ -88,21 +91,41 @@ function checkDateTimeSettings() {
     form.NTP_SERVER3.disabled=true;
   }
 }
-function setbuttons(timezone) {
+function setArea(timezone, country, offset) {
+  // buttons handler (only for this page) cause timezoner-picker triggers unwanted changes
   if (timezone != '<?=$var['timeZone']?>' && $('input[value=" Done "]').val() !== undefined) {
     $('input[value=" Apply "]').removeAttr('disabled');
     $('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){refresh();});
   }
+  $('area').each(function() {
+    if ($(this).data('offset')==previous) {
+      var data = $(this).data('maphilight');
+      data.alwaysOn = false;
+      data.fillColor = 'FFFFFF';
+      $(this).data('maphilight', data).trigger('fillColor.maphilight');
+      $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
+    }
+  });
+  $('area').each(function() {
+    if ($(this).data('offset')==offset) {
+      var data = $(this).data('maphilight');
+      data.alwaysOn = true;
+      data.fillColor = 'E68A00';
+      $(this).data('maphilight', data).trigger('fillColor.maphilight');
+      $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
+    }
+  });
+  previous = offset;
 }
-$('#globe').timezonePicker({target:'#edit-timezone', countryTarget:'#edit-country', pin:'.pin', changeHandler:setbuttons});
-$('#globe').timezonePicker('updateTimezone', '<?=$var['timeZone']?>');
-$(checkDateTimeSettings);
 $(function() {
+  $('area').each(function(){$(this).attr('data-maphilight','{"alwaysOn":false, "fillColor":"FFFFFF"}');});
+  $('#globe').timezonePicker({target:'#edit-timezone', stroke:false, changeHandler:setArea});
   $('input[value=" Apply "]').prop('disabled',true);
   $('form[name="datetime_settings"]').find('select,input').not('.map').each(function(){$(this).on('input change',function() {
     var form = $(this).parentsUntil('form').parent();
     form.find('input[value=" Apply "]').removeAttr('disabled');
     form.find('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){refresh();});
   });});
+  $(checkDateTimeSettings);
 });
 </script>
