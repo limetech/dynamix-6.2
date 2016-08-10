@@ -104,10 +104,7 @@ function setArea(timezone, country, offset) {
       data.fillColor = 'FFFFFF';
       $(this).data('maphilight', data).trigger('fillColor.maphilight');
       $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
-    }
-  });
-  $('area').each(function() {
-    if ($(this).data('offset')==offset) {
+    } else if ($(this).data('offset')==offset) {
       var data = $(this).data('maphilight');
       data.alwaysOn = true;
       data.fillColor = 'E68A00';
