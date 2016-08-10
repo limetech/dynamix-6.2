@@ -97,6 +97,7 @@ function setArea(timezone, country, offset) {
     $('input[value=" Apply "]').removeAttr('disabled');
     $('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){refresh();});
   }
+  if (offset == previous) return;
   $('area').each(function() {
     if ($(this).data('offset')==previous) {
       var data = $(this).data('maphilight');
