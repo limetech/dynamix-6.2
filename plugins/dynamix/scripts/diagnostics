@@ -116,7 +116,7 @@ foreach ($shares as $share) {
   if (!in_array("/boot/config/shares/$name.cfg",$files)) file_put_contents(anonymize("/$diag/shares/$name.cfg",2),"# This share has default settings.\r\n");
 }
 // copy syslog information (anonymize if applicable)
-$max = 3*1024*1024; //3MB
+$max = 2*1024*1024; //=2MB
 foreach (glob("/var/log/syslog*") as $file) {
   $log = "/$diag/logs/".basename($file);
   exec("todos <$file >$log.txt");
@@ -131,18 +131,42 @@ foreach (glob("/var/log/syslog*") as $file) {
     exec("grep -n ' cache_dirs: -' $log.txt 2>/dev/null|cut -d: -f1", $rows);
     for ($i = 0; $i < count($rows); $i += 2) for ($row = $rows[$i]+1; $row < $rows[$i+1]; $row++) exec("sed -ri '$row s|(cache_dirs: \S).*(\S)|\\1..\\2|' $log.txt 2>/dev/null");
   }
-  exec("tail -n 200 $log.txt >$log.last200.txt");
+  if (basename($file)=='syslog' && filesize($file)>=$max) exec("tail -n 200 $log.txt >$log.last200.txt");
   exec("truncate -s '<$max' $log.txt");
 }
 // copy docker information (if existing)
+$max = 1*1024*1024; //=1MB
 $docker = "/var/log/docker.log";
-if (file_exists($docker)) exec("todos <$docker >/$diag/logs/docker.log");
+if (file_exists($docker)) {
+  $log = "/$diag/logs/docker.log";
+  exec("todos <$docker >$log");
+  if (filesize($docker)>=$max) {
+    exec("tail -n 200 $log >$log.last200");
+    exec("truncate -s '<$max' $log");
+  }
+}
+// copy libvirt information (if existing)
 $libvirtd = "/var/log/libvirt/libvirtd.log";
-if (file_exists($libvirtd)) exec("todos <$libvirtd >/$diag/logs/libvirtd.log");
+if (file_exists($libvirtd)) {
+  $log = "/$diag/logs/libvirt";
+  exec("todos <$libvirtd >$log");
+  if (filesize($libvirtd)>=$max) {
+    exec("tail -n 200 $log.log >$log.last200");
+    exec("truncate -s '<$max' $log");
+  }
+}
+// copy VMs information (if existing)
 $qemu = glob("/var/log/libvirt/qemu/*.log*");
-if ($qemu)
-  foreach ($qemu as $file) exec("todos <".escapeshellarg($file)." >/$diag/qemu/".escapeshellarg(basename($file)));
-else
+if ($qemu) {
+  foreach ($qemu as $file) {
+    $log = "/$diag/qemu/".escapeshellarg(basename($file));
+    exec("todos <".escapeshellarg($file)." >$log");
+    if (filesize($file)>=$max) {
+      exec("tail -n 200 $log.log >$log.last200");
+      exec("truncate -s '<$max' $log");
+    }
+  }
+} else
   file_put_contents("/$diag/qemu/no qemu log files","");
 // create SMART reports (suppress errors)
 $disks = file_exists("$get/disks.ini") ? parse_ini_file("$get/disks.ini", true) : [];
