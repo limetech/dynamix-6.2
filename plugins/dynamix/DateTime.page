@@ -102,13 +102,13 @@ function setArea(timezone, country, offset) {
     if ($(this).data('offset')==previous) {
       var data = $(this).data('maphilight');
       data.alwaysOn = false;
-      data.fillColor = 'FFFFFF';
+      data.fillColor = 'BDF5E8';
       $(this).data('maphilight', data).trigger('fillColor.maphilight');
       $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
     } else if ($(this).data('offset')==offset) {
       var data = $(this).data('maphilight');
       data.alwaysOn = true;
-      data.fillColor = 'E68A00';
+      data.fillColor = 'FF9E9E';
       $(this).data('maphilight', data).trigger('fillColor.maphilight');
       $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
     }
@@ -116,8 +116,8 @@ function setArea(timezone, country, offset) {
   previous = offset;
 }
 $(function() {
-  $('area').each(function(){$(this).attr('data-maphilight','{"alwaysOn":false, "fillColor":"FFFFFF"}');});
-  $('#globe').timezonePicker({target:'#edit-timezone', stroke:false, changeHandler:setArea});
+  $('#globe').timezonePicker({target:'#edit-timezone', fillOpacity:0.6, stroke:false, changeHandler:setArea});
+  $('area').each(function(){$(this).attr('data-maphilight','{"alwaysOn":false, "fillColor":"BDF5E8"}');});
   $('input[value=" Apply "]').prop('disabled',true);
   $('form[name="datetime_settings"]').find('select,input').not('.map').each(function(){$(this).on('input change',function() {
     var form = $(this).parentsUntil('form').parent();
