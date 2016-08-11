@@ -403,4 +403,3 @@
 <area data-timezone="Pacific/Auckland" data-country="NZ" data-pin="0,0" data-offset="12" shape="poly" coords="1014,372,1011,374,1009,373,1010,370,1006,368,1008,367,1009,364,1007,360,1008,359,1007,360,1003,354,1008,356,1009,361,1011,362,1011,360,1014,364,1020,363,1018,367,1016,367,1014,372"/>
 <area data-timezone="Pacific/Fiji" data-country="FJ" data-pin="0,0" data-offset="12" shape="poly" coords="3,305,3,305,3,305"/>
 <area data-timezone="Pacific/Tongatapu" data-country="TO" data-pin="0,0" data-offset="13" shape="rect" coords="6,310,23,290"/>
-<area data-timezone="Pacific/Kiritimati" data-country="KI" data-pin="0,0" data-offset="14" shape="rect" coords="55,289,85,243"/>
