@@ -376,9 +376,9 @@
 <area data-timezone="Australia/Adelaide" data-country="AU" data-pin="0,0" data-offset="9.5" shape="poly" coords="896,330,913,330,913,364,910,362,909,359,907,357,909,359,908,358,905,357,906,355,905,353,904,356,901,356,903,355,904,351,904,348,904,350,899,354,899,356,896,354,897,354,897,353,892,347,885,346,879,346,879,330,896,330"/>
 <area data-timezone="Australia/Darwin" data-country="AU" data-pin="0,0" data-offset="9.5" shape="poly" coords="879,298,881,299,881,297,880,297,883,292,884,292,883,291,885,292,885,290,890,291,890,289,887,288,894,291,897,291,899,290,898,291,899,290,899,292,900,290,902,291,900,294,899,294,898,298,896,298,905,303,905,330,879,330,879,298"/>
 <area data-timezone="Australia/Darwin" data-country="AU" data-pin="0,0" data-offset="9.5" shape="poly" coords="913,348,913,346,916,346,915,348,913,348"/>
-<area data-timezone="Australia/Brisbane" data-country="PG" data-pin="0,0" data-offset="10" shape="poly" coords="931,283,927,278,923,277,922,278,920,277,921,279,919,278,920,279,916,279,919,280,920,282,913,282,913,263,923,267,927,270,927,272,932,273,933,275,930,275,931,277,933,279,935,282,937,282,936,283,939,284,938,284,941,285,939,286,932,285,931,283" />
+<area data-timezone="Australia/Brisbane" data-country="PG" data-pin="0,0" data-offset="10" shape="poly" coords="931,283,927,278,923,277,922,278,920,277,921,279,919,278,920,279,916,279,919,280,920,282,913,282,913,263,923,267,927,270,927,272,932,273,933,275,930,275,931,277,933,279,935,282,937,282,936,283,939,284,938,284,941,285,939,286,932,285,931,283"/>
 <area data-timezone="Australia/Brisbane" data-country="AU" data-pin="0,0" data-offset="10" shape="poly" coords="939,319,941,320,941,323,940,322,944,324,948,330,947,334,949,336,946,336,943,339,939,337,936,338,913,338,913,330,905,330,905,303,910,306,913,306,915,299,914,295,916,292,915,292,917,286,919,290,921,297,923,296,925,299,928,310,935,314,938,320,939,320,939,319"/>
-<area data-timezone="Australia/Brisbane" data-country="AU" data-pin="0,0" data-offset="10" shape="poly" coords="936,313,935,313,936,313" />
+<area data-timezone="Australia/Brisbane" data-country="AU" data-pin="0,0" data-offset="10" shape="poly" coords="936,313,935,313,936,313"/>
 <area data-timezone="Australia/Sydney" data-country="AU" data-pin="0,0" data-offset="10" shape="poly" coords="936,313,935,313,936,313"/>
 <area data-timezone="Australia/Sydney" data-country="AU" data-pin="0,0" data-offset="10" shape="poly" coords="921,369,921,369,921,369"/>
 <area data-timezone="Australia/Sydney" data-country="AU" data-pin="0,0" data-offset="10" shape="poly" coords="964,346,964,346,964,346"/>
@@ -403,4 +403,4 @@
 <area data-timezone="Pacific/Auckland" data-country="NZ" data-pin="0,0" data-offset="12" shape="poly" coords="1014,372,1011,374,1009,373,1010,370,1006,368,1008,367,1009,364,1007,360,1008,359,1007,360,1003,354,1008,356,1009,361,1011,362,1011,360,1014,364,1020,363,1018,367,1016,367,1014,372"/>
 <area data-timezone="Pacific/Fiji" data-country="FJ" data-pin="0,0" data-offset="12" shape="rect" coords="1013,310,1024,300"/>
 <area data-timezone="Pacific/Apia" data-country="WS" data-pin="0,0" data-offset="13" shape="rect" coords="10,301,20,291"/>
-<area data-timezone="Pacific/Tongatapu" data-country="TO" data-pin="0,0" data-offset="13" shape="rect" coords="2,322,12,312" />
+<area data-timezone="Pacific/Tongatapu" data-country="TO" data-pin="0,0" data-offset="13" shape="rect" coords="2,322,12,312"/>
