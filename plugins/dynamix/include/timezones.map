@@ -114,7 +114,7 @@
 <area data-timezone="America/La_Paz" data-country="AG" data-pin="0,0" data-offset="-4" shape="poly" coords="336,207,336,207,336,207"/>
 <area data-timezone="America/La_Paz" data-country="AW" data-pin="0,0" data-offset="-4" shape="poly" coords="313,220,313,221,313,220"/>
 <area data-timezone="America/La_Paz" data-country="BB" data-pin="0,0" data-offset="-4" shape="poly" coords="342,218,343,219,342,218"/>
-<area data-timezone="America/La_Paz" data-country="BR" data-pin="0,0" data-offset="-4" shape="poly" coords="341,242,341,243,343,245,341,248,342,251,344,252,345,255,341,255,340,258,338,257,336,260,334,258,334,250,330,249,328,244,333,246,334,244,339,243,339,241,341,242"/>
+<area data-timezone="America/Campo_Grande" data-country="BR" data-pin="0,0" data-offset="-4" shape="poly" coords="341,242,341,243,343,245,341,248,342,251,344,252,345,255,341,255,340,258,338,257,336,260,334,258,334,250,330,249,328,244,333,246,334,244,339,243,339,241,341,242"/>
 <area data-timezone="America/La_Paz" data-country="CW" data-pin="0,0" data-offset="-4" shape="poly" coords="316,222,315,221,316,222"/>
 <area data-timezone="America/La_Paz" data-country="DM" data-pin="0,0" data-offset="-4" shape="poly" coords="338,212,337,213,338,212"/>
 <area data-timezone="America/La_Paz" data-country="BR" data-pin="0,0" data-offset="-4" shape="poly" coords="320,283,302,276,304,275,305,271,307,269,313,268,320,283"/>

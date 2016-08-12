@@ -24,13 +24,20 @@ Current date and time:
 : <?=my_time($var['currTime'])?>
 
 Time zone:
-: <select id="edit-timezone" name="timeZone" class="map">
+: <select id="timeZone" name="timeZone" class="map">
+  <?if (file_exists("/boot/config/timezone")):?>
+  <?=mk_option($var['timeZone'], "custom", "(custom)")?>
+  <?endif;?>
   <?foreach ($keys as $key):?>
-  <?list($timezone, $info) = explode('|', $key);?>
+  <?list($timezone, $info) = explode('|', $key)?>
   <?=mk_option($var['timeZone'], $timezone, $info)?>
   <?endforeach;?>
   </select>
-  <input type="button" value="Show map" onclick="$('#picker').toggle('slow'); $(this).toggleClass('hide'); $(this).val($(this).hasClass('hide') ? 'Hide map' : 'Show map')" style="margin-top:0">
+  <input type="button" id="mapbtn" value="Show map" onclick="$('#picker').toggle('slow'); $(this).toggleClass('hide').val($(this).hasClass('hide') ? 'Hide map' : 'Show map')" style="margin-top:0">
+
+> Select your time zone. You may also define a custom time zone file and have it appear as a selection in the drop-down list.
+>
+> To do this, copy your time zone file to your flash device, with name `config/timezone`.
 
 <div id="picker" style="display:none;margin-left:124px;margin-bottom:24px">
 <img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
@@ -38,7 +45,7 @@ Time zone:
 </div>
 
 Use NTP:
-: <select name="USE_NTP" size="1" class="auto" onchange="checkDateTimeSettings(this.form)">
+: <select name="USE_NTP" size="1" class="narrow" onchange="checkDateTimeSettings(this.form)">
   <?=mk_option($var['USE_NTP'], "yes", "Yes")?>
   <?=mk_option($var['USE_NTP'], "no", "No")?>
   </select>
@@ -47,31 +54,27 @@ Use NTP:
 > We **highly** recommend the use of a network time server, especially if you plan on using Active Directory.
 
 NTP server 1:
-: <input type="text" name="NTP_SERVER1" maxlength="80" value="<?=$var['NTP_SERVER1']?>" class="narrow">
+: <input type="text" name="NTP_SERVER1" maxlength="80" value="<?=$var['NTP_SERVER1']?>">
 
 > This is the primary NTP server to use.  Enter a FQDN or an IP address.
 
 NTP server 2:
-: <input type="text" name="NTP_SERVER2" maxlength="80" value="<?=$var['NTP_SERVER2']?>" class="narrow">
+: <input type="text" name="NTP_SERVER2" maxlength="80" value="<?=$var['NTP_SERVER2']?>">
 
 > This is the alternate NTP server to use if NTP Server 1 is down.
 
 NTP server 3:
-: <input type="text" name="NTP_SERVER3" maxlength="80" value="<?=$var['NTP_SERVER3']?>" class="narrow">
+: <input type="text" name="NTP_SERVER3" maxlength="80" value="<?=$var['NTP_SERVER3']?>">
 
 > This is the alternate NTP Server to use if NTP Servers 1 and 2 are both down.
 
 New date and time:
-: <input type="text" name="newDateTime" maxlength="40" value="<?=my_time($var['currTime'], "%F %T")?>" class="narrow">
+: <input type="text" name="newDateTime" maxlength="40" value="<?=my_time($var['currTime'], "%F %T")?>">
 
 > Enter the current time-of-day.  Use format YYYY-MM-DD HH:MM:SS. Greyed out when using NTP.
->
-> Select your time zone.  You may also define a custom time zone file and have it appear as a selection
->
-> in the drop-down list. To do this, copy your time zone file to your flash device, with name `config/timezone`.
 
 &nbsp;
-: <input type="submit" name="setDateTime" value=" Apply "><input type="button" value=" Done " onclick="done()">
+: <input type="submit" name="setDateTime" value=" Apply " onclick="sticky(false)"><input type="button" value=" Done " onclick="done()">
 </form>
 
 <script>
@@ -95,7 +98,7 @@ function setArea(timezone, country, offset) {
   // buttons handler (only for this page) cause timezoner-picker triggers unwanted changes
   if (timezone != '<?=$var['timeZone']?>' && $('input[value=" Done "]').val() !== undefined) {
     $('input[value=" Apply "]').removeAttr('disabled');
-    $('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){refresh();});
+    $('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){sticky(true);});
   }
   if (offset == previous) return;
   $('area').each(function() {
@@ -115,14 +118,23 @@ function setArea(timezone, country, offset) {
   });
   previous = offset;
 }
+function sticky(renew) {
+  if ($('#mapbtn').hasClass('hide')) $.cookie('map','map',{path:'/'});
+  if (renew) refresh();
+}
 $(function() {
-  $('#globe').timezonePicker({target:'#edit-timezone', fillOpacity:0.6, stroke:false, changeHandler:setArea});
+  if ($.cookie('map')=='map') {
+    $.removeCookie('map',{path:'/'});
+    $('#mapbtn').addClass('hide').val('Hide map');
+    $('#picker').show();
+  }
   $('area').each(function(){$(this).attr('data-maphilight','{"alwaysOn":false, "fillColor":"BDF5E8"}');});
+  $('#globe').timezonePicker({target:'#timeZone', fillOpacity:0.6, stroke:false, changeHandler:setArea});
   $('input[value=" Apply "]').prop('disabled',true);
   $('form[name="datetime_settings"]').find('select,input').not('.map').each(function(){$(this).on('input change',function() {
     var form = $(this).parentsUntil('form').parent();
     form.find('input[value=" Apply "]').removeAttr('disabled');
-    form.find('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){refresh();});
+    form.find('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){sticky(true);});
   });});
   $(checkDateTimeSettings);
 });
