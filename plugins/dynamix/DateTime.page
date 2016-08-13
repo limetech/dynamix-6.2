@@ -37,7 +37,7 @@ Time zone:
 
 > Select your time zone. You may also define a custom time zone file and have it appear as a selection in the drop-down list.
 >
-> To do this, copy your time zone file to your flash device, with name `config/timezone`.
+> To do this, copy your time zone file with name **timezone** to the folder **config** on your flash device.
 
 <div id="picker" style="display:none;margin-left:123px;margin-right:123px;margin-bottom:24px" markdown="1">
 <img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
