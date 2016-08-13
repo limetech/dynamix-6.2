@@ -39,9 +39,13 @@ Time zone:
 >
 > To do this, copy your time zone file to your flash device, with name `config/timezone`.
 
-<div id="picker" style="display:none;margin-left:124px;margin-bottom:24px">
+<div id="picker" style="display:none;margin-left:123px;margin-right:123px;margin-bottom:24px" markdown="1">
 <img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
 <map name="map" id="map"><?require_once 'webGui/include/timezones.map'?></map>
+
+> The world map highlights the current selected time zone.
+>
+> Use your mouse to move over the map and click on the country for which you want to set the time zone. The appropriate zone is automatically selected in the dropdown menu.
 </div>
 
 Use NTP:
