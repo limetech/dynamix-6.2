@@ -39,7 +39,7 @@ Time zone:
 >
 > To do this, copy your time zone file with name **timezone** to the folder **config** on your flash device.
 
-<div id="picker" style="display:none;margin-left:123px;margin-right:123px;margin-bottom:24px" markdown="1">
+<div id="picker" style="display:none;margin-left:123px;margin-right:123px;" markdown="1">
 <img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
 <map name="map" id="map"><?require_once 'webGui/include/timezones.map'?></map>
 
