@@ -175,6 +175,7 @@
 <area data-timezone="Atlantic/Azores" data-country="GL" data-pin="0,0" data-offset="-1" shape="poly" coords="443,50,448,51,446,52,450,52,448,53,450,53,450,54,448,54,450,54,449,54,451,55,444,55,442,54,443,50"/>
 <area data-timezone="Atlantic/Azores" data-country="PT" data-pin="0,0" data-offset="-1" shape="rect" coords="423,156,441,138"/>
 <area data-timezone="Atlantic/Cape_Verde" data-country="CV" data-pin="0,0" data-offset="-1" shape="rect" coords="435,219,453,202"/>
+<area data-timezone="UTC" data-country="GB" data-pin="0,0" data-offset="+0" shape="rect" coords="511,0,512,512"/>
 <area data-timezone="Africa/Casablanca" data-country="CI" data-pin="0,0" data-offset="0" shape="poly" coords="494,242,491,244,491,239,488,237,488,235,489,233,489,232,490,232,489,228,494,225,494,227,497,227,500,229,503,228,505,232,503,237,504,241,494,242"/>
 <area data-timezone="Africa/Casablanca" data-country="GH" data-pin="0,0" data-offset="0" shape="poly" coords="514,240,506,243,503,242,504,241,503,237,505,233,504,225,512,224,514,232,514,237,515,238,514,240"/>
 <area data-timezone="Africa/Casablanca" data-country="ML" data-pin="0,0" data-offset="0" shape="poly" coords="499,220,499,221,497,222,496,226,494,227,494,225,492,227,490,226,489,227,488,225,487,225,488,224,486,221,482,222,479,221,480,219,477,215,479,212,481,213,485,211,496,212,493,185,498,185,515,196,517,198,521,200,521,202,524,202,524,208,522,212,510,213,504,216,502,219,501,218,499,220"/>
