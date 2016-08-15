@@ -19,29 +19,34 @@ Icon="date-time.png"
 <script src="/webGui/javascript/jquery.maphilight.js"></script>
 <script src="/webGui/javascript/jquery.timezone-picker.js"></script>
 
-<form markdown="1" name="datetime_settings" method="POST" action="/update.htm" target="progressFrame">
+<form name="datetime_settings" method="POST" action="/update.htm" target="progressFrame" markdown="1">
 Current date and time:
 : <?=my_time($var['currTime'])?>
 
 Time zone:
-: <select id="timeZone" name="timeZone" class="map">
-  <?if (file_exists("/boot/config/timezone")):?>
-  <?=mk_option($var['timeZone'], "custom", "(custom)")?>
-  <?endif;?>
-  <?foreach ($keys as $key):?>
-  <?list($timezone, $info) = explode('|', $key)?>
-  <?=mk_option($var['timeZone'], $timezone, $info)?>
-  <?endforeach;?>
-  </select>
-  <input type="button" id="mapbtn" value="Show map" onclick="$('#picker').toggle('slow'); $(this).toggleClass('hide').val($(this).hasClass('hide') ? 'Hide map' : 'Show map')" style="margin-top:0">
+: <select id="timeZone" name="timeZone" class="map"><?
+  if (file_exists("/boot/config/timezone")) {
+    $yr = date('Y') + 1;
+    $tz = exec("zdump -V -c $yr /boot/config/timezone|tail -2|grep -Po 'isdst=0 gmtoff=\K.*'");
+    $hh = strlen($tz) ? sprintf("%'.02d",floor(abs($tz)/3600)) : '??';
+    $mm = strlen($tz) ? sprintf("%'.02d",abs($tz)%3600/60) : '??';
+    $tt = $tz < 0 ? 'UTC-' : 'UTC+';
+    echo mk_option($var['timeZone'], "custom", "($tt$hh:$mm) Custom time zone");
+  }
+  foreach ($keys as $key) {
+    list($timezone, $city) = explode('|', $key);
+    echo mk_option($var['timeZone'], $timezone, $city);
+  }
+?></select>
+  <input type="button" id="knob" value="Show map" onclick="$('#box').toggle('slow'); $(this).toggleClass('hide').val($(this).hasClass('hide') ? 'Hide map' : 'Show map')" style="margin-top:0">
 
 > Select your time zone. You may also define a custom time zone file and have it appear as a selection in the drop-down list.
 >
 > To do this, copy your time zone file with name **timezone** to the folder **config** on your flash device.
 
-<div id="picker" style="display:none;margin-left:123px;margin-right:123px;" markdown="1">
-<img id="globe" src="/webGui/images/worldmap.png" usemap="#map">
-<map name="map" id="map"><?require_once 'webGui/include/timezones.map'?></map>
+<div id="box" style="display:none;margin-left:123px;margin-right:123px;" markdown="1">
+<img id="map" src="/webGui/images/worldmap.png" usemap="#map">
+<map name="map"><?require_once 'webGui/include/timezones.map'?></map>
 
 > The world map highlights the current selected time zone.
 >
@@ -82,7 +87,7 @@ New date and time:
 </form>
 
 <script>
-var previous = null;
+var focus = null;
 
 function checkDateTimeSettings() {
   form = document.datetime_settings;
@@ -104,36 +109,34 @@ function setArea(timezone, country, offset) {
     $('input[value=" Apply "]').removeAttr('disabled');
     $('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){sticky(true);});
   }
-  if (offset == previous) return;
+  if (offset==focus) return;
   $('area').each(function() {
-    if ($(this).data('offset')==previous) {
+    if ($(this).data('offset')==focus) {
       var data = $(this).data('maphilight');
       data.alwaysOn = false;
       data.fillColor = 'BDF5E8';
-      $(this).data('maphilight', data).trigger('fillColor.maphilight');
       $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
     } else if ($(this).data('offset')==offset) {
       var data = $(this).data('maphilight');
       data.alwaysOn = true;
       data.fillColor = 'FF9E9E';
-      $(this).data('maphilight', data).trigger('fillColor.maphilight');
       $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
     }
   });
-  previous = offset;
+  focus = offset;
 }
 function sticky(renew) {
-  if ($('#mapbtn').hasClass('hide')) $.cookie('map','map',{path:'/'});
+  if ($('#knob').hasClass('hide')) $.cookie('map','map',{path:'/'});
   if (renew) refresh();
 }
 $(function() {
   if ($.cookie('map')=='map') {
     $.removeCookie('map',{path:'/'});
-    $('#mapbtn').addClass('hide').val('Hide map');
-    $('#picker').show();
+    $('#knob').addClass('hide').val('Hide map');
+    $('#box').show();
   }
-  $('area').each(function(){$(this).attr('data-maphilight','{"alwaysOn":false, "fillColor":"BDF5E8"}');});
-  $('#globe').timezonePicker({target:'#timeZone', fillOpacity:0.6, stroke:false, changeHandler:setArea});
+  $('area').each(function(){$(this).attr('data-maphilight','{"alwaysOn":false,"fillColor":"BDF5E8"}');});
+  $('#map').timezonePicker({target:'#timeZone', fillOpacity:0.5, stroke:false, changeHandler:setArea});
   $('input[value=" Apply "]').prop('disabled',true);
   $('form[name="datetime_settings"]').find('select,input').not('.map').each(function(){$(this).on('input change',function() {
     var form = $(this).parentsUntil('form').parent();
