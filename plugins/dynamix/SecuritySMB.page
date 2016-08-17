@@ -77,11 +77,11 @@ Security:
 <select id="s5" name="smbClone" size="1" multiple="multiple" style="display:none">
 <?if (isset($disks[$name])):?>
 <?foreach ($disks as $list):?>
-<?if ($list['name'] != $name && ($list['type']=='Data' || $list['name']=='cache')) echo mk_option("", $list['name'], my_disk($list['name']))?>
+<?if ($list['name'] != $name && ($list['type']=='Data' || $list['name']=='cache') && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], my_disk($list['name']))?>
 <?endforeach;?>
 <?else:?>
 <?foreach ($shares as $list):?>
-<?if ($list['name'] != $name) echo mk_option("", $list['name'], $list['name'])?>
+<?if ($list['name'] != $name && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], $list['name'])?>
 <?endforeach;?>
 <?endif;?>
 </select>
@@ -101,11 +101,11 @@ Security:
 <select id="s5" name="smbClone" size="1" multiple="multiple" style="display:none">
 <?if (isset($disks[$name])):?>
 <?foreach ($disks as $list):?>
-<?if ($list['name'] != $name && ($list['type']=='Data' || $list['name']=='cache')) echo mk_option("", $list['name'], my_disk($list['name']))?>
+<?if ($list['name'] != $name && ($list['type']=='Data' || $list['name']=='cache') && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], my_disk($list['name']))?>
 <?endforeach;?>
 <?else:?>
 <?foreach ($shares as $list):?>
-<?if ($list['name'] != $name) echo mk_option("", $list['name'], $list['name'])?>
+<?if ($list['name'] != $name && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], $list['name'])?>
 <?endforeach;?>
 <?endif;?>
 </select>
