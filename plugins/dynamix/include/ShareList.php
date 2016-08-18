@@ -28,7 +28,7 @@ $display['scale']  = $_GET['scale'];
 $display['number'] = $_GET['number'];
 
 if (!$shares) {
-  echo "<tr><td colspan='8' style='text-align:center'>There are no user shares</td></tr>";
+  echo "<tr><td colspan='8' style='text-align:center'><i class='fa fa-folder-open-o icon'></i>There are no exportable user shares</td></tr>";
   exit;
 }
 
