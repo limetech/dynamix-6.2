@@ -148,7 +148,7 @@ function cloneSMB() {
       copied = true;
     }
   });
-  if (copied) swal('Clone complete','SMB security settings are cloned to the selected shares','success');
+  if (copied) swal({title:'Clone complete',text:'SMB security settings are cloned to the selected shares',type:'success'},function(){refresh();});
 }
 function cloneUser() {
   var data = {}, copied = false;
