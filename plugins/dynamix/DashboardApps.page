@@ -82,8 +82,8 @@ foreach ($allContainers as $ct) {
 	$status         = ($ct["Running"]) ? "started" : "stopped";
 
 	$Icon           = $info['icon'];
-	if ( $Icon == "#" ){
-		$Icon = "/plugins/dynamix.docker.manager/assets/images/question.png";
+	if (!$Icon) {
+		$Icon = "/plugins/dynamix.docker.manager/images/question.png";
 	}
 
 	print "

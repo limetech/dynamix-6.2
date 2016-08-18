@@ -778,7 +778,19 @@ class DockerClient {
 		global $dockerManPaths;
 		// Purge cached container information
 		$info = DockerUtil::loadJSON($dockerManPaths['webui-info']);
-		if (isset($info[$id])) unset($info[$id]);
+		if (isset($info[$id])) {
+			if (isset($info[$id]['icon'])) {
+				$iconRam = '/usr/local/emhttp'.$info[$id]['icon'];
+				$iconFlash = str_replace($dockerManPaths['images-ram'], $dockerManPaths['images-storage'], $iconRam);
+				if (is_file($iconRam)) {
+					unlink($iconRam);
+				}
+				if (is_file($iconFlash)) {
+					unlink($iconFlash);
+				}
+			}
+			unset($info[$id]);
+		}
 		DockerUtil::saveJSON($dockerManPaths['webui-info'], $info);
 		// Attempt to remove container
 		$this->getDockerJSON("/containers/${id}?force=1", "DELETE", $code);
