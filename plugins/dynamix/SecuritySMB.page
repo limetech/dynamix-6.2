@@ -124,6 +124,9 @@ $(function() {
 <?if ($tabbed):?>
   $('#tab'+$('input[name$="tabs"]').length).bind({click:function(){initDropdown2(true);}});
 <?endif;?>
+<?if (count($users)==1):?>
+  $('#cloneuser').prop('disabled',true);
+<?endif;?>
 });
 function initDropdown2(reset) {
   if (reset) {
