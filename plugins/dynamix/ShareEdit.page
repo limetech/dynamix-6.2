@@ -161,9 +161,7 @@ function cloneShare() {
 <div style="float:right">
 <span style="display:block;font-weight:bold;margin-left:2px;margin-bottom:4px">Clone destinations</span>
 <select id="s3" name="shareClone" size="1" multiple="multiple" style="display:none">
-<?foreach ($shares as $list):?>
-<?if ($list['name'] != $name) echo mk_option("", $list['name'], $list['name'])?>
-<?endforeach;?>
+<?foreach ($shares as $list) if ($list['name']!=$name) echo mk_option("", $list['name'], $list['name']);?>
 </select>
 </div>
 <?endif;?>

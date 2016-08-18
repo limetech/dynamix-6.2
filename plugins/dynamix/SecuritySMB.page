@@ -14,6 +14,11 @@ Cond="(($var['shareSMBEnabled']!='no') && (isset($name)?array_key_exists($name,$
  * all copies or substantial portions of the Software.
  */
 ?>
+<?
+function clone_list($disk) {
+  return strpos($disk['status'],'_NP')===false && ($disk['type']=='Data' || $disk['name']=='cache');
+}
+?>
 <style>
 table.settings{width:83.3%;}
 table.settings tr td:first-child{width:40%;}
@@ -21,15 +26,13 @@ table.settings tr td:first-child{width:40%;}
 <div style="float:right">
 <span style="display:block;font-weight:bold;margin-left:2px;margin-bottom:4px">Clone destinations</span>
 <select id="s4" name="smbClone" size="1" multiple="multiple" style="display:none">
-<?if (isset($disks[$name])):?>
-<?foreach ($disks as $list):?>
-<?if ($list['name'] != $name && ($list['type']=='Data' || $list['name']=='cache')) echo mk_option("", $list['name'], my_disk($list['name']))?>
-<?endforeach;?>
-<?else:?>
-<?foreach ($shares as $list):?>
-<?if ($list['name'] != $name) echo mk_option("", $list['name'], $list['name'])?>
-<?endforeach;?>
-<?endif;?>
+<?
+if (isset($disks[$name])) {
+  foreach (array_filter($disks,'clone_list') as $list) if ($list['name']!=$name) echo mk_option("", $list['name'], my_disk($list['name']));
+} else {
+  foreach ($shares as $list) if ($list['name']!=$name) echo mk_option("", $list['name'], $list['name']);
+}
+?>
 </select>
 </div>
 
@@ -75,15 +78,13 @@ Security:
 <div style="float:right">
 <span style="display:block;font-weight:bold;margin-left:2px;margin-bottom:4px">Clone destinations</span>
 <select id="s5" name="smbClone" size="1" multiple="multiple" style="display:none">
-<?if (isset($disks[$name])):?>
-<?foreach ($disks as $list):?>
-<?if ($list['name'] != $name && ($list['type']=='Data' || $list['name']=='cache') && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], my_disk($list['name']))?>
-<?endforeach;?>
-<?else:?>
-<?foreach ($shares as $list):?>
-<?if ($list['name'] != $name && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], $list['name'])?>
-<?endforeach;?>
-<?endif;?>
+<?
+if (isset($disks[$name])) {
+  foreach ($disks as $list) if ($list['name']!=$name && ($list['type']=='Data' || $list['name']=='cache') && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], my_disk($list['name']));
+} else {
+  foreach ($shares as $list) if ($list['name']!=$name && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], $list['name']);
+}
+?>
 </select>
 </div>
 <form markdown="1" method="POST" action="/update.htm" target="progressFrame" onchange="$('#cloneuser').prop('disabled',true)">
@@ -99,15 +100,13 @@ Security:
 <div style="float:right">
 <span style="display:block;font-weight:bold;margin-left:2px;margin-bottom:4px">Clone destinations</span>
 <select id="s5" name="smbClone" size="1" multiple="multiple" style="display:none">
-<?if (isset($disks[$name])):?>
-<?foreach ($disks as $list):?>
-<?if ($list['name'] != $name && ($list['type']=='Data' || $list['name']=='cache') && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], my_disk($list['name']))?>
-<?endforeach;?>
-<?else:?>
-<?foreach ($shares as $list):?>
-<?if ($list['name'] != $name && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], $list['name'])?>
-<?endforeach;?>
-<?endif;?>
+<?
+if (isset($disks[$name])) {
+  foreach (array_filter($disks,'clone_list') as $list) if ($list['name']!=$name && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], my_disk($list['name']));
+} else {
+  foreach ($shares as $list) if ($list['name']!=$name && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], $list['name']);
+}
+?>
 </select>
 </div>
 <form markdown="1" method="POST" action="/update.htm" target="progressFrame" onchange="$('#cloneuser').prop('disabled',true)">
