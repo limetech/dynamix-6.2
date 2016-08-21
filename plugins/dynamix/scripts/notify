@@ -14,6 +14,7 @@
 ?>
 <?
 require_once '/usr/local/emhttp/webGui/include/Wrappers.php';
+require_once '/usr/local/emhttp/webGui/include/Encryption.php';
 
 function usage() {
   echo <<<EOT
@@ -114,7 +115,7 @@ case 'smtp-init':
   @mkdir($unread,0755,true);
   @mkdir($archive,0755,true);
   $conf   = [];
-  $conf[] = "# Generated";
+  $conf[] = "# Generated settings:";
   $conf[] = "Root={$ssmtp['root']}";
   $domain = strtok($ssmtp['root'],'@');
   $domain = strtok('@');
@@ -126,7 +127,7 @@ case 'smtp-init':
   if ($ssmtp['AuthMethod'] != "none") {
     $conf[] = "AuthMethod={$ssmtp['AuthMethod']}";
     $conf[] = "AuthUser={$ssmtp['AuthUser']}";
-    $conf[] = "AuthPass={$ssmtp['AuthPass']}";
+    $conf[] = "AuthPass=".base64_decrypt($ssmtp['AuthPass']);
   }
   $conf[] = "";
   file_put_contents("/etc/ssmtp/ssmtp.conf", implode("\n", $conf));
