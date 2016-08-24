@@ -108,6 +108,18 @@ Excluded disk(s):
 > **Note:** Each separate User Share also includes its own set of Included and Excluded
 > disks which represent a subset of the Included/Excluded disks defined here.
 
+Tunable (enable Direct IO):
+: <select name="fuse_directio" size="1" <?=$disabled?>>
+  <?=mk_option($var['fuse_directio'], "auto", "Auto")?>
+  <?=mk_option($var['fuse_directio'], "0", "No")?>
+  <?=mk_option($var['fuse_directio'], "1", "Yes")?>
+  </select>
+
+> **Experimental**: If set to Yes then mount User Share file system with FUSE *direct_io* mount option.
+> This will increase write performance but might possibly decrease read performance.
+>
+> *Auto* selects No.
+
 &nbsp;
 : <input type="submit" name="changeShare" value="Apply" <?=$disabled?>><input type="button" value="Done" onclick="done()"><?if ($disabled):?>Array must be **Stopped** to change<?endif;?>
 
