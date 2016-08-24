@@ -16,15 +16,12 @@ Icon="date-time.png"
 ?>
 <?$keys = explode("\n", file_get_contents('webGui/include/timezones.key'));?>
 
-<script src="/webGui/javascript/jquery.maphilight.js"></script>
-<script src="/webGui/javascript/jquery.timezone-picker.js"></script>
-
-<form name="datetime_settings" method="POST" action="/update.htm" target="progressFrame" markdown="1">
+<form markdown="1" name="datetime_settings" method="POST" action="/update.htm" target="progressFrame">
 Current date and time:
 : <?=my_time($var['currTime'])?>
 
 Time zone:
-: <select id="timeZone" name="timeZone" class="map"><?
+: <select name="timeZone" size="1"><?
   if (file_exists("/boot/config/timezone")) {
     $yr = date('Y') + 1;
     $tz = exec("zdump -V -c $yr /boot/config/timezone|tail -2|grep -Po 'isdst=0 gmtoff=\K.*'");
@@ -38,20 +35,10 @@ Time zone:
     echo mk_option($var['timeZone'], $timezone, $city);
   }
 ?></select>
-  <input type="button" id="knob" value="Show map" onclick="$('#box').toggle('slow'); $(this).toggleClass('hide').val($(this).hasClass('hide') ? 'Hide map' : 'Show map')" style="margin-top:0">
 
 > Select your time zone. You may also define a custom time zone file and have it appear as a selection in the drop-down list.
 >
 > To do this, copy your time zone file with name **timezone** to the folder **config** on your flash device.
-
-<div id="box" style="display:none;margin-left:123px;margin-right:123px;" markdown="1">
-<img id="map" src="/webGui/images/worldmap.png" usemap="#map">
-<map name="map"><?require_once 'webGui/include/timezones.map'?></map>
-
-> The world map highlights the current selected time zone.
->
-> Use your mouse to move over the map and click on the country for which you want to set the time zone. The appropriate zone is automatically selected in the drop-down list.
-</div>
 
 Use NTP:
 : <select name="USE_NTP" size="1" class="narrow" onchange="checkDateTimeSettings(this.form)">
@@ -83,12 +70,10 @@ New date and time:
 > Enter the current time-of-day.  Use format YYYY-MM-DD HH:MM:SS. Greyed out when using NTP.
 
 &nbsp;
-: <input type="submit" name="setDateTime" value=" Apply " onclick="sticky(false)"><input type="button" value=" Done " onclick="done()">
+: <input type="submit" name="setDateTime" value="Apply"><input type="button" value="Done" onclick="done()">
 </form>
 
 <script>
-var focus = null;
-
 function checkDateTimeSettings() {
   form = document.datetime_settings;
   if (form.USE_NTP.value=="yes") {
@@ -103,46 +88,5 @@ function checkDateTimeSettings() {
     form.NTP_SERVER3.disabled=true;
   }
 }
-function setArea(timezone, country, offset) {
-  // buttons handler (only for this page) cause timezoner-picker triggers unwanted changes
-  if (timezone != '<?=$var['timeZone']?>' && $('input[value=" Done "]').val() !== undefined) {
-    $('input[value=" Apply "]').removeAttr('disabled');
-    $('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){sticky(true);});
-  }
-  if (offset==focus) return;
-  $('area').each(function() {
-    if ($(this).data('offset')==focus) {
-      var data = $(this).data('maphilight');
-      data.alwaysOn = false;
-      data.fillColor = 'BDF5E8';
-      $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
-    } else if ($(this).data('offset')==offset) {
-      var data = $(this).data('maphilight');
-      data.alwaysOn = true;
-      data.fillColor = 'FF9E9E';
-      $(this).data('maphilight', data).trigger('alwaysOn.maphilight');
-    }
-  });
-  focus = offset;
-}
-function sticky(renew) {
-  if ($('#knob').hasClass('hide')) $.cookie('map','map',{path:'/'});
-  if (renew) refresh();
-}
-$(function() {
-  if ($.cookie('map')=='map') {
-    $.removeCookie('map',{path:'/'});
-    $('#knob').addClass('hide').val('Hide map');
-    $('#box').show();
-  }
-  $('area').each(function(){$(this).attr('data-maphilight','{"alwaysOn":false,"fillColor":"BDF5E8"}');});
-  $('#map').timezonePicker({target:'#timeZone', fillOpacity:0.5, stroke:false, changeHandler:setArea});
-  $('input[value=" Apply "]').prop('disabled',true);
-  $('form[name="datetime_settings"]').find('select,input').not('.map').each(function(){$(this).on('input change',function() {
-    var form = $(this).parentsUntil('form').parent();
-    form.find('input[value=" Apply "]').removeAttr('disabled');
-    form.find('input[value=" Done "]').val('Reset').prop('onclick',null).click(function(){sticky(true);});
-  });});
-  $(checkDateTimeSettings);
-});
+$(checkDateTimeSettings);
 </script>
