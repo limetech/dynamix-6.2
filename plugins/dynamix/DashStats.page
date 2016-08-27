@@ -446,7 +446,7 @@ function update15() {
 <?endif;?>
 }
 function update30() {
-  var tag = $('.view1').is(':visible') ? 'main' : $('.view2').is(':visible') ? 'port' : $('.view3').is(':visible') ? 'link' : '';
+  var tag = $('.view1').css('display')!='none' ? 'main' : $('.view2').css('display')!='none' ? 'port' : $('.view3').css('display')!='none' ? 'link' : '';
   $.post('<?=$url?>',{cmd:'port',view:tag,ports:'<?=implode(',',$ports)?>'},function(data) {
     if (data) $.each(data.split('#'),function(k,v) {$('#'+tag+k).html(v);});
   });
