@@ -112,7 +112,6 @@ function active_disks($disk) {
 $disks = array_filter($disks,'active_disks');
 $slots = count($disks) + count($devs);
 ?>
-<style>a.popup:hover{text-decoration:underline;}</style>
 <link type="text/css" rel="stylesheet" href="/webGui/styles/context.standalone.css">
 <script src="/webGui/javascript/context.js"></script>
 
@@ -178,7 +177,7 @@ echo "<td>Array Status</td>".implode('',$row0);
 <tr class='wide'><td>Avg. CPU load</td><td colspan='3'><div class='usage-disk sys'><span id='cpu' style='width:0'></span></div></td></tr>
 </tbody>
 <tbody class='cpu_open' style='display:none'>
-<?if (count($cpus)>1):?><tr><td rowspan='<?=count($cpus)?>'><?else:?><tr class='wide'><td><?endif;?><a href='#' onclick='toggle_CPU()' title='Click to hide details' class='none popup'>Per CPU load</a><span class='red-text'> *</span></td>
+<?if (count($cpus)>1):?><tr><td rowspan='<?=count($cpus)?>'><?else:?><tr class='wide'><td><?endif;?><a href='#' onclick='toggle_CPU()' title='Click to hide details' class='none'>Per CPU load</a><span class='red-text'> *</span></td>
 <?
 $tr = false;
 foreach ($cpus as $pair):
@@ -202,7 +201,7 @@ foreach ($cpus as $pair):
   $text .= isset($cpu2) ? "[$cpu1/$cpu2]" : $cpu1;
 endforeach;
 ?>
-<tr class='wide'><td><a href='#' onclick='toggle_CPU()' title='Click to show details' class='none popup'>Per CPU load</a><span class='red-text'> *</span></td><td colspan='3' style='text-align:center'><?=$text?></td></tr>
+<tr class='wide'><td><a href='#' onclick='toggle_CPU()' title='Click to show details' class='none'>Per CPU load</a><span class='red-text'> *</span></td><td colspan='3' style='text-align:center'><?=$text?></td></tr>
 </tbody>
 <tbody>
 <?
