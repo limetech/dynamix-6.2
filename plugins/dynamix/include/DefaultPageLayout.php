@@ -290,7 +290,7 @@ foreach ($pages as $page) {
         if (!file_exists($icon)) { $icon = "{$pg['root']}/{$pg['Icon']}"; if (!file_exists($icon)) $icon = false; }
       }
       if (!$icon) $icon = "/webGui/images/default.png";
-      echo "<div class=\"Panel\"><a href=\"$link\" onclick=\"$.cookie('one','tab1',{path:'/'})\"><img class=\"PanelImg\" src=\"$icon\" title=\"$title\"><br><div class=\"PanelText\">$title</div></a></div>";
+      echo "<div class=\"Panel\"><a href=\"$link\" onclick=\"$.cookie('one','tab1',{path:'/'})\"><img class=\"PanelImg\" src=\"$icon\"><br><div class=\"PanelText\">$title</div></a></div>";
     }
   }
   $text = $page['text'];
