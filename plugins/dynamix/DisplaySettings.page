@@ -260,7 +260,7 @@ Temperature unit:
 Page update frequency:
 : <select name="refresh" size="1" onchange="presetPassive(this.selectedIndex)">
   <?=mk_option($display['refresh'], "0", "Disabled")?>
-  <?=mk_option($display['refresh'], $display['refresh']<0?"-1000":"1000", "Real-time")?>
+  <?=mk_option($display['refresh'], $display['refresh']<0?"-3000":"3000", "Real-time")?>
   <?=mk_option($display['refresh'], $display['refresh']<0?"-10000":"10000", "Regular")?>
   <?=mk_option($display['refresh'], $display['refresh']<0?"-60000":"60000", "Slow")?>
   </select><span id="passive"<?=$display['refresh']==0?" style='display:none'":""?>>&nbsp;<input type="checkbox" name="#passive"<?=$display['refresh']<0?' checked':''?> onchange="presetRefresh(this.form)">disable page updates while parity operation is running.</span>

@@ -205,7 +205,7 @@ $(function() {
   if ($.cookie('help')=='help') {$('.inline_help').show(); $('#nav-item.HelpButton').addClass('active');}
   $('#'+tab).attr('checked', true);
 <?if ($update):?>
-  if (update>1) timers.countDown = setTimeout(countDown,1000);
+  if (update>3) timers.countDown = setTimeout(countDown,1000);
 <?endif;?>
   updateTime();
   $.jGrowl.defaults.closer = false;

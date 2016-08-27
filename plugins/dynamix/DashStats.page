@@ -224,7 +224,9 @@ $dck = exec("df /var/lib/docker|grep -om1 '^/'");
 <td><?if ($dck):?><div class='usage-disk sys'><span id='sys3' style='width:0'></span></div><?else:?>Not available<?endif;?></td></tr>
 <tr><td rowspan='2'>Memory size</td><td>allocated</td><td colspan='2' class='blue'><?=my_scale($total,$unit,3)." $unit"?></td></tr>
 <tr><td>installed</td><td colspan='2' class='blue'><?="$memory_installed GB (max. capacity $memory_maximum GB)"?></td></tr>
-<?if (count($ports)>1):?><tr class='view1'><td rowspan='<?=count($ports)?>'><?else:?><tr class='view1 wide'><td><?endif;?>Network</td>
+</tbody>
+<tbody class='net_open' style='display:none'>
+<?if (count($ports)>1):?><tr class='view1'><td rowspan='<?=count($ports)?>'><?else:?><tr class='view1 wide'><td><?endif;?><a href='#' onclick='toggle_net()' title='Click to hide details' class='none'>Network</a><span class='red-text'> *</span></td>
 <?
 $c = 0;
 foreach ($ports as $port):
@@ -232,7 +234,7 @@ foreach ($ports as $port):
   echo "<td>$port</td><td colspan='2' class='blue' id='main".($c++)."'></td></tr>";
 endforeach;
 ?>
-<tr class='view2' style='display:none'><td rowspan='<?=count($ports)+1?>'>Network</td><td><i>Interface</i></td><td><i>Receive pkts</i></td><td><i>Transmit pkts</i></td></tr>
+<tr class='view2' style='display:none'><td rowspan='<?=count($ports)+1?>'><a href='#' onclick='toggle_net()' title='Click to hide details' class='none'>Network</a><span class='red-text'> *</span></td><td><i>Interface</i></td><td><i>Receive pkts</i></td><td><i>Transmit pkts</i></td></tr>
 <?
 $c = 0;
 foreach ($ports as $port):
@@ -240,7 +242,7 @@ foreach ($ports as $port):
   $c += 2;
 endforeach;
 ?>
-<tr class='view3' style='display:none'><td rowspan='<?=count($ports)+1?>'>Network</td><td><i>Interface</i></td><td><i>Receive</i></td><td><i>Transmit</i></td></tr>
+<tr class='view3' style='display:none'><td rowspan='<?=count($ports)+1?>'><a href='#' onclick='toggle_net()' title='Click to hide details' class='none'>Network</a><span class='red-text'> *</span></td><td><i>Interface</i></td><td><i>Receive</i></td><td><i>Transmit</i></td></tr>
 <?
 $c = 0;
 foreach ($ports as $port):
@@ -248,6 +250,16 @@ foreach ($ports as $port):
   $c += 2;
 endforeach;
 ?>
+</tbody>
+<tbody class='net_closed' style='display:none'>
+<?
+$text = '';
+foreach ($ports as $port):
+  if ($text) $text .= ", ";
+  $text .= $port;
+endforeach;
+?>
+<tr class='wide'><td><a href='#' onclick='toggle_net()' title='Click to show details' class='none'>Network</a><span class='red-text'> *</span></td><td colspan='3' style='text-align:center'><?=$text?></td></tr>
 </tbody>
 </table>
 <table class='share_status dash m0'>
@@ -434,7 +446,7 @@ function update15() {
 <?endif;?>
 }
 function update30() {
-  var tag = $('.view1').is(':visible') ? 'main' : $('.view2').is(':visible') ? 'port' : $('.view3').is(':visible') ? 'link' : '';
+  var tag = $('.view1').css('display')!='none' ? 'main' : $('.view2').css('display')!='none' ? 'port' : $('.view3').css('display')!='none' ? 'link' : '';
   $.post('<?=$url?>',{cmd:'port',view:tag,ports:'<?=implode(',',$ports)?>'},function(data) {
     if (data) $.each(data.split('#'),function(k,v) {$('#'+tag+k).html(v);});
   });
@@ -514,10 +526,23 @@ function toggle_CPU(init) {
     $('.cpu_closed').show();
   }
 }
+function toggle_net(init) {
+  if (!init) {
+    if ($.cookie('net')===undefined) $.cookie('net','close',{path:'/',expires:3650}); else $.removeCookie('net',{path:'/'});
+  }
+  if ($.cookie('net')===undefined) {
+    $('.net_open').show();
+    $('.net_closed').hide();
+  } else {
+    $('.net_open').hide();
+    $('.net_closed').show();
+  }
+}
 $(function() {
   dropdown('enter_share');
   dropdown('enter_view');
   toggle_CPU(true);
+  toggle_net(true);
   update3();
   update60();
   update30();
