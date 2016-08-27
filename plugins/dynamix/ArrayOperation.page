@@ -55,6 +55,20 @@ function parity_status() {
 <?endif;?>
   });
 }
+function parity_warning(form) {
+<?if (strpos($disks['parity2']['status'],'_NP')===false):?>
+  var text = '<i>Dual parity valid</i> requires <b>ALL</b> disks in their original slots';
+<?else:?>
+  var text = '<i>Parity valid</i> requires <b>ALL</b> disks to have their original content';
+<?endif;?>
+  $('<input>').attr({type:'hidden',name:'cmdStart',value:'submit'}).appendTo($(form));
+  if (form.md_invalidslot.checked) {
+    swal({title:'Proceed to start',text:text,html:true,type:'warning',confirmButtonText:'Proceed',confirmButtonColor:'#FFFFFF',showCancelButton:true},function(p){if (p) form.submit();});
+  } else {
+    form.submit();
+  }
+}
+
 parity_status();
 
 <?if ($update):?>
@@ -339,7 +353,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
 <?    else:?>
         <tr>
         <td><?=status_indicator()?><strong>Stopped</strong>. Configuration valid.</td>
-        <td><input type="submit" name="cmdStart" value="Start"></td>
+        <td><input type="button" value="Start" onclick="parity_warning(this.form)"></td>
         <td><strong>Start</strong> will record all disk information, bring the array on-line, and start Parity-Sync.
           <br>The array will be immediately available, but <strong>unprotected</strong> until Parity-Sync completes.
           <br><input type="checkbox" name="md_invalidslot" value="99">Parity is already valid.</td>
