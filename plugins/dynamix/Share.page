@@ -25,6 +25,7 @@ foreach ($shares as $ref) {
 $end  = count($refs)-1;
 $prev = urlencode($i>0 ? $refs[$i-1] : $refs[$end]);
 $next = urlencode($i<$end ? $refs[$i+1] : $refs[0]);
+
 ?>
 <script>
 var ctrl = "<span class='ctrl1 status vhshift'><a href='/Shares/Share?name=<?=$prev?>' title='previous user share'><button type='button' style='margin-right:4px'><i class='fa fa-chevron-left'></i></button></a><a href='/Shares/Share?name=<?=$next?>' title='next user share'><button type='button'><i class='fa fa-chevron-right'></i></button></a></span>";
@@ -37,4 +38,6 @@ $(function() {
 <?endif;?>
 });
 </script>
+<?else:?>
+<?$tabbed = false;?>
 <?endif;?>

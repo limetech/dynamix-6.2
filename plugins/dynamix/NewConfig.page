@@ -14,8 +14,8 @@ Title="New Config"
  */
 ?>
 <?
-$superdat = file_exists('/boot/config/super.dat');
-$disabled = $var['fsState']=="Started" || !$superdat ? 'disabled' : '';
+$newarray = $var['mdState']=='NEW_ARRAY';
+$disabled = $var['fsState']=="Started" || $newarray ? 'disabled' : '';
 ?>
 <style>
 span.indent{display:inline-block;width:200px;margin-top:11px;}
@@ -78,7 +78,7 @@ effect of making it ***impossible*** to rebuild an existing failed drive - you h
 <br>
 <span class="indent"><input type="submit" name="cmdInit" value=" Apply " disabled><input type="button" value=" Done " onclick="done()"></span>
 <?if ($disabled):?>
-<?=$superdat ? 'Array must be <b>STOPPED</b>' : 'Array has been <b>RESET</b> (please configure)'?>
+<?=$newarray ? 'Array has been <b>RESET</b> (please configure)' : 'Array must be <b>STOPPED</b>'?>
 <?else:?>
 <input type="checkbox" onClick="cmdInit.disabled=!this.checked"><small>Yes I want to do this</small>
 <?endif;?>

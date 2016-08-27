@@ -17,6 +17,11 @@ $var = parse_ini_file('state/var.ini');
 <link type="text/css" rel="stylesheet" href="/webGui/styles/default-fonts.css">
 <link type="text/css" rel="stylesheet" href="/webGui/styles/default-white.css">
 
+<style>
+span.key{width:82px;display:inline-block;font-weight:bold;}
+div.box{margin-top:8px;font-size:12px;line-height:30px;color:#303030;margin-left:40px;}
+</style>
+
 <script>
 // server uptime & update period
 var uptime = <?=strtok(exec("cat /proc/uptime"),' ')?>;
@@ -35,18 +40,18 @@ function updateTime() {
 </script>
 
 <body onLoad="updateTime()">
-<div style="margin-top:20px;font-size:12px;line-height:30px;color:#303030;margin-left:40px;">
-<div><span style="width:90px;display:inline-block"><strong>Model:</strong></span>
+<div class="box">
+<div><span class="key">Model:</span>
 <?
 echo empty($var['SYS_MODEL']) ? 'N/A' : "{$var['SYS_MODEL']}";
 ?>
 </div>
-<div><span style="width:90px;display:inline-block"><strong>M/B:</strong></span>
+<div><span class="key">M/B:</span>
 <?
 echo exec("dmidecode -q -t 2|awk -F: '/^\tManufacturer:/{m=$2;}; /^\tProduct Name:/{p=$2;} END{print m\" -\"p}'");
 ?>
 </div>
-<div><span style="width:90px; display:inline-block"><strong>CPU:</strong></span>
+<div><span class="key">CPU:</span>
 <?
 function write($number) {
   $words = array('zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty');
@@ -66,7 +71,7 @@ if (strpos($cpumodel,'@')===false) {
 }
 ?>
 </div>
-<div><span style="width:90px; display:inline-block"><strong>HVM:</strong></span>
+<div><span class="key">HVM:</span>
 <?
   // Check for Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support
   // If either kvm_intel or kvm_amd are loaded then Intel VT-x (vmx) or AMD-V (svm) cpu virtualzation support was found
@@ -91,7 +96,7 @@ if (strpos($cpumodel,'@')===false) {
   }
 ?>
 </div>
-<div><span style="width:90px; display:inline-block"><strong>IOMMU:</strong></span>
+<div><span class="key">IOMMU:</span>
 <?
   // Check for any IOMMU Groups
   $iommu_groups = shell_exec("find /sys/kernel/iommu_groups/ -type l");
@@ -112,7 +117,7 @@ if (strpos($cpumodel,'@')===false) {
   }
 ?>
 </div>
-<div><span style="width:90px; display:inline-block"><strong>Cache:</strong></span>
+<div><span class="key">Cache:</span>
 <?
 $cache = explode('#',exec("dmidecode -q -t 7|awk -F: '/^\tSocket Designation:/{c=c$2\";\";}; /^\tInstalled Size:/{s=s$2\";\";} END{print c\"#\"s}'"));
 $socket = array_map('trim',explode(';',$cache[0]));
@@ -129,7 +134,7 @@ for ($i=0; $i<count($socket); $i++) {
 echo $size;
 ?>
 </div>
-<div><span style="width:90px; display:inline-block"><strong>Memory:</strong></span>
+<div><span class="key">Memory:</span>
 <?
 // Memory Device (16) will get us each ram chip. By matching on MB it'll filter out Flash/Bios chips
 // Sum up all the Memory Devices to get the amount of system memory installed. Convert MB to GB
@@ -144,13 +149,13 @@ if ($memory_maximum < $memory_installed) {$memory_maximum = pow(2,ceil(log($memo
 echo "$memory_installed GB (max. installable capacity $memory_maximum GB)$star";
 ?>
 </div>
-<div><span style="width:90px; display:inline-block"><strong>Network:</strong></span>
+<div><span class="key">Network:</span>
 <?
 exec("ls /sys/class/net|grep -Po '^(bond|eth)\d+$'",$sPorts);
 $i = 0;
 foreach ($sPorts as $port) {
   $mtu = file_get_contents("/sys/class/net/$port/mtu");
-  if ($i++) echo "<br><span style='width:94px; display:inline-block'>&nbsp;</span>";
+  if ($i++) echo "<br><span class='key'></span>&nbsp;";
   if ($port=='bond0') {
     echo "$port: ".exec("grep -Pom1 '^Bonding Mode: \K.+' /proc/net/bonding/bond0").", mtu $mtu";
   } else {
@@ -161,19 +166,19 @@ foreach ($sPorts as $port) {
 }
 ?>
 </div>
-<div><span style="width:90px;display:inline-block"><strong>Kernel:</strong></span>
+<div><span class="key">Kernel:</span>
 <?$kernel = exec("uname -srm");
   echo $kernel;
 ?></div>
-<div><span style="width:90px; display:inline-block"><strong>OpenSSL:</strong></span>
+<div><span class="key">OpenSSL:</span>
 <?$openssl_ver = exec("openssl version|cut -d' ' -f2");
   echo $openssl_ver;
 ?></div>
-<div><span style="width:94px; display:inline-block"><strong>Uptime:</strong></span><span id="uptime"></span></div>
-<center><br>
+<div><span class="key">Uptime:</span>&nbsp;<span id="uptime"></span></div>
+<div><span class="key"></span>
 <input type="button" value="Close" onclick="top.Shadowbox.close()">
 <?if ($_GET['more']):?>
 <a href="<?=$_GET['more']?>" class="button" target="_parent">More</a>
 <?endif;?>
-</center>
+</div></div>
 </body>

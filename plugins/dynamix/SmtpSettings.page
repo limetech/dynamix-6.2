@@ -14,6 +14,9 @@ Title="SMTP Settings"
  */
 ?>
 <?
+require_once 'webGui/include/Encryption.php';
+
+$ssmtp['AuthPass'] = base64_decrypt($ssmtp['AuthPass']);
 $incomplete = strlen($ssmtp['root'])==0 || strlen($ssmtp['server'])==0 || strlen($ssmtp['port'])==0 || ((strlen($ssmtp['AuthUser'])==0 || strlen($ssmtp['AuthPass'])==0) && $ssmtp['AuthMethod']!='none');
 ?>
 <script>
@@ -66,6 +69,7 @@ function settings(form, data) {
 <form markdown="1" name="smtp_setup" method="POST" action="/update.php" target="progressFrame" onsubmit="return mailcheck(this)" onchange="disableTest()">
 <input type="hidden" name="#file"  value="dynamix/dynamix.cfg">
 <input type="hidden" name="#section" value="ssmtp">
+<input type="hidden" name="#include" value="/webGui/include/update.ssmtp.php">
 <input type="hidden" name="#command" value="/webGui/scripts/notify">
 <input type="hidden" name="#arg[1]" value="smtp-init">
 Preset service:
