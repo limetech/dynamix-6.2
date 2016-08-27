@@ -503,10 +503,8 @@ function dropdown(menu) {
   $(select).change();
 }
 function toggle_CPU(init) {
-  if ($.cookie('cpu')===undefined) {
-    if (!init) $.cookie('cpu','close',{path:'/',expires:3650});
-  } else {
-    if (!init) $.removeCookie('cpu',{path:'/'});
+  if (!init) {
+    if ($.cookie('cpu')===undefined) $.cookie('cpu','close',{path:'/',expires:3650}); else $.removeCookie('cpu',{path:'/'});
   }
   if ($.cookie('cpu')===undefined) {
     $('.cpu_open').show();
