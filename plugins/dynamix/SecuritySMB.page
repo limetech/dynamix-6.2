@@ -14,7 +14,29 @@ Cond="(($var['shareSMBEnabled']!='no') && (isset($name)?array_key_exists($name,$
  * all copies or substantial portions of the Software.
  */
 ?>
-<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
+<?
+function clone_list($disk) {
+  return strpos($disk['status'],'_NP')===false && ($disk['type']=='Data' || $disk['name']=='cache');
+}
+?>
+<style>
+table.settings{width:83.3%;}
+table.settings tr td:first-child{width:40%;}
+</style>
+<div style="float:right">
+<span style="display:block;font-weight:bold;margin-left:2px;margin-bottom:4px">Clone destinations</span>
+<select id="s4" name="smbClone" size="1" multiple="multiple" style="display:none">
+<?
+if (isset($disks[$name])) {
+  foreach (array_filter($disks,'clone_list') as $list) if ($list['name']!=$name) echo mk_option("", $list['name'], my_disk($list['name']));
+} else {
+  foreach ($shares as $list) if ($list['name']!=$name) echo mk_option("", $list['name'], $list['name']);
+}
+?>
+</select>
+</div>
+
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame" onchange="$('#clonesmb').prop('disabled',true)">
 <input type="hidden" name="shareName" value="<?=$name?>">
 
 Share name:
@@ -44,30 +66,116 @@ Security:
 > **Secure** All users including guests have read access, you select which of your users
 > have write access.
 >
-> **Private** No guest access at all, you select which of your users have read/write or 
+> **Private** No guest access at all, you select which of your users have read/write or
 > read-only access.
 
 &nbsp;
-: <input type="submit" name="changeShareSecurity" value="Apply"><input type="button" value="Done" onclick="done()">
+: <input type="submit" name="changeShareSecurity" value="Apply"><input type="button" value="Done" onclick="done()"><input type="button" id="clonesmb" value="Clone" onclick="cloneSMB()">
 </form>
 
 <?if ($sec[$name]['security'] == 'secure'):?>
-<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
-<input type="hidden" name="shareName" value="<?=$name?>">
 <div id="title" class="nocontrol"><dt>User Access</dt><i>Guests have <b>read-only</b> access.</i></div>
+<div style="float:right">
+<span style="display:block;font-weight:bold;margin-left:2px;margin-bottom:4px">Clone destinations</span>
+<select id="s5" name="smbClone" size="1" multiple="multiple" style="display:none">
+<?
+if (isset($disks[$name])) {
+  foreach ($disks as $list) if ($list['name']!=$name && ($list['type']=='Data' || $list['name']=='cache') && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], my_disk($list['name']));
+} else {
+  foreach ($shares as $list) if ($list['name']!=$name && $sec[$list['name']]['security']=='secure') echo mk_option("", $list['name'], $list['name']);
+}
+?>
+</select>
+</div>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame" onchange="$('#cloneuser').prop('disabled',true)">
+<input type="hidden" name="shareName" value="<?=$name?>">
 <?input_secure_users($sec);?>
 
 &nbsp;
-: <input type="submit" name="changeShareAccess" value="Apply"><input type="button" value="Done" onclick="done()">
+: <input type="submit" name="changeShareAccess" value="Apply"><input type="button" value="Done" onclick="done()"><input type="button" id="cloneuser" value="Clone" onclick="cloneUser()">
 </form>
 
 <?elseif ($sec[$name]['security'] == 'private'):?>
-<form markdown="1" method="POST" action="/update.htm" target="progressFrame">
-<input type="hidden" name="shareName" value="<?=$name?>">
 <div id="title" class="nocontrol"><dt>User Access</dt><i>Guests have <b>no</b> access.</i></div>
+<div style="float:right">
+<span style="display:block;font-weight:bold;margin-left:2px;margin-bottom:4px">Clone destinations</span>
+<select id="s5" name="smbClone" size="1" multiple="multiple" style="display:none">
+<?
+if (isset($disks[$name])) {
+  foreach (array_filter($disks,'clone_list') as $list) if ($list['name']!=$name && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], my_disk($list['name']));
+} else {
+  foreach ($shares as $list) if ($list['name']!=$name && $sec[$list['name']]['security']=='private') echo mk_option("", $list['name'], $list['name']);
+}
+?>
+</select>
+</div>
+<form markdown="1" method="POST" action="/update.htm" target="progressFrame" onchange="$('#cloneuser').prop('disabled',true)">
+<input type="hidden" name="shareName" value="<?=$name?>">
 <?input_private_users($sec);?>
 
 &nbsp;
-: <input type="submit" name="changeShareAccess" value="Apply"><input type="button" value="Done" onclick="done()">
+: <input type="submit" name="changeShareAccess" value="Apply"><input type="button" value="Done" onclick="done()"><input type="button" id="cloneuser" value="Clone" onclick="cloneUser()">
 </form>
 <?endif;?>
+
+<script>
+$(function() {
+  initDropdown2(false);
+<?if ($tabbed):?>
+  $('#tab'+$('input[name$="tabs"]').length).bind({click:function(){initDropdown2(true);}});
+<?endif;?>
+<?if (count($users)==1):?>
+  $('#cloneuser').prop('disabled',true);
+<?endif;?>
+});
+function initDropdown2(reset) {
+  if (reset) {
+    $('#s4').dropdownchecklist('destroy');
+    $('#s5').dropdownchecklist('destroy');
+  }
+  $("#s4").dropdownchecklist({emptyText:'None', width:150, explicitClose:'...close'});
+  $("#s5").dropdownchecklist({emptyText:'None', width:150, explicitClose:'...close'});
+}
+function cloneSMB() {
+  var data = {}, copied = false;
+  data['shareExport'] = '<?=$sec[$name]['export']?>';
+  data['shareSecurity'] = '<?=$sec[$name]['security']?>';
+  data['changeShareSecurity'] = 'Apply';
+  $('select#s4 option').map(function() {
+    if ($(this).prop('selected')==true) {
+      data['shareName'] = $(this).val();
+      $.post('/update.htm', data);
+      copied = true;
+    }
+  });
+  if (copied) swal({title:'Clone complete',text:'SMB security settings are cloned to the selected shares',type:'success'},function(){refresh();});
+}
+function cloneUser() {
+  var data = {}, copied = false;
+  data['userAccess.0'] = 'no-access';
+<?
+  $read_list = explode(",", $sec[$name]['readList']);
+  $write_list = explode(",", $sec[$name]['writeList']);
+  foreach ($users as $user) {
+    if ($user['name'] == "root") continue;
+    $idx = $user['idx'];
+    $userAccess = null;
+    if ($sec[$name]['security']=='secure') {
+      $userAccess = in_array($user['name'], $write_list) ? "read-write" : "read-only";
+    } elseif ($sec[$name]['security'] == 'private') {
+      $userAccess = in_array($user['name'], $write_list) ? "read-write" : (in_array($user['name'], $read_list) ? "read-only" : "no-access");
+    }
+    if ($userAccess) echo "  data['userAccess.$idx'] = '$userAccess';\n";
+  }
+?>
+  data['changeShareAccess'] = 'Apply';
+  $('select#s5 option').map(function() {
+    if ($(this).prop('selected')==true) {
+      data['shareName'] = $(this).val();
+      $.post('/update.htm', data);
+      copied = true;
+    }
+  });
+  if (copied) swal('Clone complete','User access settings are cloned to the selected shares','success');
+}
+</script>
