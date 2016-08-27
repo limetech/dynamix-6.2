@@ -3,11 +3,11 @@ html,body{font-family:arimo;font-size:12px;color:#808080;background-color:#00000
 img{border:0;text-decoration:none;vertical-align:middle;}
 p{text-align:justify;}
 p.centered{text-align:left;}
+a:hover{text-decoration:underline;}
 a{color:#486DBA;text-decoration:none;}
 a.none{color:#808080;}
 a.img{text-decoration:none;border:none;}
 a.info{position:relative;z-index:1;}
-a.info:hover{}
 a.info span{display:none;}
 a.info:hover span{display:block;white-space:nowrap;font-variant:small-caps;position:absolute;left:8px;font-size:11px;line-height:20px;color:#FFFFFF;padding:5px 8px;border:1px solid rgba(255,255,255,0.25);border-radius:3px;background-color:rgba(25,25,25,0.95);box-shadow:0 0 3px #505050;}
 a.info:hover span.left{left:-182px;}
@@ -58,7 +58,7 @@ input.trim{width:50px;}
 #nav-block #nav-item:hover{border-bottom:thick solid #478406;border-radius:5px;background:-webkit-radial-gradient(#3B3F40,#28292D);background:linear-gradient(#3B3F40,#28292D);}
 #nav-block #nav-item.active{color:#FFFFFF;border-right:thin solid #606060;border-bottom:thick solid #478406;border-radius:5px;background:-webkit-radial-gradient(#303030,#000000);background:linear-gradient(#303030,#000000);}
 #nav-block #nav-item a{color:#F0F0F0;font-style:normal;display:block;padding-left:10px;padding-right:10px;min-width:46px;}
-#nav-block #nav-item a:hover{color:#9CD670;}
+#nav-block #nav-item a:hover{color:#9CD670;text-decoration:none;}
 #nav-block #nav-item.active a{color:#FFFFFF;}
 #nav-block #nav-item.active:hover a{color:#FFFFFF;}
 .nav-button-active{color:#FFFFFF;border-right:thin solid #606060;background:-webkit-radial-gradient(#303030,#000000);background:linear-gradient(#303030,#000000);}
