@@ -55,7 +55,7 @@ function device_info(&$disk) {
     case 'grey-off': $help = 'Device not present'; break;
   }
   $status = "$ctrl<a class='info nohand' onclick='return false'><img src='/webGui/images/{$disk['color']}.png' class='icon'><span>$help</span></a>";
-  $link = strpos($disk['status'], 'DISK_NP')===false ? "<a href='$path/$type?name=$name' title='".$fancyname." Settings'>".$fancyname."</a>" : $fancyname;
+  $link = strpos($disk['status'], 'DISK_NP')===false ? "<a href='$path/$type?name=$name'>".$fancyname."</a>" : $fancyname;
   return $status.$link;
 }
 function device_browse(&$disk) {

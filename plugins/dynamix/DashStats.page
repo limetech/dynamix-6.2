@@ -175,7 +175,9 @@ echo "<td>Array Status</td>".implode('',$row0);
 </td></tr><tr><td colspan='4'><center>Load Statistics</center></td></tr></thead>
 <tbody>
 <tr class='wide'><td>Avg. CPU load</td><td colspan='3'><div class='usage-disk sys'><span id='cpu' style='width:0'></span></div></td></tr>
-<?if (count($cpus)>1):?><tr><td rowspan='<?=count($cpus)?>'><?else:?><tr class='wide'><td><?endif;?>Per CPU load</td>
+</tbody>
+<tbody class='cpu_open' style='display:none'>
+<?if (count($cpus)>1):?><tr><td rowspan='<?=count($cpus)?>'><?else:?><tr class='wide'><td><?endif;?><a href='#' onclick='toggle_CPU()' title='Click to hide details' class='none'>Per CPU load</a><span class='red-text'> *</span></td>
 <?
 $tr = false;
 foreach ($cpus as $pair):
@@ -188,6 +190,21 @@ foreach ($cpus as $pair):
   echo "</tr>";
   $tr = true;
 endforeach;
+?>
+</tbody>
+<tbody class='cpu_closed' style='display:none'>
+<?
+$text = '';
+foreach ($cpus as $pair):
+  list($cpu1, $cpu2) = preg_split('/[,-]/',$pair);
+  if ($text) $text .= ", ";
+  $text .= isset($cpu2) ? "[$cpu1/$cpu2]" : $cpu1;
+endforeach;
+?>
+<tr class='wide'><td><a href='#' onclick='toggle_CPU()' title='Click to show details' class='none'>Per CPU load</a><span class='red-text'> *</span></td><td colspan='3' style='text-align:center'><?=$text?></td></tr>
+</tbody>
+<tbody>
+<?
 if ($fans>0):
   echo $fans>2 ? "<tr><td rowspan='".ceil($fans/2)."'>" : "<tr class='wide'><td>";
   echo "FAN speed</td>";
@@ -485,9 +502,22 @@ function dropdown(menu) {
   $(select+' option')[$.cookie(menu)].selected = true;
   $(select).change();
 }
+function toggle_CPU(init) {
+  if (!init) {
+    if ($.cookie('cpu')===undefined) $.cookie('cpu','close',{path:'/',expires:3650}); else $.removeCookie('cpu',{path:'/'});
+  }
+  if ($.cookie('cpu')===undefined) {
+    $('.cpu_open').show();
+    $('.cpu_closed').hide();
+  } else {
+    $('.cpu_open').hide();
+    $('.cpu_closed').show();
+  }
+}
 $(function() {
   dropdown('enter_share');
   dropdown('enter_view');
+  toggle_CPU(true);
   update3();
   update60();
   update30();
