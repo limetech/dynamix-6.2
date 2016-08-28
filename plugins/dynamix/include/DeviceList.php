@@ -74,7 +74,7 @@ function device_desc(&$disk) {
 function assignment(&$disk) {
   global $var, $devs;
   $out = "<form method='POST' name=\"{$disk['name']}Form\" action='/update.htm' target='progressFrame'><input type='hidden' name='changeDevice' value='Apply'>";
-  $out .= "<select style=\"min-width:400px;max-width:400px\" name=\"slotId.{$disk['idx']}\" onChange=\"{$disk['name']}Form.submit()\">";
+  $out .= "<select class=\"slot\" name=\"slotId.{$disk['idx']}\" onChange=\"{$disk['name']}Form.submit()\">";
   $empty = ($disk['idSb']!='' ? 'no device' : 'unassigned');
   if ($disk['id']!='') {
     $out .= "<option value=\"{$disk['id']}\" selected>".device_desc($disk)."</option>";
