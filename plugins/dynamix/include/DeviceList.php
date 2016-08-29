@@ -68,7 +68,7 @@ function device_browse(&$disk) {
 function device_id($id) {
   $len = strlen($id);
   $wwn = substr($id,-18);
-  return (substr($wwn,0,2)!='_3' || preg_match('/.(_|-)/',$wwn)) ? $id : substr($id,0,$len-18);
+  return (substr($wwn,0,2)!='_3' || preg_match('/.[_-]/',$wwn)) ? $id : substr($id,0,$len-18);
 }
 function device_desc(&$disk) {
   global $var;
