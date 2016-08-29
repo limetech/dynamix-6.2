@@ -176,6 +176,6 @@ function cloneUser() {
       copied = true;
     }
   });
-  if (copied) swal('Clone complete','User access settings are cloned to the selected shares','success');
+  if (copied) swal({title:'Clone complete',text:'User access settings are cloned to the selected shares',type:'success'},function(){refresh();});
 }
 </script>
