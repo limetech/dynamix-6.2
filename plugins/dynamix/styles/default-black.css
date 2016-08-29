@@ -32,6 +32,7 @@ select[name=enter_share]{padding:0;float:right;}
 select option{background-color:#000000;}
 select.narrow{min-width:69px;}
 select.auto{min-width:auto;}
+select.slot{min-width:400px;max-width:400px;}
 input.narrow{width:132px;}
 input.trim{width:50px;}
 #header{height:90px;}
