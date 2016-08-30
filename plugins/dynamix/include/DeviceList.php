@@ -65,11 +65,16 @@ function device_browse(&$disk) {
     return "<a href='$path/Browse?dir=$dir'><img src='/webGui/images/explore.png' title='Browse $dir'></a>";
   }
 }
+function device_id($id) {
+  $len = strlen($id);
+  $wwn = substr($id,-18);
+  return (substr($wwn,0,2)!='_3' || preg_match('/.[_-]/',$wwn)) ? $id : substr($id,0,$len-18);
+}
 function device_desc(&$disk) {
   global $var;
   $size = my_scale($disk['size']*1024,$unit);
   $log = $var['fsState']=='Started' ? "<a href=\"#\" title=\"Disk Log Information\" onclick=\"openBox('/webGui/scripts/disk_log&arg1={$disk['device']}','Disk Log Information',600,900,false);return false\"><i class=\"fa fa-hdd-o icon\"></i></a>" : "";
-  return  "$log{$disk['id']} - $size $unit ({$disk['device']})";
+  return  $log.device_id($disk['id'])." - $size $unit ({$disk['device']})";
 }
 function assignment(&$disk) {
   global $var, $devs;
@@ -77,11 +82,11 @@ function assignment(&$disk) {
   $out .= "<select class=\"slot\" name=\"slotId.{$disk['idx']}\" onChange=\"{$disk['name']}Form.submit()\">";
   $empty = ($disk['idSb']!='' ? 'no device' : 'unassigned');
   if ($disk['id']!='') {
-    $out .= "<option value=\"{$disk['id']}\" selected>".device_desc($disk)."</option>";
+    $out .= "<option value=\"".device_id($disk['id'])."\" selected>".device_desc($disk)."</option>";
     $out .= "<option value=''>$empty</option>";
   } else
     $out .= "<option value='' selected>$empty</option>";
-  foreach ($devs as $dev) {$out .= "<option value=\"{$dev['id']}\">".device_desc($dev)."</option>";}
+  foreach ($devs as $dev) {$out .= "<option value=\"".device_id($dev['id'])."\">".device_desc($dev)."</option>";}
   return "$out</select></form>";
 }
 function fs_info(&$disk) {

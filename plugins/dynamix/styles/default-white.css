@@ -31,6 +31,7 @@ select[name=enter_view]{padding:0;float:right;}
 select[name=enter_share]{padding:0;float:right;}
 select.narrow{min-width:69px;}
 select.auto{min-width:auto;}
+select.slot{min-width:400px;max-width:400px;}
 input.narrow{width:132px;}
 input.trim{width:50px;}
 #header{height:90px;}
