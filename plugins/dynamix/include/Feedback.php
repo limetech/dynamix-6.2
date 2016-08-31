@@ -15,8 +15,9 @@ $unraid = parse_ini_file('/etc/unraid-version');
 $keyfile = trim(base64_encode(@file_get_contents($var['regFILE'])));
 
 if (array_key_exists('getdiagnostics', $_GET)) {
+    $anonymize = empty($_GET['anonymize']) ? '-a' : '';
     $diag_file = '/tmp/feedback_diagnostics_'.time().'.zip';
-    exec("/usr/local/emhttp/plugins/dynamix/scripts/diagnostics -a $diag_file");
+    exec("/usr/local/emhttp/plugins/dynamix/scripts/diagnostics $anonymize $diag_file");
     echo base64_encode(@file_get_contents($diag_file));
     @unlink($diag_file);
     exit;
@@ -55,6 +56,7 @@ input[type=email]{margin-top:8px;float:left}
 <div id="bugreport_panel" class="allpanels">
 <textarea id="bugDescription"></textarea>
 <p style="line-height:14px;margin-top:0;font-size:11px"><b>NOTE:</b> <i>Submission of this bug report will automatically send your system diagnostics to Lime Technology.</i></p>
+<label for="anonymize" style="line-height:12px"><input type="checkbox" id="anonymize" value="1" /> Anonymize diagnostics (may make troubleshooting more difficult)</label>
 <input type="email" id="bugEmail" placeholder="Contact Email Address (optional)" /><input type="button" id="bugSubmit" value="Submit"/>
 </div>
 <div id="comment_panel" class="allpanels">
@@ -109,7 +111,8 @@ function form_submit(url, params, $panel, diagnostics) {
     $('#spinner_image').fadeIn('fast');
 
     if (diagnostics) {
-        $.get('/webGui/include/Feedback.php',{getdiagnostics:1},function(data) {
+        var anonymize = $('#anonymize').is(':checked') ? '1' : '';
+        $.get('/webGui/include/Feedback.php',{getdiagnostics:1,anonymize:anonymize},function(data) {
             params.diagnostics = data;
             form_submit(url, params, $panel);
         }).fail(function() {
