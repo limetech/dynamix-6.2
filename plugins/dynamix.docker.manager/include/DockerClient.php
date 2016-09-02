@@ -170,6 +170,7 @@ class DockerTemplates {
 			}
 			if ($this->download_url($github_api['url'], "$tmp_dir.tar.gz") === false) {
 				$this->debug("\n Download ".$github_api['url']." has failed.");
+				@unlink("$tmp_dir.tar.gz");
 				return null;
 			} else {
 				@mkdir($tmp_dir, 0777, true);
