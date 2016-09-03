@@ -190,6 +190,18 @@ Table view spacing:
   <?=mk_option($display['view'], "wide", "Wide")?>
   </select>
 
+Display world-wide-name in device ID:
+: <select name="wwn" size="1">
+  <?=mk_option($display['wwn'], "0", "Disabled")?>
+  <?=mk_option($display['wwn'], "1", "Automatic")?>
+  </select>
+
+> World Wide Name (WWN) is a unique identifier used for SAS attached devices.
+>
+> Select *Disabled* to suppress the appending of WWN to the device identification
+>
+> Select "Automatic" to append WWN to the device identification in case of SAS devices
+
 Display array totals:
 : <select name="total" size="1">
   <?=mk_option($display['total'], "0", "No")?>
