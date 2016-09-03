@@ -118,7 +118,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
 <?  if ($var['fsNumUnmountable']>0):?>
       <tr>
       <td><strong>Unmountable disk<?=$var['fsNumUnmountable']==1?'':'s'?> present:</strong><br>
-<?    foreach ($disks as $disk) if ($disk['fsStatus']=='Unmountable') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+<?    foreach ($disks as $disk) if ($disk['fsStatus']=='Unmountable') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; ".my_id($disk['id'])." (".$disk['device'].")";?></td>
       <td><input type="submit" id="cmdFormat" name="cmdFormat" value="Format" disabled><input type="hidden" name="unmountable_mask" value="<?=$var['fsUnmountableMask']?>"></td>
       <td><strong>Format</strong> will create a file system in all <strong>Unmountable</strong> disks, discarding all data currently on those disks.<br>
         <input type="checkbox" name="confirmFormat" value="OFF" onClick="arrayOps.cmdFormat.disabled=!arrayOps.confirmFormat.checked"><small>Yes I want to do this</small>
@@ -364,7 +364,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
     case "UNPROTECTED_EXPANSION":?>
       <tr>
       <td><?=status_indicator()?><strong>Stopped</strong>. Found <?=my_word($var['mdNumNew'])?> new disk<?=$var['mdNumNew']==1?'':'s'?>.<br>
-<?    foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+<?    foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; ".my_id($disk['id'])." (".$disk['device'].")";?></td>
       <td><input type="submit" name="cmdStart" value="Start"></td>
       <td><strong>Start</strong> will record the new disk<?=$var['mdNumNew']==1?'':'s'?> information and bring the expanded array on-line.</td>
       </tr>
@@ -374,7 +374,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
       if ($var['mdNumErased']==$var['mdNumNew']):?>
         <tr>
         <td><?=status_indicator()?><strong>Stopped</strong>. Found <?=my_word($var['mdNumNew'])?> new erased disk<?=$var['mdNumNew']==1?'':'s'?>.<br>
-<?      foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+<?      foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; ".my_id($disk['id'])." (".$disk['device'].")";?></td>
         <td><input type="submit" name="cmdStart" value="Start" disabled></td>
         <td><strong>Start</strong> will record the new disk<?=$var['mdNumNew']==1?'':'s'?> information and bring the expanded array on-line.
         <br><input type="checkbox" name="confirmStart" value="OFF" onClick="arrayOps.cmdStart.disabled=!arrayOps.confirmStart.checked"><small>Yes I want to do this</small></td>
@@ -383,7 +383,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
       else:?>
         <tr>
         <td><?=status_indicator()?><strong>Stopped</strong>. Found <?=my_word($var['mdNumNew'])?> new disk<?=$var['mdNumNew']==1?'':'s'?>.<br>
-<?      foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+<?      foreach ($disks as $disk) if ($disk['status']=='DISK_NEW') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; ".my_id($disk['id'])." (".$disk['device'].")";?></td>
         <td><input type="submit" name="cmdClear" value="Clear" disabled></td>
         <td><strong>Clear</strong> will completely clear (set to zero) the new disk<?=$var['mdNumNew']==1?'':'s'?>.
         <br>Once clear completes, the array may be Started, expanding the array to include the new disk<?=$var['mdNumNew']==1?'':'s'?>.
@@ -434,7 +434,7 @@ $('.tabs').append("<span class='status vhshift'><input type='button' value='Refr
     case "RECORD_DISKS":?>
       <tr>
       <td><?=status_indicator()?><strong>Stopped</strong>. Two or more disks are wrong.<br>
-<?    foreach ($disks as $disk) if ($disk['status']=='DISK_WRONG') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; {$disk['id']} ({$disk['device']})";?></td>
+<?    foreach ($disks as $disk) if ($disk['status']=='DISK_WRONG') echo "<br><font color='#3B5998'>".my_disk($disk['name'])."</font> &bullet; ".my_id($disk['id'])." (".$disk['device'].")";?></td>
       <td><input type="submit" name="cmdStart" value="Start" disabled></td>
       <td><strong>Start</strong> will just record the new disk positions and bring the array on-line.
       <br>We recommend you start a Parity-Check afterwards just to be safe.

@@ -54,6 +54,12 @@ function my_disk($name) {
 function my_disks($disk) {
   return strpos($disk['status'],'_NP')===false;
 }
+function my_id($id) {
+  global $display;
+  $len = strlen($id);
+  $wwn = substr($id,-18);
+  return ($display['wwn'] || substr($wwn,0,2)!='_3' || preg_match('/.[_-]/',$wwn)) ? $id : substr($id,0,$len-18);
+}
 function my_word($num) {
   $words = array('zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty');
   return $num<count($words) ? $words[$num] : $num;
