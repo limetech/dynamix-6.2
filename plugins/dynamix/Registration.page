@@ -26,28 +26,33 @@ function my_time2($time) {
 
 <?if (strstr($var['regTy'], "error")):?>
 
-Flash GUID:
-: **Error** - <a href="https://lime-technology.com/contact" target="_blank">Contact Support</a>
+<span class='thanks red'>Error accessing your physical USB Flash boot device</span>
 
-> There is some kind of error accessing your physical USB Flash boot device.
+Flash GUID:
+: <a href="https://lime-technology.com/contact" target="_blank">Contact Support</a>
 
 <?endif;?>
 
 <?if (strstr($var['regTy'], "blacklisted")):?>
 
+<span class='thanks red'>Blacklisted USB Flash GUID</span>
+
 Flash GUID:
 : <?=$var['flashGUID'];?>
 
 &nbsp;
-: **Blacklisted** - <a href="https://lime-technology.com/contact" target="_blank">Contact Support</a>
+: <a href="https://lime-technology.com/contact" target="_blank">Contact Support</a>
 
-> Your USB Flash boot device has been *blacklisted*. This can occur as a result of transfering your key to
-> a replacement USB Flash device.  USB Flash devices may also be *blacklisted* when it is discovered that the
-> GUID is not uninque (this is common with USB card readers).
+<div markdown="1" class="remark">
+Your USB Flash boot device has been *blacklisted*. This can occur as a result of transfering your key to
+a replacement USB Flash device.<br>
+USB Flash devices may also be *blacklisted* when it is discovered the
+GUID is not uninque (this is common with USB card readers).
+</div>
 
 <?endif;?>
 
-<?if (strstr($var['regTy'], "invalid")):?>
+<?if (strstr($var['regTy'], "invalid key")):?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
 <input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
@@ -94,12 +99,40 @@ Replaceable:
 </form>
 <?endif;?>
 
+<?if (strstr($var['regTy'], "invalid installation")):?>
+<form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
+<input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
+<input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
+
+<span class='thanks red'>Invalid <em>Trial</em> Installation</span>
+
+Flash GUID:
+: <?=$var['flashGUID'];?>
+
+Registered GUID:
+: <?=$var['regGUID'];?>
+
+Registered to:
+: <big><?=$var['regTo'];?></big>
+
+Registered on:
+: <?=my_time($var['regTm']);?>
+
+Expiration:
+: <?=my_time($var['regTm2']);?>
+
+<?=$var['deviceCount'];?> Attached storage device(s)
+: <input type="submit" value="Purchase Key">
+
+</form>
+<?endif;?>
+
 <?if (strstr($var['regTy'], "missing")):?>
 <form markdown="1" method="GET" action="https://lime-technology.com/getkey" target="_blank">
 <input type="hidden" name="TrialGUID" value="<?=$var['flashGUID'];?>">
 <input type="hidden" name="deviceCount" value="<?=$var['deviceCount'];?>">
 
-<span class='thanks red'>Key file is missing.</span>
+<span class='thanks red'>Wrong or Missing Key file.</span>
 
 Flash GUID:
 : <?=$var['flashGUID'];?>
